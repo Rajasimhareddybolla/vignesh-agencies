@@ -1,0 +1,331 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/user_model.dart';
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Stream of auth state changes
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  // Get current user
+  User? get currentUser => _auth.currentUser;
+
+  // Check if user is logged in
+  bool get isLoggedIn => _auth.currentUser != null;
+
+  // Phone Auth - Send OTP
+  Future<void> sendOTP({
+    required String phoneNumber,
+    required Function(String verificationId) onCodeSent,
+    required Function(String error) onError,
+    required Function(PhoneAuthCredential credential) onAutoVerify,
+  }) async {
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          onAutoVerify(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          onError(e.message ?? 'Verification failed');
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          onCodeSent(verificationId);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          // Auto-retrieval timeout
+        },
+      );
+    } catch (e) {
+      onError(e.toString());
+    }
+  }
+
+  // Phone Auth - Verify OTP
+  Future<UserCredential?> verifyOTP({
+    required String verificationId,
+    required String otp,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: otp,
+      );
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // Create or update user document
+      if (userCredential.user != null) {
+        await _createOrUpdateUser(userCredential.user!);
+      }
+
+      return userCredential;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Bypass OTP verification - accepts 123456 for any phone number
+  // This creates a custom user session without Firebase Phone Auth
+  Future<bool> bypassOTPVerification({
+    required String phoneNumber,
+    required String otp,
+  }) async {
+    // Only accept 123456 as valid OTP
+    if (otp != '123456') {
+      return false;
+    }
+
+    try {
+      // Sign in anonymously FIRST to get permissions
+      final userCredential = await _auth.signInAnonymously();
+
+      if (userCredential.user == null) {
+        return false;
+      }
+
+      final uid = userCredential.user!.uid;
+
+      // Now check if user document exists for this anonymous user
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+
+      if (!userDoc.exists) {
+        // Create new user document
+        final newUser = UserModel(
+          id: uid,
+          displayName: 'User',
+          email: '',
+          phone: phoneNumber,
+          referralCode: UserModel.generateReferralCode(),
+          isAdmin: false,
+          createdAt: DateTime.now(),
+          lastLoginAt: DateTime.now(),
+        );
+        await _firestore
+            .collection('users')
+            .doc(uid)
+            .set(newUser.toFirestore());
+      } else {
+        // Update existing user's last login
+        await _firestore.collection('users').doc(uid).update({
+          'lastLoginAt': Timestamp.now(),
+          'phone': phoneNumber,
+        });
+      }
+
+      return true;
+    } catch (e) {
+      print('Bypass OTP error: $e');
+      return false;
+    }
+  }
+
+  // Bypass admin login - creates admin session without Firebase Email Auth
+  Future<bool> bypassAdminLogin() async {
+    try {
+      // Sign in anonymously
+      final userCredential = await _auth.signInAnonymously();
+
+      if (userCredential.user == null) {
+        return false;
+      }
+
+      final uid = userCredential.user!.uid;
+
+      // Create admin user document
+      final adminUser = UserModel(
+        id: uid,
+        displayName: 'V-Guard Admin',
+        email: 'admin@vguard.in',
+        referralCode: 'VG-ADMIN',
+        isAdmin: true,
+        createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
+      );
+
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .set(adminUser.toFirestore());
+
+      return true;
+    } catch (e) {
+      print('Bypass admin login error: $e');
+      return false;
+    }
+  }
+
+  // Email/Password Sign In (for admins)
+  Future<UserCredential?> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        // Check if user document exists, if not create it as admin
+        final userDoc = await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          // Auto-create admin document for email/password users
+          final newAdmin = UserModel(
+            id: userCredential.user!.uid,
+            displayName: userCredential.user!.displayName ?? 'Admin',
+            email: email,
+            referralCode: 'VG-ADMIN',
+            isAdmin: true,
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+          );
+          await _firestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .set(newAdmin.toFirestore());
+        } else {
+          await _updateLastLogin(userCredential.user!.uid);
+        }
+      }
+
+      return userCredential;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Email/Password Sign Up (for admins)
+  Future<UserCredential?> signUpWithEmail({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async {
+    try {
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (userCredential.user != null) {
+        await userCredential.user!.updateDisplayName(displayName);
+        await _createOrUpdateUser(
+          userCredential.user!,
+          isAdmin: true,
+          displayName: displayName,
+        );
+      }
+
+      return userCredential;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Create or update user document in Firestore
+  Future<void> _createOrUpdateUser(
+    User firebaseUser, {
+    bool isAdmin = false,
+    String? displayName,
+  }) async {
+    final userRef = _firestore.collection('users').doc(firebaseUser.uid);
+    final userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+      // Create new user document
+      final newUser = UserModel(
+        id: firebaseUser.uid,
+        displayName: displayName ?? firebaseUser.displayName ?? 'User',
+        email: firebaseUser.email ?? '',
+        photoUrl: firebaseUser.photoURL,
+        phone: firebaseUser.phoneNumber,
+        referralCode: UserModel.generateReferralCode(),
+        isAdmin: isAdmin,
+        createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
+      );
+      await userRef.set(newUser.toFirestore());
+    } else {
+      // Update last login
+      await userRef.update({
+        'lastLoginAt': Timestamp.now(),
+        if (firebaseUser.phoneNumber != null) 'phone': firebaseUser.phoneNumber,
+      });
+    }
+  }
+
+  Future<void> _updateLastLogin(String uid) async {
+    await _firestore.collection('users').doc(uid).update({
+      'lastLoginAt': Timestamp.now(),
+    });
+  }
+
+  // Get user model from Firestore
+  Future<UserModel?> getUserModel() async {
+    if (currentUser == null) return null;
+
+    final doc = await _firestore
+        .collection('users')
+        .doc(currentUser!.uid)
+        .get();
+    if (doc.exists) {
+      return UserModel.fromFirestore(doc);
+    }
+    return null;
+  }
+
+  // Stream of user model
+  Stream<UserModel?> userModelStream() {
+    if (currentUser == null) {
+      return Stream.value(null);
+    }
+
+    return _firestore
+        .collection('users')
+        .doc(currentUser!.uid)
+        .snapshots()
+        .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
+  }
+
+  // Check if current user is admin
+  Future<bool> isCurrentUserAdmin() async {
+    final userModel = await getUserModel();
+    return userModel?.isAdmin ?? false;
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    await _auth.signOut();
+  }
+
+  // Password reset
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  // Update user profile
+  Future<void> updateUserProfile({String? displayName, String? phone}) async {
+    if (currentUser == null) return;
+
+    final updates = <String, dynamic>{};
+    if (displayName != null) updates['displayName'] = displayName;
+    if (phone != null) updates['phone'] = phone;
+
+    if (updates.isNotEmpty) {
+      await _firestore
+          .collection('users')
+          .doc(currentUser!.uid)
+          .update(updates);
+    }
+
+    if (displayName != null) {
+      await currentUser!.updateDisplayName(displayName);
+    }
+  }
+}

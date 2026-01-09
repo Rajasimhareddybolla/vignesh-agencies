@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "683528535970",
+    "project_id": "freelancing-c82c1",
+    "storage_bucket": "freelancing-c82c1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:683528535970:android:cf3ab0982ab0b885b53cfb",
+        "android_client_info": {
+          "package_name": "com.vguard.vguard_service_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "683528535970-mc7cnstfln3f2t3av5vi5qbrcsq41ghp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCofRwCXYe32xcu2jzGk30_AtlfutiJZAM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "683528535970-mc7cnstfln3f2t3av5vi5qbrcsq41ghp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
