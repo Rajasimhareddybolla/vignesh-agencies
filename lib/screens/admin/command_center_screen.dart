@@ -1,375 +1,508 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../widgets/common/premium_widgets.dart';
 
-class CommandCenterScreen extends StatelessWidget {
+class CommandCenterScreen extends StatefulWidget {
   const CommandCenterScreen({super.key});
+
+  @override
+  State<CommandCenterScreen> createState() => _CommandCenterScreenState();
+}
+
+class _CommandCenterScreenState extends State<CommandCenterScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _headerAnimationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _headerAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _headerAnimationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final firestoreService = context.read<FirestoreService>();
 
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Command Center',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                  _AdminAvatar(),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          HapticFeedback.mediumImpact();
+          setState(() {});
+          await Future.delayed(const Duration(seconds: 1));
+        },
+        color: AppTheme.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: [
+            // Premium Header
+            SliverToBoxAdapter(
+              child: FadeTransition(
+                opacity: _headerAnimationController,
+                child: _buildPremiumHeader(context),
               ),
-              
-              const SizedBox(height: 32),
-              
-              // Stats Cards
-              FutureBuilder<Map<String, dynamic>>(
+            ),
+
+            // Stats Grid
+            SliverToBoxAdapter(
+              child: FutureBuilder<Map<String, dynamic>>(
                 future: firestoreService.getDashboardStats(),
                 builder: (context, snapshot) {
                   final stats = snapshot.data ?? {};
-                  
-                  return Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              title: 'Pending Requests',
-                              value: '${stats['pendingRequests'] ?? 0}',
-                              icon: Icons.build_circle,
-                              color: AppTheme.warning,
-                              onTap: () => context.goNamed('admin-requests'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _StatCard(
-                              title: 'Pending Registrations',
-                              value: '${stats['pendingRegistrations'] ?? 0}',
-                              icon: Icons.verified,
-                              color: AppTheme.primary,
-                              onTap: () => context.goNamed('admin-warranty'),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatCard(
-                              title: 'Total Users',
-                              value: '${stats['totalUsers'] ?? 0}',
-                              icon: Icons.people,
-                              color: AppTheme.success,
-                              onTap: () {},
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _StatCard(
-                              title: 'Pending Payouts',
-                              value: '₹${NumberFormat('#,##0').format(stats['pendingPayouts'] ?? 0)}',
-                              icon: Icons.payments,
-                              color: const Color(0xFF8B5CF6),
-                              onTap: () => context.goNamed('admin-payouts'),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Quick Actions
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.build,
-                      label: 'Service Requests',
-                      onTap: () => context.goNamed('admin-requests'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.verified_user,
-                      label: 'Warranty Validation',
-                      onTap: () => context.goNamed('admin-warranty'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _QuickActionButton(
-                      icon: Icons.analytics,
-                      label: 'Reports',
-                      onTap: () => context.goNamed('admin-reports'),
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 32),
-              
-              // Recent Activity
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Recent Activity',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.goNamed('admin-requests'),
-                    child: const Text('View All'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              
-              StreamBuilder<List<Map<String, dynamic>>>(
-                stream: firestoreService.getRecentActivity(limit: 5),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-
-                  final activities = snapshot.data ?? [];
-
-                  if (activities.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                        border: Border.all(color: AppTheme.borderLight),
-                      ),
-                      child: Center(
-                        child: Column(
+                  return Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Icon(
-                              Icons.inbox_outlined,
-                              size: 48,
-                              color: AppTheme.textSecondaryLight.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 16),
                             Text(
-                              'No recent activity',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                              'Dashboard',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.success.withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  PulsingDot(color: AppTheme.success, size: 6),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'LIVE',
+                                    style: TextStyle(
+                                      color: AppTheme.success,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  }
-
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: AppTheme.borderLight),
-                    ),
-                    child: Column(
-                      children: activities.asMap().entries.map((entry) {
-                        final activity = entry.value;
-                        final isLast = entry.key == activities.length - 1;
-                        
-                        return Column(
+                        const SizedBox(height: 16),
+                        Row(
                           children: [
-                            _ActivityItem(
-                              title: activity['title'] ?? '',
-                              description: activity['description'] ?? '',
-                              status: activity['status'] ?? '',
-                              timestamp: activity['timestamp'] as DateTime,
+                            Expanded(
+                              child: StaggeredFadeIn(
+                                index: 0,
+                                child: _PremiumStatCard(
+                                  title: 'Pending Requests',
+                                  value:
+                                      (stats['pendingRequests'] as num?)
+                                          ?.toInt() ??
+                                      0,
+                                  icon: Icons.build_circle,
+                                  color: AppTheme.warning,
+                                  onTap: () =>
+                                      context.goNamed('admin-requests'),
+                                ),
+                              ),
                             ),
-                            if (!isLast) const Divider(height: 1),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StaggeredFadeIn(
+                                index: 1,
+                                child: _PremiumStatCard(
+                                  title: 'Registrations',
+                                  value:
+                                      (stats['pendingRegistrations'] as num?)
+                                          ?.toInt() ??
+                                      0,
+                                  icon: Icons.verified,
+                                  color: AppTheme.primary,
+                                  onTap: () =>
+                                      context.goNamed('admin-warranty'),
+                                ),
+                              ),
+                            ),
                           ],
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StaggeredFadeIn(
+                                index: 2,
+                                child: _PremiumStatCard(
+                                  title: 'Total Users',
+                                  value:
+                                      (stats['totalUsers'] as num?)?.toInt() ??
+                                      0,
+                                  icon: Icons.people,
+                                  color: AppTheme.success,
+                                  onTap: () {},
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: StaggeredFadeIn(
+                                index: 3,
+                                child: _PremiumStatCard(
+                                  title: 'Payouts',
+                                  value:
+                                      (stats['pendingPayouts'] as num?)
+                                          ?.toInt() ??
+                                      0,
+                                  prefix: '₹',
+                                  icon: Icons.payments,
+                                  color: const Color(0xFF8B5CF6),
+                                  onTap: () => context.goNamed('admin-payouts'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   );
                 },
               ),
-            ],
-          ),
+            ),
+
+            // Quick Actions
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Quick Actions',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildQuickActions(context),
+                  ],
+                ),
+              ),
+            ),
+
+            // Recent Activity
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Recent Activity',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => context.goNamed('admin-requests'),
+                      icon: const Icon(Icons.visibility, size: 18),
+                      label: const Text('View All'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: firestoreService.getRecentActivity(limit: 5),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SliverToBoxAdapter(
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                  );
+                }
+
+                final activities = snapshot.data ?? [];
+
+                if (activities.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: _buildEmptyActivity(context),
+                  );
+                }
+
+                return SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => StaggeredFadeIn(
+                        index: index,
+                        child: _PremiumActivityCard(
+                          activity: activities[index],
+                        ),
+                      ),
+                      childCount: activities.length,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _AdminAvatar extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildPremiumHeader(BuildContext context) {
     final authService = context.read<AuthService>();
-    
-    return PopupMenuButton<String>(
-      offset: const Offset(0, 48),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+    final greeting = _getGreeting();
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 16,
+        20,
+        24,
       ),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'profile',
-          child: Row(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF1a1a2e),
+            const Color(0xFF16213e),
+            AppTheme.primary.withAlpha(50),
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Decorative elements
+          Positioned(
+            right: -40,
+            top: -40,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primary.withAlpha(20),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -30,
+            bottom: -30,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withAlpha(5),
+              ),
+            ),
+          ),
+          // Content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.person_outline, size: 20),
-              const SizedBox(width: 12),
-              Text('Profile', style: Theme.of(context).textTheme.bodyMedium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withAlpha(40),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.admin_panel_settings,
+                                    color: AppTheme.primaryLight,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'ADMIN',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryLight,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          greeting,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white.withAlpha(180)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Command Center',
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          DateFormat(
+                            'EEEE, MMMM d, yyyy',
+                          ).format(DateTime.now()),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white.withAlpha(120)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _AdminAvatar(),
+                ],
+              ),
             ],
           ),
-        ),
-        PopupMenuItem(
-          value: 'settings',
-          child: Row(
-            children: [
-              const Icon(Icons.settings_outlined, size: 20),
-              const SizedBox(width: 12),
-              Text('Settings', style: Theme.of(context).textTheme.bodyMedium),
-            ],
-          ),
-        ),
-        const PopupMenuDivider(),
-        PopupMenuItem(
-          value: 'logout',
-          child: Row(
-            children: [
-              const Icon(Icons.logout, size: 20, color: AppTheme.error),
-              const SizedBox(width: 12),
-              Text('Logout', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppTheme.error)),
-            ],
-          ),
-        ),
-      ],
-      onSelected: (value) async {
-        if (value == 'logout') {
-          await authService.signOut();
-          if (context.mounted) {
-            context.go('/login');
-          }
-        }
-      },
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: AppTheme.primary,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const Icon(
-          Icons.admin_panel_settings,
-          color: Colors.white,
-        ),
+        ],
       ),
     );
   }
-}
 
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning 👋';
+    if (hour < 17) return 'Good Afternoon ☀️';
+    return 'Good Evening 🌙';
+  }
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  Widget _buildQuickActions(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        children: [
+          _PremiumQuickAction(
+            icon: Icons.build,
+            label: 'Service\nRequests',
+            color: AppTheme.warning,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-requests');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.verified_user,
+            label: 'Warranty\nValidation',
+            color: AppTheme.primary,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-warranty');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.payments,
+            label: 'Payout\nManager',
+            color: const Color(0xFF8B5CF6),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-payouts');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.analytics,
+            label: 'View\nReports',
+            color: AppTheme.success,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-reports');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.campaign,
+            label: 'Send\nNotification',
+            color: const Color(0xFFEC4899),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-notifications');
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
+  Widget _buildEmptyActivity(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           border: Border.all(color: AppTheme.borderLight),
-          boxShadow: AppTheme.cardShadow,
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                Icon(
-                  Icons.arrow_forward,
-                  color: AppTheme.textSecondaryLight.withOpacity(0.5),
-                  size: 20,
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                size: 48,
+                color: AppTheme.primary,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              'No recent activity',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(
-              title,
+              'Activity will appear here as users interact',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppTheme.textSecondaryLight,
               ),
@@ -381,14 +514,229 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _QuickActionButton extends StatelessWidget {
+class _AdminAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final authService = context.read<AuthService>();
+
+    return PopupMenuButton<String>(
+      offset: const Offset(0, 48),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
+      elevation: 8,
+      itemBuilder: (context) => [
+        _buildMenuItem(context, 'profile', Icons.person_outline, 'Profile'),
+        _buildMenuItem(
+          context,
+          'settings',
+          Icons.settings_outlined,
+          'Settings',
+        ),
+        const PopupMenuDivider(),
+        _buildMenuItem(
+          context,
+          'logout',
+          Icons.logout,
+          'Logout',
+          isDestructive: true,
+        ),
+      ],
+      onSelected: (value) async {
+        if (value == 'logout') {
+          HapticFeedback.mediumImpact();
+          await authService.signOut();
+          if (context.mounted) {
+            context.go('/login');
+          }
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: const LinearGradient(
+            colors: [AppTheme.primary, AppTheme.primaryLight],
+          ),
+        ),
+        child: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1a1a2e),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.admin_panel_settings,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+      ),
+    );
+  }
+
+  PopupMenuItem<String> _buildMenuItem(
+    BuildContext context,
+    String value,
+    IconData icon,
+    String label, {
+    bool isDestructive = false,
+  }) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isDestructive ? AppTheme.error : AppTheme.textPrimaryLight,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDestructive ? AppTheme.error : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumStatCard extends StatefulWidget {
+  final String title;
+  final int value;
+  final String? prefix;
   final IconData icon;
-  final String label;
+  final Color color;
   final VoidCallback onTap;
 
-  const _QuickActionButton({
+  const _PremiumStatCard({
+    required this.title,
+    required this.value,
+    this.prefix,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  State<_PremiumStatCard> createState() => _PremiumStatCardState();
+}
+
+class _PremiumStatCardState extends State<_PremiumStatCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        HapticFeedback.lightImpact();
+        widget.onTap();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: 1 - (_controller.value * 0.02),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.borderLight),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.color.withAlpha(
+                      (30 + _controller.value * 50).toInt(),
+                    ),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              widget.color.withAlpha(40),
+                              widget.color.withAlpha(20),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(widget.icon, color: widget.color, size: 22),
+                      ),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: AppTheme.textSecondaryLight.withAlpha(100),
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  AnimatedCounter(
+                    value: widget.value,
+                    prefix: widget.prefix,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PremiumQuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _PremiumQuickAction({
     required this.icon,
     required this.label,
+    required this.color,
     required this.onTap,
   });
 
@@ -397,27 +745,33 @@ class _QuickActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        width: 100,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppTheme.borderLight),
         ),
         child: Column(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [color.withAlpha(40), color.withAlpha(20)],
+                ),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: AppTheme.primary, size: 22),
+              child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               label,
-              style: Theme.of(context).textTheme.labelMedium,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -427,31 +781,41 @@ class _QuickActionButton extends StatelessWidget {
   }
 }
 
-class _ActivityItem extends StatelessWidget {
-  final String title;
-  final String description;
-  final String status;
-  final DateTime timestamp;
+class _PremiumActivityCard extends StatelessWidget {
+  final Map<String, dynamic> activity;
 
-  const _ActivityItem({
-    required this.title,
-    required this.description,
-    required this.status,
-    required this.timestamp,
-  });
+  const _PremiumActivityCard({required this.activity});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.borderLight),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primary.withAlpha(30),
+                  AppTheme.primaryLight.withAlpha(20),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.build_outlined,
@@ -459,19 +823,20 @@ class _ActivityItem extends StatelessWidget {
               size: 20,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  activity['title'] ?? 'Activity',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  description,
+                  activity['description'] ?? '',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppTheme.textSecondaryLight,
                   ),
@@ -483,24 +848,27 @@ class _ActivityItem extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: AppTheme.warningLight,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                  color: _getStatusColor(activity['status']).withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  status,
+                  activity['status'] ?? '',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.warning,
+                    color: _getStatusColor(activity['status']),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
-                _getTimeAgo(timestamp),
+                _getTimeAgo(activity['timestamp'] as DateTime?),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondaryLight.withAlpha(150),
                   fontSize: 11,
                 ),
               ),
@@ -511,18 +879,29 @@ class _ActivityItem extends StatelessWidget {
     );
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return AppTheme.warning;
+      case 'assigned':
+        return AppTheme.primary;
+      case 'resolved':
+        return AppTheme.success;
+      case 'escalated':
+        return AppTheme.error;
+      default:
+        return AppTheme.textSecondaryLight;
+    }
+  }
+
+  String _getTimeAgo(DateTime? dateTime) {
+    if (dateTime == null) return '';
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return DateFormat('MMM d').format(dateTime);
-    }
+    if (difference.inMinutes < 1) return 'Just now';
+    if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
+    if (difference.inHours < 24) return '${difference.inHours}h ago';
+    return DateFormat('MMM d').format(dateTime);
   }
 }

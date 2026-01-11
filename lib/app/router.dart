@@ -23,6 +23,7 @@ import '../screens/admin/service_request_detail_screen.dart';
 import '../screens/admin/warranty_validation_screen.dart';
 import '../screens/admin/payout_manager_screen.dart';
 import '../screens/admin/reports_screen.dart';
+import '../screens/admin/send_notification_screen.dart';
 import '../services/auth_service.dart';
 
 class AppRouter {
@@ -195,6 +196,12 @@ class AppRouter {
             name: 'admin-reports',
             pageBuilder: (context, state) =>
                 const NoTransitionPage(child: ReportsScreen()),
+          ),
+          GoRoute(
+            path: '/admin/notifications',
+            name: 'admin-notifications',
+            pageBuilder: (context, state) =>
+                const NoTransitionPage(child: SendNotificationScreen()),
           ),
         ],
       ),
