@@ -4,7 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../models/user_model.dart';
+import '../../models/product_model.dart';
+import '../../models/service_request_model.dart';
+import '../../models/referral_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -282,6 +286,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildStatsCard(BuildContext context) {
+    final authService = context.read<AuthService>();
+    final firestoreService = context.read<FirestoreService>();
+    final userId = authService.currentUser?.uid;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Container(
@@ -312,11 +320,20 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           child: Row(
             children: [
-              _StatItem(
-                icon: Icons.inventory_2,
-                label: 'Products',
-                value: '3',
-                color: AppTheme.primary,
+              // Products count
+              StreamBuilder<List<ProductModel>>(
+                stream: userId != null
+                    ? firestoreService.getUserProducts(userId)
+                    : Stream.value([]),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return _StatItem(
+                    icon: Icons.inventory_2,
+                    label: 'Products',
+                    value: '$count',
+                    color: AppTheme.primary,
+                  );
+                },
               ),
               Container(
                 width: 1,
@@ -333,11 +350,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
               ),
-              _StatItem(
-                icon: Icons.build_circle,
-                label: 'Requests',
-                value: '2',
-                color: AppTheme.warning,
+              // Requests count
+              StreamBuilder<List<ServiceRequestModel>>(
+                stream: userId != null
+                    ? firestoreService.getUserServiceRequests(userId)
+                    : Stream.value([]),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return _StatItem(
+                    icon: Icons.build_circle,
+                    label: 'Requests',
+                    value: '$count',
+                    color: AppTheme.warning,
+                  );
+                },
               ),
               Container(
                 width: 1,
@@ -354,11 +380,20 @@ class _ProfileScreenState extends State<ProfileScreen>
                   ),
                 ),
               ),
-              _StatItem(
-                icon: Icons.people,
-                label: 'Referrals',
-                value: '5',
-                color: AppTheme.success,
+              // Referrals count
+              StreamBuilder<List<ReferralModel>>(
+                stream: userId != null
+                    ? firestoreService.getUserReferrals(userId)
+                    : Stream.value([]),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return _StatItem(
+                    icon: Icons.people,
+                    label: 'Referrals',
+                    value: '$count',
+                    color: AppTheme.success,
+                  );
+                },
               ),
             ],
           ),

@@ -542,12 +542,22 @@ class _AdminAvatar extends StatelessWidget {
         ),
       ],
       onSelected: (value) async {
-        if (value == 'logout') {
-          HapticFeedback.mediumImpact();
-          await authService.signOut();
-          if (context.mounted) {
-            context.go('/login');
-          }
+        HapticFeedback.mediumImpact();
+        switch (value) {
+          case 'profile':
+            // Navigate to admin profile/edit profile
+            context.push('/edit-profile');
+            break;
+          case 'settings':
+            // Navigate to profile which has settings
+            context.push('/profile');
+            break;
+          case 'logout':
+            await authService.signOut();
+            if (context.mounted) {
+              context.go('/login');
+            }
+            break;
         }
       },
       child: Container(
