@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../models/service_request_model.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
@@ -84,20 +85,23 @@ class _RequestsListScreenState extends State<RequestsListScreen>
               ),
             ),
           ],
-          body: StreamBuilder<List<ServiceRequestModel>>(
-            stream: authService.currentUser != null
-                ? firestoreService.getUserServiceRequests(
-                    authService.currentUser!.uid,
-                  )
-                : Stream.value([]),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          body: StreamBuilder<UserModel?>(
+            stream: authService.userModelStream(),
+            builder: (context, userSnapshot) {
+              final effectiveUserId = userSnapshot.data?.id ?? authService.currentUser?.uid;
 
-              final allRequests = snapshot.data ?? [];
-              final activeRequests = allRequests
-                  .where(
+              return StreamBuilder<List<ServiceRequestModel>>(
+                stream: effectiveUserId != null
+                    ? firestoreService.getUserServiceRequests(effectiveUserId)
+                    : Stream.value([]),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final allRequests = snapshot.data ?? [];
+                  final activeRequests = allRequests
+                      .where(
                     (r) =>
                         r.status == ServiceRequestStatus.pending ||
                         r.status == ServiceRequestStatus.assigned ||
@@ -121,7 +125,9 @@ class _RequestsListScreenState extends State<RequestsListScreen>
                 ],
               );
             },
-          ),
+          );
+        },
+      ),
         ),
       ),
     );
@@ -420,13 +426,13 @@ class _PremiumRequestCard extends StatelessWidget {
       case ServiceRequestStatus.assigned:
         return AppTheme.primary;
       case ServiceRequestStatus.inProgress:
-        return const Color(0xFF2E7D32);
+        return AppTheme.infoDark;
       case ServiceRequestStatus.resolved:
         return AppTheme.success;
       case ServiceRequestStatus.escalated:
         return AppTheme.error;
       case ServiceRequestStatus.cancelled:
-        return Colors.grey;
+        return AppTheme.neutral;
     }
   }
 }
@@ -454,8 +460,8 @@ class _PremiumStatusBadge extends StatelessWidget {
         icon = Icons.person;
         break;
       case ServiceRequestStatus.inProgress:
-        backgroundColor = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF2E7D32);
+        backgroundColor = AppTheme.infoLight;
+        textColor = AppTheme.infoDark;
         icon = Icons.build;
         break;
       case ServiceRequestStatus.resolved:
@@ -469,8 +475,8 @@ class _PremiumStatusBadge extends StatelessWidget {
         icon = Icons.warning;
         break;
       case ServiceRequestStatus.cancelled:
-        backgroundColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade600;
+        backgroundColor = AppTheme.neutralLight;
+        textColor = AppTheme.neutral;
         icon = Icons.cancel;
         break;
     }

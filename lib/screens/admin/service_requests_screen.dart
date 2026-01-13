@@ -10,10 +10,12 @@ class AdminServiceRequestsScreen extends StatefulWidget {
   const AdminServiceRequestsScreen({super.key});
 
   @override
-  State<AdminServiceRequestsScreen> createState() => _AdminServiceRequestsScreenState();
+  State<AdminServiceRequestsScreen> createState() =>
+      _AdminServiceRequestsScreenState();
 }
 
-class _AdminServiceRequestsScreenState extends State<AdminServiceRequestsScreen> {
+class _AdminServiceRequestsScreenState
+    extends State<AdminServiceRequestsScreen> {
   ServiceRequestStatus? _filterStatus;
 
   @override
@@ -21,123 +23,146 @@ class _AdminServiceRequestsScreenState extends State<AdminServiceRequestsScreen>
     final firestoreService = context.read<FirestoreService>();
 
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Service Requests',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage and track all service requests',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: 'All',
-                    isSelected: _filterStatus == null,
-                    onTap: () => setState(() => _filterStatus = null),
-                  ),
-                  _FilterChip(
-                    label: 'Pending',
-                    isSelected: _filterStatus == ServiceRequestStatus.pending,
-                    onTap: () => setState(() => _filterStatus = ServiceRequestStatus.pending),
-                  ),
-                  _FilterChip(
-                    label: 'Assigned',
-                    isSelected: _filterStatus == ServiceRequestStatus.assigned,
-                    onTap: () => setState(() => _filterStatus = ServiceRequestStatus.assigned),
-                  ),
-                  _FilterChip(
-                    label: 'In Progress',
-                    isSelected: _filterStatus == ServiceRequestStatus.inProgress,
-                    onTap: () => setState(() => _filterStatus = ServiceRequestStatus.inProgress),
-                  ),
-                  _FilterChip(
-                    label: 'Resolved',
-                    isSelected: _filterStatus == ServiceRequestStatus.resolved,
-                    onTap: () => setState(() => _filterStatus = ServiceRequestStatus.resolved),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Requests List
-            Expanded(
-              child: StreamBuilder<List<ServiceRequestModel>>(
-                stream: firestoreService.getAllServiceRequests(filterStatus: _filterStatus),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Admin Gradient Header
+          _buildHeader(context),
 
-                  final requests = snapshot.data ?? [];
-
-                  if (requests.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.inbox_outlined,
-                            size: 64,
-                            color: AppTheme.textSecondaryLight.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No requests found',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textSecondaryLight,
-                            ),
-                          ),
-                        ],
+          // Filter Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: 'All',
+                  isSelected: _filterStatus == null,
+                  onTap: () => setState(() => _filterStatus = null),
+                ),
+                _FilterChip(
+                  label: 'Pending',
+                  isSelected: _filterStatus == ServiceRequestStatus.pending,
+                  onTap:
+                      () => setState(
+                        () => _filterStatus = ServiceRequestStatus.pending,
                       ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                    itemCount: requests.length,
-                    itemBuilder: (context, index) {
-                      final request = requests[index];
-                      return _RequestRow(
-                        request: request,
-                        onTap: () {
-                          context.pushNamed(
-                            'admin-request-detail',
-                            pathParameters: {'requestId': request.id},
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+                ),
+                _FilterChip(
+                  label: 'Assigned',
+                  isSelected: _filterStatus == ServiceRequestStatus.assigned,
+                  onTap:
+                      () => setState(
+                        () => _filterStatus = ServiceRequestStatus.assigned,
+                      ),
+                ),
+                _FilterChip(
+                  label: 'In Progress',
+                  isSelected: _filterStatus == ServiceRequestStatus.inProgress,
+                  onTap:
+                      () => setState(
+                        () => _filterStatus = ServiceRequestStatus.inProgress,
+                      ),
+                ),
+                _FilterChip(
+                  label: 'Resolved',
+                  isSelected: _filterStatus == ServiceRequestStatus.resolved,
+                  onTap:
+                      () => setState(
+                        () => _filterStatus = ServiceRequestStatus.resolved,
+                      ),
+                ),
+              ],
             ),
-          ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Requests List
+          Expanded(
+            child: StreamBuilder<List<ServiceRequestModel>>(
+              stream: firestoreService.getAllServiceRequests(
+                filterStatus: _filterStatus,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final requests = snapshot.data ?? [];
+
+                if (requests.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 64,
+                          color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No requests found',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  itemCount: requests.length,
+                  itemBuilder: (context, index) {
+                    final request = requests[index];
+                    return _RequestRow(
+                      request: request,
+                      onTap: () {
+                        context.pushNamed(
+                          'admin-request-detail',
+                          pathParameters: {'requestId': request.id},
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(gradient: AppTheme.adminGradient),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Service Requests',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Manage and track all service requests',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -187,10 +212,7 @@ class _RequestRow extends StatelessWidget {
   final ServiceRequestModel request;
   final VoidCallback onTap;
 
-  const _RequestRow({
-    required this.request,
-    required this.onTap,
-  });
+  const _RequestRow({required this.request, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -212,14 +234,15 @@ class _RequestRow extends StatelessWidget {
               width: 4,
               height: 64,
               decoration: BoxDecoration(
-                color: request.priority == ServicePriority.urgent
-                    ? AppTheme.urgent
-                    : AppTheme.primary,
+                color:
+                    request.priority == ServicePriority.urgent
+                        ? AppTheme.urgent
+                        : AppTheme.primary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Info
             Expanded(
               child: Column(
@@ -237,14 +260,19 @@ class _RequestRow extends StatelessWidget {
                       if (request.priority == ServicePriority.urgent) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppTheme.errorLight,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             'URGENT',
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
                               color: AppTheme.urgent,
                               fontWeight: FontWeight.w700,
                               fontSize: 9,
@@ -271,7 +299,7 @@ class _RequestRow extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // Status & Date
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -287,12 +315,9 @@ class _RequestRow extends StatelessWidget {
                 ),
               ],
             ),
-            
+
             const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right,
-              color: AppTheme.textSecondaryLight,
-            ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondaryLight),
           ],
         ),
       ),
@@ -320,8 +345,8 @@ class _StatusBadge extends StatelessWidget {
         textColor = AppTheme.primary;
         break;
       case ServiceRequestStatus.inProgress:
-        backgroundColor = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF2E7D32);
+        backgroundColor = AppTheme.infoLight;
+        textColor = AppTheme.infoDark;
         break;
       case ServiceRequestStatus.resolved:
         backgroundColor = AppTheme.successLight;
@@ -332,8 +357,8 @@ class _StatusBadge extends StatelessWidget {
         textColor = AppTheme.error;
         break;
       case ServiceRequestStatus.cancelled:
-        backgroundColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade600;
+        backgroundColor = AppTheme.neutralLight;
+        textColor = AppTheme.neutral;
         break;
     }
 

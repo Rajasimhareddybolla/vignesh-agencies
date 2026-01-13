@@ -130,7 +130,8 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       final firestoreService = context.read<FirestoreService>();
       final storageService = context.read<StorageService>();
 
-      final userId = authService.currentUser!.uid;
+      // Use resolved ID to ensure we create requests for the linked account
+      final userId = await authService.getResolvedUserId();
       final user = await authService.getUserModel();
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
 

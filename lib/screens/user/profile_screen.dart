@@ -114,14 +114,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                             icon: Icons.help_outline,
                             title: 'Help Center',
                             subtitle: 'FAQs and support articles',
-                            iconColor: const Color(0xFF8B5CF6),
+                            iconColor: AppTheme.accent1,
                             onTap: () => context.push('/help-center'),
                           ),
                           _PremiumMenuItem(
                             icon: Icons.chat_outlined,
                             title: 'Contact Support',
                             subtitle: 'Get in touch with our team',
-                            iconColor: const Color(0xFF06B6D4),
+                            iconColor: AppTheme.accent2,
                             onTap: () => context.push('/contact-support'),
                           ),
                           _PremiumMenuItem(
@@ -166,15 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         50,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryLight,
-            AppTheme.primary.withBlue(220),
-          ],
-        ),
+        gradient: AppTheme.primaryGradientExtended,
       ),
       child: Stack(
         children: [

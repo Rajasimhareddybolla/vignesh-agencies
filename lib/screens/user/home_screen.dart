@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../models/product_model.dart';
+import '../../models/service_request_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
@@ -66,7 +67,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     begin: const Offset(0, -0.2),
                     end: Offset.zero,
                   ).animate(_headerAnimation),
-                  child: _buildPremiumHeader(context, authService),
+                  child: _buildPremiumHeader(
+                    context,
+                    authService,
+                    firestoreService,
+                  ),
                 ),
               ),
             ),
@@ -101,42 +106,47 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
 
             // Appliances List with staggered fade-in
-            StreamBuilder<List<ProductModel>>(
-              stream: authService.currentUser != null
-                  ? firestoreService.getUserProducts(
-                      authService.currentUser!.uid,
-                    )
-                  : Stream.value([]),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return SliverToBoxAdapter(child: _buildShimmerLoading());
-                }
+            StreamBuilder<UserModel?>(
+              stream: authService.userModelStream(),
+              builder: (context, userSnapshot) {
+                final effectiveUserId = userSnapshot.data?.id ?? authService.currentUser?.uid;
+                
+                return StreamBuilder<List<ProductModel>>(
+                  stream: effectiveUserId != null
+                      ? firestoreService.getUserProducts(effectiveUserId)
+                      : Stream.value([]),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return SliverToBoxAdapter(child: _buildShimmerLoading());
+                    }
 
-                final products = snapshot.data ?? [];
+                    final products = snapshot.data ?? [];
 
-                if (products.isEmpty) {
-                  return SliverToBoxAdapter(child: _buildEmptyState(context));
-                }
+                    if (products.isEmpty) {
+                      return SliverToBoxAdapter(child: _buildEmptyState(context));
+                    }
 
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) => StaggeredFadeIn(
-                        index: index,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: _buildPremiumApplianceCard(
-                            context,
-                            products[index],
+                    return SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => StaggeredFadeIn(
+                            index: index,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildPremiumApplianceCard(
+                                context,
+                                products[index],
+                              ),
+                            ),
                           ),
+                          childCount: products.length,
                         ),
                       ),
-                      childCount: products.length,
-                    ),
-                  ),
+                    );
+                  },
                 );
-              },
+              }
             ),
           ],
         ),
@@ -147,7 +157,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPremiumHeader(BuildContext context, AuthService authService) {
+  Widget _buildPremiumHeader(
+    BuildContext context,
+    AuthService authService,
+    FirestoreService firestoreService,
+  ) {
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -156,15 +170,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         24,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryLight,
-            AppTheme.primary.withBlue(230),
-          ],
-        ),
+        gradient: AppTheme.primaryGradientExtended,
       ),
       child: Stack(
         children: [
@@ -307,18 +313,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildHeaderStat(
-                          context,
-                          Icons.inventory_2,
-                          '3',
-                          'Products',
+                        StreamBuilder<List<ProductModel>>(
+                          stream:
+                              user != null
+                                  ? firestoreService.getUserProducts(user.id)
+                                  : Stream.value([]),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.length ?? 0;
+                            return _buildHeaderStat(
+                              context,
+                              Icons.inventory_2,
+                              '$count',
+                              'Products',
+                            );
+                          },
                         ),
                         Container(
                           width: 1,
                           height: 30,
                           color: Colors.white.withAlpha(50),
                         ),
-                        _buildHeaderStat(context, Icons.build, '2', 'Requests'),
+                        StreamBuilder<List<ServiceRequestModel>>(
+                          stream:
+                              user != null
+                                  ? firestoreService.getUserServiceRequests(
+                                    user.id,
+                                  )
+                                  : Stream.value([]),
+                          builder: (context, snapshot) {
+                            final count = snapshot.data?.length ?? 0;
+                            return _buildHeaderStat(
+                              context,
+                              Icons.build,
+                              '$count',
+                              'Requests',
+                            );
+                          },
+                        ),
                         Container(
                           width: 1,
                           height: 30,
@@ -327,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         _buildHeaderStat(
                           context,
                           Icons.star,
-                          '₹500',
+                          '₹${(user?.totalEarnings ?? 0).toStringAsFixed(0)}',
                           'Earnings',
                         ),
                       ],
@@ -433,10 +464,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: StaggeredFadeIn(
                   index: 1,
+                  child: _PremiumQuickActionCard(
+                    title: 'Product\nCatalog',
+                    icon: Icons.grid_view_rounded,
+                    isPrimary: false,
+                    onTap: () => context.pushNamed('product-catalog'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: StaggeredFadeIn(
+                  index: 2,
                   child: _PremiumQuickActionCard(
                     title: 'Refer a\nFriend',
                     icon: Icons.volunteer_activism,
@@ -478,7 +521,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppTheme.borderLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -816,8 +859,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         text = 'Pending Validation';
         break;
       case ProductStatus.expired:
-        backgroundColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade600;
+        backgroundColor = AppTheme.neutralLight;
+        textColor = AppTheme.neutral;
         icon = Icons.history;
         text = 'Warranty Expired';
         break;
@@ -828,8 +871,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         text = 'Rejected';
         break;
       default:
-        backgroundColor = Colors.grey.shade100;
-        textColor = Colors.grey.shade600;
+        backgroundColor = AppTheme.neutralLight;
+        textColor = AppTheme.neutral;
         text = product.status.displayName;
     }
 
@@ -1072,7 +1115,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: AppTheme.shimmerBase,
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -1085,7 +1128,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
                       height: 16,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: AppTheme.shimmerBase,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -1094,7 +1137,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
                       height: 12,
                       width: 100,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: AppTheme.shimmerBase,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -1103,7 +1146,7 @@ class _ShimmerCardState extends State<_ShimmerCard>
                       height: 20,
                       width: 80,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: AppTheme.shimmerBase,
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),

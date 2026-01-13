@@ -372,9 +372,9 @@ class _PremiumNotificationCard extends StatelessWidget {
   Color _getTypeColor(String type) {
     switch (type) {
       case 'offer':
-        return const Color(0xFFEC4899);
+        return AppTheme.accent3;
       case 'festival':
-        return const Color(0xFFF59E0B);
+        return AppTheme.accent4;
       case 'reminder':
         return AppTheme.primary;
       case 'warning':
@@ -382,7 +382,7 @@ class _PremiumNotificationCard extends StatelessWidget {
       case 'service':
         return AppTheme.success;
       default:
-        return Colors.blue;
+        return AppTheme.info;
     }
   }
 

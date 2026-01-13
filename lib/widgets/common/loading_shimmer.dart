@@ -51,9 +51,9 @@ class _LoadingShimmerState extends State<LoadingShimmer>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: const [
-                Color(0xFFE8E8E8),
-                Color(0xFFF8F8F8),
-                Color(0xFFE8E8E8),
+                AppTheme.shimmerBase,
+                AppTheme.shimmerHighlight,
+                AppTheme.shimmerBase,
               ],
               stops: [
                 _animation.value - 1,
@@ -90,7 +90,7 @@ class SkeletonCard extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.shimmerBase,
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
             ),
@@ -104,7 +104,7 @@ class SkeletonCard extends StatelessWidget {
                     height: 16,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppTheme.shimmerBase,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -113,7 +113,7 @@ class SkeletonCard extends StatelessWidget {
                     height: 12,
                     width: 100,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppTheme.shimmerBase,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -122,7 +122,7 @@ class SkeletonCard extends StatelessWidget {
                     height: 20,
                     width: 80,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: AppTheme.shimmerBase,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -181,7 +181,7 @@ class SkeletonStatCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.shimmerBase,
                 shape: BoxShape.circle,
               ),
             ),
@@ -190,7 +190,7 @@ class SkeletonStatCard extends StatelessWidget {
               height: 12,
               width: 80,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.shimmerBase,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -199,7 +199,7 @@ class SkeletonStatCard extends StatelessWidget {
               height: 24,
               width: 50,
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: AppTheme.shimmerBase,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),

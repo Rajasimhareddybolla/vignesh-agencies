@@ -196,15 +196,6 @@ class _ReferralCard extends StatelessWidget {
   }
 
   Color _getAvatarColor(String name) {
-    final colors = [
-      const Color(0xFFE91E63),
-      const Color(0xFF9C27B0),
-      const Color(0xFF3F51B5),
-      const Color(0xFF2196F3),
-      const Color(0xFF009688),
-      const Color(0xFF4CAF50),
-      const Color(0xFFFF9800),
-    ];
-    return colors[name.codeUnitAt(0) % colors.length];
+    return AppTheme.getAvatarColor(name);
   }
 }

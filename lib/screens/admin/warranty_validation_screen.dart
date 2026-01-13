@@ -112,15 +112,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
         24,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryLight,
-            AppTheme.primary.withBlue(220),
-          ],
-        ),
+        gradient: AppTheme.adminGradient,
       ),
       child: Stack(
         children: [
@@ -310,7 +302,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: AppTheme.borderLight,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

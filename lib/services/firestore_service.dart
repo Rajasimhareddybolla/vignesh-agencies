@@ -20,12 +20,15 @@ class FirestoreService {
     return _firestore
         .collection('products')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProductModel.fromFirestore(doc))
-              .toList(),
+          (snapshot) {
+            final docs = snapshot.docs
+                .map((doc) => ProductModel.fromFirestore(doc))
+                .toList();
+            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return docs;
+          },
         );
   }
 
@@ -57,12 +60,15 @@ class FirestoreService {
     return _firestore
         .collection('products')
         .where('status', isEqualTo: 'pending_validation')
-        .orderBy('createdAt', descending: false)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProductModel.fromFirestore(doc))
-              .toList(),
+          (snapshot) {
+            final docs = snapshot.docs
+                .map((doc) => ProductModel.fromFirestore(doc))
+                .toList();
+            docs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            return docs;
+          },
         );
   }
 
@@ -92,12 +98,15 @@ class FirestoreService {
     return _firestore
         .collection('service_requests')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromFirestore(doc))
-              .toList(),
+          (snapshot) {
+            final docs = snapshot.docs
+                .map((doc) => ServiceRequestModel.fromFirestore(doc))
+                .toList();
+            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return docs;
+          },
         );
   }
 
@@ -148,14 +157,13 @@ class FirestoreService {
       query = query.where('status', isEqualTo: filterStatus.firestoreValue);
     }
 
-    return query
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ServiceRequestModel.fromFirestore(doc))
-              .toList(),
-        );
+    return query.snapshots().map((snapshot) {
+      final docs = snapshot.docs
+          .map((doc) => ServiceRequestModel.fromFirestore(doc))
+          .toList();
+      docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return docs;
+    });
   }
 
   // Get single service request
@@ -184,12 +192,15 @@ class FirestoreService {
     return _firestore
         .collection('referrals')
         .where('referrerId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ReferralModel.fromFirestore(doc))
-              .toList(),
+          (snapshot) {
+            final docs = snapshot.docs
+                .map((doc) => ReferralModel.fromFirestore(doc))
+                .toList();
+            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            return docs;
+          },
         );
   }
 

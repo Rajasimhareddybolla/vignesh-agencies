@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../models/product_model.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 
@@ -29,75 +30,80 @@ class AllAppliancesScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: StreamBuilder<List<ProductModel>>(
-        stream: authService.currentUser != null
-            ? firestoreService.getUserProducts(authService.currentUser!.uid)
-            : Stream.value([]),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: StreamBuilder<UserModel?>(
+        stream: authService.userModelStream(),
+        builder: (context, userSnapshot) {
+          final effectiveUserId = userSnapshot.data?.id ?? authService.currentUser?.uid;
 
-          // Handle errors gracefully
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 48,
-                    color: AppTheme.error,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Unable to load products',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please check your connection',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondaryLight,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () => context.pushNamed('add-product'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Product'),
-                  ),
-                ],
-              ),
-            );
-          }
+          return StreamBuilder<List<ProductModel>>(
+            stream: effectiveUserId != null
+                ? firestoreService.getUserProducts(effectiveUserId)
+                : Stream.value([]),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          final products = snapshot.data ?? [];
+              // Handle errors gracefully
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: AppTheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Unable to load products',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Please check your connection',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => context.pushNamed('add-product'),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Product'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-          if (products.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 40,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'No appliances yet',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 8),
+              final products = snapshot.data ?? [];
+
+              if (products.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.inventory_2_outlined,
+                          size: 40,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'No appliances yet',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
                   Text(
                     'Register your V-Guard products to\nmanage warranties and service requests',
                     textAlign: TextAlign.center,
@@ -122,6 +128,8 @@ class AllAppliancesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final product = products[index];
               return _ProductCard(product: product);
+            },
+          );
             },
           );
         },
@@ -363,8 +371,8 @@ class _StatusBadge extends StatelessWidget {
         label = 'Rejected';
         break;
       case ProductStatus.expired:
-        bgColor = Colors.grey.shade200;
-        textColor = Colors.grey.shade600;
+        bgColor = AppTheme.neutralLight;
+        textColor = AppTheme.neutral;
         label = 'Expired';
         break;
       case ProductStatus.expiringSoon:

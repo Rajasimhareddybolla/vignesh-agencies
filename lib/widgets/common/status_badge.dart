@@ -50,8 +50,8 @@ class StatusBadge extends StatelessWidget {
         label = 'Pending Validation';
         break;
       case ProductStatus.expired:
-        bg = Colors.grey.shade100;
-        text = Colors.grey.shade600;
+        bg = AppTheme.neutralLight;
+        text = AppTheme.neutral;
         icon = Icons.history;
         label = 'Warranty Expired';
         break;
@@ -62,8 +62,8 @@ class StatusBadge extends StatelessWidget {
         label = 'Rejected';
         break;
       default:
-        bg = Colors.grey.shade100;
-        text = Colors.grey.shade600;
+        bg = AppTheme.neutralLight;
+        text = AppTheme.neutral;
         label = status.displayName;
     }
 
@@ -108,8 +108,8 @@ class StatusBadge extends StatelessWidget {
         icon = Icons.priority_high;
         break;
       case ServiceRequestStatus.cancelled:
-        bg = Colors.grey.shade100;
-        text = Colors.grey.shade600;
+        bg = AppTheme.neutralLight;
+        text = AppTheme.neutral;
         icon = Icons.cancel_outlined;
         break;
     }

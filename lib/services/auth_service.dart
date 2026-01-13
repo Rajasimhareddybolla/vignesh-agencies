@@ -15,6 +15,38 @@ class AuthService {
   // Check if user is logged in
   bool get isLoggedIn => _auth.currentUser != null;
 
+  String? get resolvedUserId {
+    // If not logged in
+    if (currentUser == null) return null;
+    
+    // NOTE: This property doesn't resolve linked IDs synchronously
+    // because we can't await here.
+    // For writes, you should use (await authService.getResolvedUserId()) ?? currentUser.uid
+    return currentUser!.uid;
+  }
+
+  // Get the TRUE User ID (resolving linked accounts)
+  Future<String> getResolvedUserId() async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    // First, check if we've already resolved it in memory? 
+    // Ideally we fetch from DB or check a cache.
+    // Since this is critical for writes, we'll fetch the document to be safe
+    // or rely on userModel if already loaded.
+    
+    // Fast path: Check the stream first if we can? No, stream is separate.
+    
+    final doc = await _firestore.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      final data = doc.data();
+      if (data != null && data.containsKey('linkedAccountId') && data['linkedAccountId'] != null) {
+        return data['linkedAccountId'] as String;
+      }
+    }
+    return user.uid;
+  }
+
   // Phone Auth - Send OTP
   Future<void> sendOTP({
     required String phoneNumber,
@@ -88,31 +120,84 @@ class AuthService {
 
       final uid = userCredential.user!.uid;
 
-      // Now check if user document exists for this anonymous user
-      final userDoc = await _firestore.collection('users').doc(uid).get();
+      // Check if user document exists for this phone number
+      // We search for ALL users with this phone number to find the "original" one.
+      final existingUserQuery = await _firestore
+          .collection('users')
+          .where('phone', isEqualTo: phoneNumber)
+          .get();
 
-      if (!userDoc.exists) {
-        // Create new user document
-        final newUser = UserModel(
-          id: uid,
-          displayName: 'User',
-          email: '',
-          phone: phoneNumber,
-          referralCode: UserModel.generateReferralCode(),
-          isAdmin: false,
-          createdAt: DateTime.now(),
-          lastLoginAt: DateTime.now(),
-        );
-        await _firestore
-            .collection('users')
-            .doc(uid)
-            .set(newUser.toFirestore());
+      if (existingUserQuery.docs.isNotEmpty) {
+        String? targetUserId;
+        
+        // Find the best candidate:
+        // 1. Must NOT be a proxy/linked account itself
+        // 2. Prefer the one created earliest (original)
+        
+        final candidates = existingUserQuery.docs.where((doc) {
+          final data = doc.data();
+          // Exclude if it has linkedAccountId
+          return !data.containsKey('linkedAccountId');
+        }).toList();
+
+        if (candidates.isNotEmpty) {
+           // Sort by createdAt just in case to find the oldest
+           candidates.sort((a, b) {
+             final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+             final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+             return aTime.compareTo(bTime);
+           });
+           targetUserId = candidates.first.id;
+        } else {
+           // Fallback: verification found users but they are all proxies?
+           // This is weird. Pick the first one from the original query as a fallback.
+           // Or maybe we should just create a new one? No, let's link to the first one found.
+           targetUserId = existingUserQuery.docs.first.id;
+        }
+
+        if (targetUserId != null) {
+          // Link our current session to this target user ID
+          await _firestore.collection('users').doc(uid).set({
+            'linkedAccountId': targetUserId,
+            'phone': phoneNumber,
+            'lastLoginAt': Timestamp.now(),
+            'isProxy': true, 
+          }, SetOptions(merge: true));
+
+          // Update target user's last login
+          await _firestore.collection('users').doc(targetUserId).update({
+            'lastLoginAt': Timestamp.now(),
+          });
+        }
       } else {
-        // Update existing user's last login
-        await _firestore.collection('users').doc(uid).update({
-          'lastLoginAt': Timestamp.now(),
-          'phone': phoneNumber,
-        });
+        // No existing user found. Create a new one at the current UID.
+        
+        // NOW check if user document exists for this anonymous user (unlikely unless reused)
+        final userDoc = await _firestore.collection('users').doc(uid).get();
+
+        if (!userDoc.exists) {
+          // Create new user document
+          final newUser = UserModel(
+            id: uid,
+            displayName: 'User',
+            email: '',
+            phone: phoneNumber,
+            referralCode: UserModel.generateReferralCode(),
+            isAdmin: false,
+            createdAt: DateTime.now(),
+            lastLoginAt: DateTime.now(),
+          );
+          await _firestore
+              .collection('users')
+              .doc(uid)
+              .set(newUser.toFirestore());
+        } else {
+          // Update existing user's last login
+          await _firestore.collection('users').doc(uid).update({
+            'lastLoginAt': Timestamp.now(),
+            'phone': phoneNumber,
+          });
+        }
       }
 
       return true;
@@ -275,6 +360,16 @@ class AuthService {
         .doc(currentUser!.uid)
         .get();
     if (doc.exists) {
+      final data = doc.data();
+      // Check for linked account (Bypass Mode)
+      if (data != null && data.containsKey('linkedAccountId')) {
+        final linkedId = data['linkedAccountId'];
+        final linkedDoc =
+            await _firestore.collection('users').doc(linkedId).get();
+        if (linkedDoc.exists) {
+          return UserModel.fromFirestore(linkedDoc);
+        }
+      }
       return UserModel.fromFirestore(doc);
     }
     return null;
@@ -290,7 +385,22 @@ class AuthService {
         .collection('users')
         .doc(currentUser!.uid)
         .snapshots()
-        .map((doc) => doc.exists ? UserModel.fromFirestore(doc) : null);
+        .asyncMap((doc) async {
+      if (!doc.exists) return null;
+
+      final data = doc.data();
+      // Check for linked account (Bypass Mode)
+      if (data != null && data.containsKey('linkedAccountId')) {
+        final linkedId = data['linkedAccountId'];
+        final linkedDoc =
+            await _firestore.collection('users').doc(linkedId).get();
+        if (linkedDoc.exists) {
+          return UserModel.fromFirestore(linkedDoc);
+        }
+      }
+
+      return UserModel.fromFirestore(doc);
+    });
   }
 
   // Check if current user is admin

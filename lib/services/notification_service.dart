@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/promo_notification_model.dart';
 
@@ -7,22 +8,16 @@ class NotificationService {
 
   /// Send a promotional notification to all users
   Future<void> sendPromoNotification(PromoNotification notification) async {
-    // Store notification in Firestore
+    // Store notification in Firestore (Broadcast)
     final docRef = await _firestore
         .collection('promo_notifications')
         .add(notification.toFirestore());
 
-    // Also add to each user's notifications collection
+    // Only add to specific user's notifications collection if targeted
     if (notification.targetUserIds != null) {
       // Send to specific users
       for (final userId in notification.targetUserIds!) {
         await _addNotificationToUser(userId, docRef.id, notification);
-      }
-    } else {
-      // Send to all users
-      final users = await _firestore.collection('users').get();
-      for (final user in users.docs) {
-        await _addNotificationToUser(user.id, docRef.id, notification);
       }
     }
   }
@@ -62,41 +57,123 @@ class NotificationService {
         );
   }
 
-  /// Get user notifications
+  /// Get user notifications (Combines Personal + Global Broadcasts)
   Stream<List<Map<String, dynamic>>> getUserNotifications(String userId) {
-    return _firestore
+    // Stream 1: Personal notifications
+    final personalStream = _firestore
         .collection('users')
         .doc(userId)
         .collection('notifications')
         .orderBy('createdAt', descending: true)
         .limit(50)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => {'id': doc.id, ...doc.data()})
-              .toList(),
-        );
+        .snapshots();
+
+    // Stream 2: Global active promos (Broadcasts)
+    final globalStream = _firestore
+        .collection('promo_notifications')
+        .where('isActive', isEqualTo: true)
+        .orderBy('createdAt', descending: true)
+        .limit(20)
+        .snapshots();
+
+    // Stream 3: Read receipts for global promos
+    final readReceiptsStream = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('read_notifications')
+        .snapshots();
+
+    return _combineStreams(
+      personalStream,
+      globalStream,
+      readReceiptsStream,
+      (QuerySnapshot personalSnap, QuerySnapshot globalSnap,
+          QuerySnapshot readSnap) {
+        // 1. Parse Personal Notifications
+        final personalDocs = personalSnap.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {'id': doc.id, ...data};
+        }).toList();
+
+        // 2. Parse Read Receipts
+        final readIds = readSnap.docs.map((doc) => doc.id).toSet();
+
+        // 3. Parse Global Promos
+        final globalDocs = globalSnap.docs
+            .map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+
+              // Check targeting
+              final targetList = data['targetUserIds'];
+              if (targetList != null) {
+                // Targeted notifications are handled by personal stream
+                return null;
+              }
+
+              // If this global promo ID is in readIds, mark read=true
+              final isRead = readIds.contains(doc.id);
+
+              return {
+                'id': doc.id,
+                'promoId': doc.id,
+                'title': data['title'] ?? '',
+                'body': data['body'] ?? '',
+                'imageUrl': data['imageUrl'],
+                'type': data['type'] ?? 'announcement',
+                'discountPercent': data['discountPercent'],
+                'read': isRead,
+                'createdAt': data['createdAt'],
+                'isGlobal': true,
+              };
+            })
+            .where((doc) => doc != null)
+            .cast<Map<String, dynamic>>()
+            .toList();
+
+        // 4. Merge and Sort
+        final all = [...personalDocs, ...globalDocs];
+        all.sort((a, b) {
+          final tA = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          final tB = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+          return tB.compareTo(tA);
+        });
+
+        return all;
+      },
+    );
   }
 
   /// Mark notification as read
   Future<void> markAsRead(String userId, String notificationId) async {
-    await _firestore
+    // Check if it exists in personal notifications first
+    final personalRef = _firestore
         .collection('users')
         .doc(userId)
         .collection('notifications')
-        .doc(notificationId)
-        .update({'read': true});
+        .doc(notificationId);
+
+    final doc = await personalRef.get();
+
+    if (doc.exists) {
+      await personalRef.update({'read': true});
+    } else {
+      // It must be a global notification. Create a read receipt.
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('read_notifications')
+          .doc(notificationId)
+          .set({
+        'readAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 
   /// Get unread count
   Stream<int> getUnreadCount(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .where('read', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
+    return getUserNotifications(userId).map((list) {
+      return list.where((n) => n['read'] != true).length;
+    });
   }
 
   /// Delete a promotional notification
@@ -105,5 +182,49 @@ class NotificationService {
         .collection('promo_notifications')
         .doc(notificationId)
         .delete();
+  }
+
+  Stream<T> _combineStreams<A, B, C, T>(
+      Stream<A> streamA,
+      Stream<B> streamB,
+      Stream<C> streamC,
+      T Function(A a, B b, C c) combiner) {
+    final controller = StreamController<T>();
+    A? lastA;
+    B? lastB;
+    C? lastC;
+    bool hasA = false;
+    bool hasB = false;
+    bool hasC = false;
+
+    void update() {
+      if (hasA && hasB && hasC) {
+        controller.add(combiner(lastA as A, lastB as B, lastC as C));
+      }
+    }
+
+    final subA = streamA.listen((a) {
+      lastA = a;
+      hasA = true;
+      update();
+    });
+    final subB = streamB.listen((b) {
+      lastB = b;
+      hasB = true;
+      update();
+    });
+    final subC = streamC.listen((c) {
+      lastC = c;
+      hasC = true;
+      update();
+    });
+
+    controller.onCancel = () {
+      subA.cancel();
+      subB.cancel();
+      subC.cancel();
+    };
+
+    return controller.stream;
   }
 }

@@ -4,6 +4,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/otp_screen.dart';
 import '../screens/auth/admin_login_screen.dart';
 import '../screens/user/notifications_screen.dart';
+import '../screens/user/product_catalog_screen.dart';
 import '../screens/user/saved_addresses_screen.dart';
 import '../screens/user/all_referrals_screen.dart';
 import '../screens/common/help_center_screen.dart';
@@ -75,6 +76,11 @@ class AppRouter {
         path: '/admin-login',
         name: 'admin-login',
         builder: (context, state) => const AdminLoginScreen(),
+      ),
+      GoRoute(
+        path: '/product-catalog',
+        name: 'product-catalog',
+        builder: (context, state) => const ProductCatalogScreen(),
       ),
       GoRoute(
         path: '/notifications',

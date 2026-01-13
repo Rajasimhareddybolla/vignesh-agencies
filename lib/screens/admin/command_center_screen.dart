@@ -172,7 +172,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                       0,
                                   prefix: '₹',
                                   icon: Icons.payments,
-                                  color: const Color(0xFF8B5CF6),
+                                  color: AppTheme.accent1,
                                   onTap: () => context.goNamed('admin-payouts'),
                                 ),
                               ),
@@ -285,15 +285,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
         24,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF1a1a2e),
-            const Color(0xFF16213e),
-            AppTheme.primary.withAlpha(50),
-          ],
-        ),
+        gradient: AppTheme.adminGradient,
       ),
       child: Stack(
         children: [

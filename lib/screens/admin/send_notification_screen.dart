@@ -122,6 +122,8 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
             ? double.tryParse(_discountController.text)
             : null,
         createdAt: DateTime.now(),
+        // Ensure broadcast notifications don't have specific targets (null implies all)
+        targetUserIds: null, 
       );
 
       await _notificationService.sendPromoNotification(notification);
@@ -347,15 +349,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
         24,
       ),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF8B5CF6),
-            const Color(0xFFA78BFA),
-            AppTheme.primary,
-          ],
-        ),
+        gradient: AppTheme.adminGradient,
       ),
       child: Stack(
         children: [
@@ -581,17 +575,17 @@ class _PremiumSendButton extends StatelessWidget {
           gradient: LinearGradient(
             colors: isLoading
                 ? [
-                    const Color(0xFF8B5CF6).withAlpha(150),
+                    AppTheme.accent1.withAlpha(150),
                     AppTheme.primary.withAlpha(150),
                   ]
-                : [const Color(0xFF8B5CF6), AppTheme.primary],
+                : [AppTheme.accent1, AppTheme.primary],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: isLoading
               ? []
               : [
                   BoxShadow(
-                    color: const Color(0xFF8B5CF6).withAlpha(80),
+                    color: AppTheme.accent1.withAlpha(80),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),

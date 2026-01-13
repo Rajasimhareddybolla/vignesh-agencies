@@ -364,13 +364,13 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
       case ServiceRequestStatus.assigned:
         return AppTheme.primary;
       case ServiceRequestStatus.inProgress:
-        return const Color(0xFF2E7D32);
+        return AppTheme.infoDark;
       case ServiceRequestStatus.resolved:
         return AppTheme.success;
       case ServiceRequestStatus.escalated:
         return AppTheme.error;
       case ServiceRequestStatus.cancelled:
-        return Colors.grey;
+        return AppTheme.neutral;
     }
   }
 

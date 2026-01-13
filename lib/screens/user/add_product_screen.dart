@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../../app/theme.dart';
 import '../../models/product_model.dart';
 import '../../services/auth_service.dart';
@@ -149,7 +151,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final firestoreService = context.read<FirestoreService>();
       final storageService = context.read<StorageService>();
       
-      final userId = authService.currentUser!.uid;
+      // Use resolved ID to ensure we add products to the linked account if in bypass mode
+      final userId = await authService.getResolvedUserId();
       String? billImageUrl;
 
       // Upload bill image if selected
@@ -356,20 +359,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                              child: Image.network(
-                                _billImage!.path,
-                                width: double.infinity,
-                                height: 180,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: AppTheme.backgroundLight,
-                                    child: const Center(
-                                      child: Icon(Icons.image, size: 48),
+                              child: kIsWeb
+                                  ? Image.network(
+                                      _billImage!.path,
+                                      width: double.infinity,
+                                      height: 180,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: AppTheme.backgroundLight,
+                                          child: const Center(
+                                            child: Icon(Icons.image, size: 48),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Image.file(
+                                      File(_billImage!.path),
+                                      width: double.infinity,
+                                      height: 180,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          color: AppTheme.backgroundLight,
+                                          child: const Center(
+                                            child: Icon(Icons.image, size: 48),
+                                          ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
                             ),
                             Positioned(
                               top: 8,
