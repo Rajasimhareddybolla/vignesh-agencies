@@ -47,12 +47,61 @@ class FirestoreService {
     String? validatedBy,
     String? rejectionReason,
   }) async {
-    await _firestore.collection('products').doc(productId).update({
+    final docRef = _firestore.collection('products').doc(productId);
+
+    // Check for referral trigger when warranty becomes active
+    if (status == ProductStatus.active) {
+      final productDoc = await docRef.get();
+      if (productDoc.exists) {
+        final product = ProductModel.fromFirestore(productDoc);
+        await _processReferralForProduct(product);
+      }
+    }
+
+    await docRef.update({
       'status': status.firestoreValue,
       'validatedBy': validatedBy,
       'validatedAt': status == ProductStatus.active ? Timestamp.now() : null,
       'rejectionReason': rejectionReason,
     });
+  }
+
+  /// Process referral commission when a user's first product is validated
+  Future<void> _processReferralForProduct(ProductModel product) async {
+    try {
+      // Find pending referral for this user (where they are the referee)
+      final referralsQuery = await _firestore
+          .collection('referrals')
+          .where('refereeId', isEqualTo: product.userId)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (referralsQuery.docs.isNotEmpty) {
+        final referralDoc = referralsQuery.docs.first;
+        const commission = 100.0; // Fixed commission reward
+
+        // 1. Update Referral Status
+        await referralDoc.reference.update({
+          'status': 'purchased',
+          'commission': commission,
+          'purchaseAmount': product.purchaseAmount ?? 0,
+          'purchasedAt': FieldValue.serverTimestamp(),
+        });
+
+        // 2. Update Referrer's Wallet
+        final referrerId = referralDoc.data()['referrerId'];
+        if (referrerId != null) {
+          await _firestore.collection('users').doc(referrerId).update({
+            'totalEarnings': FieldValue.increment(commission),
+            'pendingPayout': FieldValue.increment(commission),
+          });
+        }
+      }
+    } catch (e) {
+      print('Error processing referral: $e');
+      // Non-blocking error
+    }
   }
 
   // Get products pending validation (admin)

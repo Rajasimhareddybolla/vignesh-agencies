@@ -5,6 +5,7 @@ enum ServiceRequestStatus {
   assigned,
   inProgress,
   resolved,
+  completed,
   escalated,
   cancelled,
 }
@@ -20,6 +21,8 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
         return 'In Progress';
       case ServiceRequestStatus.resolved:
         return 'Resolved';
+      case ServiceRequestStatus.completed:
+        return 'Completed';
       case ServiceRequestStatus.escalated:
         return 'Escalated';
       case ServiceRequestStatus.cancelled:
@@ -37,6 +40,8 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
         return 'in_progress';
       case ServiceRequestStatus.resolved:
         return 'resolved';
+      case ServiceRequestStatus.completed:
+        return 'completed';
       case ServiceRequestStatus.escalated:
         return 'escalated';
       case ServiceRequestStatus.cancelled:
@@ -54,6 +59,8 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
         return ServiceRequestStatus.inProgress;
       case 'resolved':
         return ServiceRequestStatus.resolved;
+      case 'completed':
+        return ServiceRequestStatus.completed;
       case 'escalated':
         return ServiceRequestStatus.escalated;
       case 'cancelled':

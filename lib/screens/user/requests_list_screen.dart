@@ -112,6 +112,7 @@ class _RequestsListScreenState extends State<RequestsListScreen>
                   .where(
                     (r) =>
                         r.status == ServiceRequestStatus.resolved ||
+                        r.status == ServiceRequestStatus.completed ||
                         r.status == ServiceRequestStatus.cancelled,
                   )
                   .toList();
@@ -380,40 +381,99 @@ class _PremiumRequestCard extends StatelessWidget {
           ),
 
           // Technician Info
-          if (request.technicianName != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: AppTheme.success.withAlpha(30),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.engineering,
-                      size: 14,
-                      color: AppTheme.success,
-                    ),
+              if (request.technicianName != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.backgroundLight,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Assigned: ${request.technicianName}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: AppTheme.success.withAlpha(30),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.engineering,
+                          size: 14,
+                          color: AppTheme.success,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Assigned: ${request.technicianName}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
+              if (request.status == ServiceRequestStatus.resolved) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      _showCompletionDialog(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Confirm & Rate Service'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      }
+
+  void _showCompletionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Completion'),
+        content: const Text(
+          'Are you satisfied with the service provided? This will close the request.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await context.read<FirestoreService>().updateServiceRequestStatus(
+                requestId: request.id,
+                status: ServiceRequestStatus.completed,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Thank you for your feedback!'),
+                    backgroundColor: AppTheme.success,
+                  ),
+                );
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.success,
             ),
-          ],
+            child: const Text('Yes, Complete'),
+          ),
         ],
       ),
     );
@@ -428,6 +488,7 @@ class _PremiumRequestCard extends StatelessWidget {
       case ServiceRequestStatus.inProgress:
         return AppTheme.infoDark;
       case ServiceRequestStatus.resolved:
+      case ServiceRequestStatus.completed:
         return AppTheme.success;
       case ServiceRequestStatus.escalated:
         return AppTheme.error;
@@ -468,6 +529,11 @@ class _PremiumStatusBadge extends StatelessWidget {
         backgroundColor = AppTheme.successLight;
         textColor = AppTheme.success;
         icon = Icons.check_circle;
+        break;
+      case ServiceRequestStatus.completed:
+        backgroundColor = AppTheme.success;
+        textColor = Colors.white;
+        icon = Icons.verified;
         break;
       case ServiceRequestStatus.escalated:
         backgroundColor = AppTheme.errorLight;

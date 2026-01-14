@@ -570,6 +570,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       case ServiceRequestStatus.inProgress:
         return AppTheme.infoDark;
       case ServiceRequestStatus.resolved:
+      case ServiceRequestStatus.completed:
         return AppTheme.success;
       case ServiceRequestStatus.escalated:
         return AppTheme.error;

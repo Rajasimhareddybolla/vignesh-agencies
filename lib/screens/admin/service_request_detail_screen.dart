@@ -338,12 +338,28 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
                           ] else if (_request!.status == ServiceRequestStatus.inProgress) ...[
                             Expanded(
                               child: ElevatedButton.icon(
-                                onPressed: () => _updateStatus(ServiceRequestStatus.resolved),
+                                onPressed: () =>
+                                    _updateStatus(ServiceRequestStatus.resolved),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.success,
                                 ),
                                 icon: const Icon(Icons.check_circle),
                                 label: const Text('Resolve'),
+                              ),
+                            ),
+                          ] else if (_request!.status ==
+                              ServiceRequestStatus.resolved) ...[
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: null, // Waiting for user confirmation
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      AppTheme.success.withOpacity(0.5),
+                                ),
+                                icon: const Icon(Icons.hourglass_bottom),
+                                label: const Text(
+                                  'Waiting for User Confirmation',
+                                ),
                               ),
                             ),
                           ],
@@ -366,6 +382,7 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
       case ServiceRequestStatus.inProgress:
         return AppTheme.infoDark;
       case ServiceRequestStatus.resolved:
+      case ServiceRequestStatus.completed:
         return AppTheme.success;
       case ServiceRequestStatus.escalated:
         return AppTheme.error;
@@ -384,6 +401,8 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
         return Icons.engineering;
       case ServiceRequestStatus.resolved:
         return Icons.check_circle;
+      case ServiceRequestStatus.completed:
+        return Icons.verified;
       case ServiceRequestStatus.escalated:
         return Icons.priority_high;
       case ServiceRequestStatus.cancelled:

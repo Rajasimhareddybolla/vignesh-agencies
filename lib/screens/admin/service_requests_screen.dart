@@ -352,6 +352,10 @@ class _StatusBadge extends StatelessWidget {
         backgroundColor = AppTheme.successLight;
         textColor = AppTheme.success;
         break;
+      case ServiceRequestStatus.completed:
+        backgroundColor = AppTheme.success;
+        textColor = Colors.white;
+        break;
       case ServiceRequestStatus.escalated:
         backgroundColor = AppTheme.errorLight;
         textColor = AppTheme.error;

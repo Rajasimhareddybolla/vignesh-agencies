@@ -102,6 +102,11 @@ class StatusBadge extends StatelessWidget {
         text = AppTheme.success;
         icon = Icons.check_circle_outline;
         break;
+      case ServiceRequestStatus.completed:
+        bg = AppTheme.success;
+        text = Colors.white;
+        icon = Icons.verified;
+        break;
       case ServiceRequestStatus.escalated:
         bg = AppTheme.errorLight;
         text = AppTheme.error;
