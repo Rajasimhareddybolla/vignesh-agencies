@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../models/service_request_model.dart';
 import '../../services/firestore_service.dart';
-import '../../services/auth_service.dart';
 
 class ServiceRequestDetailScreen extends StatefulWidget {
   final String requestId;
@@ -14,10 +13,12 @@ class ServiceRequestDetailScreen extends StatefulWidget {
   const ServiceRequestDetailScreen({super.key, required this.requestId});
 
   @override
-  State<ServiceRequestDetailScreen> createState() => _ServiceRequestDetailScreenState();
+  State<ServiceRequestDetailScreen> createState() =>
+      _ServiceRequestDetailScreenState();
 }
 
-class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen> {
+class _ServiceRequestDetailScreenState
+    extends State<ServiceRequestDetailScreen> {
   ServiceRequestModel? _request;
   bool _isLoading = true;
   String? _selectedProvider;
@@ -50,26 +51,26 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
 
   Future<void> _updateStatus(ServiceRequestStatus newStatus) async {
     final firestoreService = context.read<FirestoreService>();
-    
+
     await firestoreService.updateServiceRequestStatus(
       requestId: widget.requestId,
       status: newStatus,
       assignedProvider: _selectedProvider,
-      technicianName: _technicianController.text.isNotEmpty 
-          ? _technicianController.text 
-          : null,
-      resolutionNotes: _notesController.text.isNotEmpty 
-          ? _notesController.text 
-          : null,
+      technicianName:
+          _technicianController.text.isNotEmpty
+              ? _technicianController.text
+              : null,
+      resolutionNotes:
+          _notesController.text.isNotEmpty ? _notesController.text : null,
     );
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Status updated to ${newStatus.displayName}'),
         backgroundColor: AppTheme.success,
       ),
     );
-    
+
     _loadRequest();
   }
 
@@ -87,289 +88,327 @@ class _ServiceRequestDetailScreenState extends State<ServiceRequestDetailScreen>
             PopupMenuButton<ServiceRequestStatus>(
               icon: const Icon(Icons.more_vert),
               onSelected: _updateStatus,
-              itemBuilder: (context) => ServiceRequestStatus.values
-                  .where((s) => s != _request!.status)
-                  .map((status) => PopupMenuItem(
-                        value: status,
-                        child: Text('Mark as ${status.displayName}'),
-                      ))
-                  .toList(),
+              itemBuilder:
+                  (context) =>
+                      ServiceRequestStatus.values
+                          .where((s) => s != _request!.status)
+                          .map(
+                            (status) => PopupMenuItem(
+                              value: status,
+                              child: Text('Mark as ${status.displayName}'),
+                            ),
+                          )
+                          .toList(),
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _request == null
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _request == null
               ? const Center(child: Text('Request not found'))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Status Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(_request!.status).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                          border: Border.all(
-                            color: _getStatusColor(_request!.status).withOpacity(0.3),
-                          ),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Status Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(
+                          _request!.status,
+                        ).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                        border: Border.all(
+                          color: _getStatusColor(
+                            _request!.status,
+                          ).withOpacity(0.3),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: _getStatusColor(_request!.status),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                _getStatusIcon(_request!.status),
-                                color: Colors.white,
-                              ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(_request!.status),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Status',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textSecondaryLight,
-                                    ),
+                            child: Icon(
+                              _getStatusIcon(_request!.status),
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Status',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondaryLight,
                                   ),
+                                ),
+                                Text(
+                                  _request!.status.displayName,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: _getStatusColor(_request!.status),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_request!.priority == ServicePriority.urgent)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.urgent,
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusFull,
+                                ),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
                                   Text(
-                                    _request!.status.displayName,
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    'URGENT',
+                                    style: TextStyle(
+                                      color: Colors.white,
                                       fontWeight: FontWeight.w700,
-                                      color: _getStatusColor(_request!.status),
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            if (_request!.priority == ServicePriority.urgent)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.urgent,
-                                  borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(Icons.warning, color: Colors.white, size: 16),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'URGENT',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Customer Details
+                    _SectionCard(
+                      title: 'Customer Details',
+                      icon: Icons.person,
+                      children: [
+                        _DetailRow(
+                          label: 'Name',
+                          value: _request!.customerName ?? 'N/A',
                         ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Customer Details
-                      _SectionCard(
-                        title: 'Customer Details',
-                        icon: Icons.person,
-                        children: [
-                          _DetailRow(label: 'Name', value: _request!.customerName ?? 'N/A'),
-                          _DetailRow(label: 'Phone', value: _request!.customerPhone ?? 'N/A'),
-                          _DetailRow(label: 'Address', value: _request!.customerAddress ?? 'N/A'),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Product Details
-                      _SectionCard(
-                        title: 'Product Details',
-                        icon: Icons.inventory_2,
-                        children: [
-                          _DetailRow(label: 'Product', value: _request!.productName ?? 'N/A'),
-                          _DetailRow(label: 'Model', value: _request!.productModel ?? 'N/A'),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Issue Details
-                      _SectionCard(
-                        title: 'Issue Details',
-                        icon: Icons.report_problem,
-                        children: [
-                          _DetailRow(label: 'Issue Type', value: _request!.issueType),
-                          _DetailRow(
-                            label: 'Reported On',
-                            value: DateFormat('MMM d, yyyy • h:mm a').format(_request!.createdAt),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Description',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.textSecondaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _request!.description,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                      
-                      // Evidence Images
-                      if (_request!.evidenceImages.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        _SectionCard(
-                          title: 'Evidence Images',
-                          icon: Icons.photo_library,
-                          children: [
-                            SizedBox(
-                              height: 100,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _request!.evidenceImages.length,
-                                itemBuilder: (context, index) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: CachedNetworkImage(
-                                        imageUrl: _request!.evidenceImages[index],
-                                        width: 100,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
+                        _DetailRow(
+                          label: 'Phone',
+                          value: _request!.customerPhone ?? 'N/A',
+                        ),
+                        _DetailRow(
+                          label: 'Address',
+                          value: _request!.customerAddress ?? 'N/A',
                         ),
                       ],
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Assignment Section
-                      Text(
-                        'Assignment',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Product Details
+                    _SectionCard(
+                      title: 'Product Details',
+                      icon: Icons.inventory_2,
+                      children: [
+                        _DetailRow(
+                          label: 'Product',
+                          value: _request!.productName ?? 'N/A',
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      DropdownButtonFormField<String>(
-                        value: _selectedProvider,
-                        decoration: const InputDecoration(
-                          labelText: 'Service Provider',
-                          prefixIcon: Icon(Icons.business),
+                        _DetailRow(
+                          label: 'Model',
+                          value: _request!.productModel ?? 'N/A',
                         ),
-                        items: ServiceRequestModel.serviceProviders.map((provider) {
-                          return DropdownMenuItem(
-                            value: provider,
-                            child: Text(provider),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedProvider = value);
-                        },
-                      ),
-                      
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Issue Details
+                    _SectionCard(
+                      title: 'Issue Details',
+                      icon: Icons.report_problem,
+                      children: [
+                        _DetailRow(
+                          label: 'Issue Type',
+                          value: _request!.issueType,
+                        ),
+                        _DetailRow(
+                          label: 'Reported On',
+                          value: DateFormat(
+                            'MMM d, yyyy • h:mm a',
+                          ).format(_request!.createdAt),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Description',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _request!.description,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+
+                    // Evidence Images
+                    if (_request!.evidenceImages.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _technicianController,
-                        decoration: const InputDecoration(
-                          labelText: 'Technician Name',
-                          prefixIcon: Icon(Icons.engineering),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      TextFormField(
-                        controller: _notesController,
-                        maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: 'Resolution Notes',
-                          alignLabelWithHint: true,
-                          prefixIcon: Padding(
-                            padding: EdgeInsets.only(bottom: 48),
-                            child: Icon(Icons.notes),
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      // Action Buttons
-                      Row(
+                      _SectionCard(
+                        title: 'Evidence Images',
+                        icon: Icons.photo_library,
                         children: [
-                          if (_request!.status == ServiceRequestStatus.pending) ...[
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => _updateStatus(ServiceRequestStatus.assigned),
-                                icon: const Icon(Icons.assignment_ind),
-                                label: const Text('Assign'),
-                              ),
+                          SizedBox(
+                            height: 100,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _request!.evidenceImages.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: CachedNetworkImage(
+                                      imageUrl: _request!.evidenceImages[index],
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          ] else if (_request!.status == ServiceRequestStatus.assigned) ...[
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => _updateStatus(ServiceRequestStatus.inProgress),
-                                icon: const Icon(Icons.play_arrow),
-                                label: const Text('Start'),
-                              ),
-                            ),
-                          ] else if (_request!.status == ServiceRequestStatus.inProgress) ...[
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () =>
-                                    _updateStatus(ServiceRequestStatus.resolved),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.success,
-                                ),
-                                icon: const Icon(Icons.check_circle),
-                                label: const Text('Resolve'),
-                              ),
-                            ),
-                          ] else if (_request!.status ==
-                              ServiceRequestStatus.resolved) ...[
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: null, // Waiting for user confirmation
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      AppTheme.success.withOpacity(0.5),
-                                ),
-                                icon: const Icon(Icons.hourglass_bottom),
-                                label: const Text(
-                                  'Waiting for User Confirmation',
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 32),
                     ],
-                  ),
+
+                    const SizedBox(height: 24),
+
+                    // Assignment Section
+                    Text(
+                      'Assignment',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    DropdownButtonFormField<String>(
+                      value: _selectedProvider,
+                      decoration: const InputDecoration(
+                        labelText: 'Service Provider',
+                        prefixIcon: Icon(Icons.business),
+                      ),
+                      items:
+                          ServiceRequestModel.serviceProviders.map((provider) {
+                            return DropdownMenuItem(
+                              value: provider,
+                              child: Text(provider),
+                            );
+                          }).toList(),
+                      onChanged: (value) {
+                        setState(() => _selectedProvider = value);
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _technicianController,
+                      decoration: const InputDecoration(
+                        labelText: 'Technician Name',
+                        prefixIcon: Icon(Icons.engineering),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    TextFormField(
+                      controller: _notesController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Resolution Notes',
+                        alignLabelWithHint: true,
+                        prefixIcon: Padding(
+                          padding: EdgeInsets.only(bottom: 48),
+                          child: Icon(Icons.notes),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        if (_request!.status ==
+                            ServiceRequestStatus.pending) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed:
+                                  () => _updateStatus(
+                                    ServiceRequestStatus.assigned,
+                                  ),
+                              icon: const Icon(Icons.assignment_ind),
+                              label: const Text('Assign'),
+                            ),
+                          ),
+                        ] else if (_request!.status ==
+                            ServiceRequestStatus.assigned) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed:
+                                  () => _updateStatus(
+                                    ServiceRequestStatus.inProgress,
+                                  ),
+                              icon: const Icon(Icons.play_arrow),
+                              label: const Text('Start'),
+                            ),
+                          ),
+                        ] else if (_request!.status ==
+                            ServiceRequestStatus.inProgress) ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed:
+                                  () => _updateStatus(
+                                    ServiceRequestStatus.resolved,
+                                  ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.success,
+                              ),
+                              icon: const Icon(Icons.check_circle),
+                              label: const Text('Resolve'),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
                 ),
+              ),
     );
   }
 
@@ -440,9 +479,9 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -477,10 +516,7 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

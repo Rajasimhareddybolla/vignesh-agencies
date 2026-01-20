@@ -73,19 +73,6 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     });
   }
 
-  String _getErrorMessage(String error) {
-    if (error.contains('user-not-found')) {
-      return 'No account found with this email.';
-    } else if (error.contains('wrong-password')) {
-      return 'Incorrect password. Please try again.';
-    } else if (error.contains('invalid-email')) {
-      return 'Please enter a valid email address.';
-    } else if (error.contains('too-many-requests')) {
-      return 'Too many attempts. Please try again later.';
-    }
-    return 'Login failed. Please try again.';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -248,25 +235,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _signIn,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                        child:
+                            _isLoading
+                                ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
+                                )
+                                : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.login, size: 20),
+                                    SizedBox(width: 8),
+                                    Text('Sign In'),
+                                  ],
                                 ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.login, size: 20),
-                                  SizedBox(width: 8),
-                                  Text('Sign In'),
-                                ],
-                              ),
                       ),
                     ),
                   ],
@@ -314,67 +302,70 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reset Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter your email address to receive a password reset link.',
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Reset Password'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter your email address to receive a password reset link.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: emailController,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                border: OutlineInputBorder(),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
               ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+              ElevatedButton(
+                onPressed: () async {
+                  final email = emailController.text.trim();
+                  if (email.isEmpty || !email.contains('@')) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter a valid email'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.pop(context);
+
+                  try {
+                    final authService = context.read<AuthService>();
+                    await authService.sendPasswordResetEmail(email);
+
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Password reset email sent!'),
+                          backgroundColor: AppTheme.success,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
+                  }
+                },
+                child: const Text('Send Link'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
-              if (email.isEmpty || !email.contains('@')) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid email')),
-                );
-                return;
-              }
-
-              Navigator.pop(context);
-
-              try {
-                final authService = context.read<AuthService>();
-                await authService.sendPasswordResetEmail(email);
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Password reset email sent!'),
-                      backgroundColor: AppTheme.success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-            },
-            child: const Text('Send Link'),
-          ),
-        ],
-      ),
     );
   }
 }

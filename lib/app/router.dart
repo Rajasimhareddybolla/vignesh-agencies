@@ -25,6 +25,7 @@ import '../screens/admin/warranty_validation_screen.dart';
 import '../screens/admin/payout_manager_screen.dart';
 import '../screens/admin/reports_screen.dart';
 import '../screens/admin/send_notification_screen.dart';
+import '../screens/admin/admin_settings_screen.dart';
 import '../services/auth_service.dart';
 
 class AppRouter {
@@ -118,20 +119,22 @@ class AppRouter {
           GoRoute(
             path: '/home',
             name: 'home',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: HomeScreen()),
+            pageBuilder:
+                (context, state) => const NoTransitionPage(child: HomeScreen()),
           ),
           GoRoute(
             path: '/requests',
             name: 'requests',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: RequestsListScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: RequestsListScreen()),
           ),
           GoRoute(
             path: '/profile',
             name: 'profile',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ProfileScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: ProfileScreen()),
           ),
         ],
       ),
@@ -176,38 +179,51 @@ class AppRouter {
           GoRoute(
             path: '/admin',
             name: 'admin-home',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: CommandCenterScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: CommandCenterScreen()),
           ),
           GoRoute(
             path: '/admin/requests',
             name: 'admin-requests',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: AdminServiceRequestsScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AdminServiceRequestsScreen()),
           ),
           GoRoute(
             path: '/admin/warranty',
             name: 'admin-warranty',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: WarrantyValidationScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: WarrantyValidationScreen()),
           ),
           GoRoute(
             path: '/admin/payouts',
             name: 'admin-payouts',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: PayoutManagerScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: PayoutManagerScreen()),
           ),
           GoRoute(
             path: '/admin/reports',
             name: 'admin-reports',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: ReportsScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: ReportsScreen()),
           ),
           GoRoute(
             path: '/admin/notifications',
             name: 'admin-notifications',
-            pageBuilder: (context, state) =>
-                const NoTransitionPage(child: SendNotificationScreen()),
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: SendNotificationScreen()),
+          ),
+          GoRoute(
+            path: '/admin/settings',
+            name: 'admin-settings',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AdminSettingsScreen()),
           ),
         ],
       ),
@@ -220,9 +236,10 @@ class AppRouter {
         },
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(child: Text('Page not found: ${state.uri.path}')),
-    ),
+    errorBuilder:
+        (context, state) => Scaffold(
+          body: Center(child: Text('Page not found: ${state.uri.path}')),
+        ),
   );
 }
 
@@ -430,7 +447,7 @@ class AdminShellScreen extends StatelessWidget {
         context.goNamed('admin-payouts');
         break;
       case 4:
-        context.goNamed('admin-reports');
+        context.goNamed('admin-settings');
         break;
     }
   }

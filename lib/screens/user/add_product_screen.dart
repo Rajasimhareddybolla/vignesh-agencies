@@ -23,7 +23,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _modelController = TextEditingController();
   final _serialController = TextEditingController();
   final _productNameController = TextEditingController();
-  
+
   String? _selectedCategory;
   DateTime? _purchaseDate;
   XFile? _billImage;
@@ -52,9 +52,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         setState(() => _billImage = image);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -115,9 +115,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppTheme.primary,
-            ),
+            colorScheme: const ColorScheme.light(primary: AppTheme.primary),
           ),
           child: child!,
         );
@@ -130,12 +128,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Future<void> _registerProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     if (_selectedCategory == null) {
       setState(() => _errorMessage = 'Please select a product category');
       return;
     }
-    
+
     if (_purchaseDate == null) {
       setState(() => _errorMessage = 'Please select purchase date');
       return;
@@ -150,7 +148,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
       final storageService = context.read<StorageService>();
-      
+
       // Use resolved ID to ensure we add products to the linked account if in bypass mode
       final userId = await authService.getResolvedUserId();
       String? billImageUrl;
@@ -175,13 +173,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
         id: '',
         userId: userId,
         category: _selectedCategory!,
-        productName: _productNameController.text.isNotEmpty 
-            ? _productNameController.text.trim()
-            : _selectedCategory!,
+        productName:
+            _productNameController.text.isNotEmpty
+                ? _productNameController.text.trim()
+                : _selectedCategory!,
         modelNumber: _modelController.text.trim(),
-        serialNumber: _serialController.text.trim().isNotEmpty 
-            ? _serialController.text.trim() 
-            : null,
+        serialNumber:
+            _serialController.text.trim().isNotEmpty
+                ? _serialController.text.trim()
+                : null,
         purchaseDate: _purchaseDate!,
         warrantyEndDate: warrantyEndDate,
         billImageUrl: billImageUrl,
@@ -194,7 +194,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Product registered successfully! Awaiting verification.'),
+            content: Text(
+              'Product registered successfully! Awaiting verification.',
+            ),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -237,19 +239,31 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   hintText: 'Select Category',
                   prefixIcon: Icon(Icons.category_outlined),
                 ),
-                items: ProductModel.categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList(),
+                items:
+                    ProductModel.categories.map((category) {
+                      return DropdownMenuItem(
+                        value: category,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getCategoryIcon(category),
+                              size: 20,
+                              color: AppTheme.primary,
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(child: Text(category)),
+                          ],
+                        ),
+                      );
+                    }).toList(),
                 onChanged: (value) {
                   setState(() => _selectedCategory = value);
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Product Name (Optional)
               Text(
                 'Product Name (Optional)',
@@ -263,9 +277,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   prefixIcon: Icon(Icons.label_outline),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Model / Serial Number
               Text(
                 'Model / Serial Number',
@@ -282,7 +296,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     onPressed: () {
                       // TODO: Implement barcode scanner
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Barcode scanner coming soon!')),
+                        const SnackBar(
+                          content: Text('Barcode scanner coming soon!'),
+                        ),
                       );
                     },
                   ),
@@ -294,9 +310,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   return null;
                 },
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Date of Purchase
               Text(
                 'Date of Purchase',
@@ -306,7 +322,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
               InkWell(
                 onTap: _selectDate,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
@@ -314,28 +333,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, color: AppTheme.textSecondaryLight),
+                      const Icon(
+                        Icons.calendar_today,
+                        color: AppTheme.textSecondaryLight,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           _purchaseDate != null
                               ? DateFormat('dd/MM/yyyy').format(_purchaseDate!)
                               : 'mm/dd/yyyy',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: _purchaseDate != null
-                                ? AppTheme.textPrimaryLight
-                                : AppTheme.textSecondaryLight,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(
+                            color:
+                                _purchaseDate != null
+                                    ? AppTheme.textPrimaryLight
+                                    : AppTheme.textSecondaryLight,
                           ),
                         ),
                       ),
-                      const Icon(Icons.calendar_month, color: AppTheme.textSecondaryLight),
+                      const Icon(
+                        Icons.calendar_month,
+                        color: AppTheme.textSecondaryLight,
+                      ),
                     ],
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Bill / Warranty Card Upload
               Text(
                 'Bill / Warranty Card',
@@ -351,97 +379,123 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     border: Border.all(
                       color: AppTheme.borderLight,
-                      style: _billImage == null ? BorderStyle.solid : BorderStyle.none,
+                      style:
+                          _billImage == null
+                              ? BorderStyle.solid
+                              : BorderStyle.none,
                     ),
                   ),
-                  child: _billImage != null
-                      ? Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                              child: kIsWeb
-                                  ? Image.network(
-                                      _billImage!.path,
-                                      width: double.infinity,
-                                      height: 180,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: AppTheme.backgroundLight,
-                                          child: const Center(
-                                            child: Icon(Icons.image, size: 48),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Image.file(
-                                      File(_billImage!.path),
-                                      width: double.infinity,
-                                      height: 180,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: AppTheme.backgroundLight,
-                                          child: const Center(
-                                            child: Icon(Icons.image, size: 48),
-                                          ),
-                                        );
-                                      },
+                  child:
+                      _billImage != null
+                          ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMd,
+                                ),
+                                child:
+                                    kIsWeb
+                                        ? Image.network(
+                                          _billImage!.path,
+                                          width: double.infinity,
+                                          height: 180,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: AppTheme.backgroundLight,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 48,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : Image.file(
+                                          File(_billImage!.path),
+                                          width: double.infinity,
+                                          height: 180,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: AppTheme.backgroundLight,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 48,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
                                     ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
+                                    onPressed: () {
+                                      setState(() => _billImage = null);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                          : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
+                                  color: AppTheme.primary.withOpacity(0.1),
                                   shape: BoxShape.circle,
                                 ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                                  onPressed: () {
-                                    setState(() => _billImage = null);
-                                  },
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: AppTheme.primary,
+                                  size: 28,
                                 ),
                               ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 56,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.1),
-                                shape: BoxShape.circle,
+                              const SizedBox(height: 12),
+                              Text(
+                                'Upload Photo',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: AppTheme.primary,
-                                size: 28,
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap to take a photo or upload document',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textSecondaryLight,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Upload Photo',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Tap to take a photo or upload document',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
                 ),
               ),
-              
+
               if (_errorMessage != null) ...[
                 const SizedBox(height: 24),
                 Container(
@@ -452,47 +506,78 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppTheme.error, size: 20),
+                      const Icon(
+                        Icons.error_outline,
+                        color: AppTheme.error,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.error,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppTheme.error),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 32),
-              
+
               // Register Button
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _registerProduct,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text('Register Product'),
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                          : const Text('Register Product'),
                 ),
               ),
-              
+
               const SizedBox(height: 24),
             ],
           ),
         ),
       ),
     );
+  }
+
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'water heater':
+        return Icons.water_drop;
+      case 'stabilizer':
+        return Icons.electrical_services;
+      case 'inverter':
+        return Icons.battery_charging_full;
+      case 'fan':
+        return Icons.wind_power;
+      case 'air cooler':
+        return Icons.ac_unit;
+      case 'kitchen appliances':
+        return Icons.kitchen;
+      case 'solar products':
+        return Icons.solar_power;
+      case 'wiring & cables':
+        return Icons.cable;
+      case 'switchgear':
+        return Icons.toggle_on;
+      default:
+        return Icons.devices_other;
+    }
   }
 }
 
@@ -520,17 +605,10 @@ class _ImageSourceOption extends StatelessWidget {
               color: AppTheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              color: AppTheme.primary,
-              size: 28,
-            ),
+            child: Icon(icon, color: AppTheme.primary, size: 28),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
+          Text(label, style: Theme.of(context).textTheme.labelLarge),
         ],
       ),
     );

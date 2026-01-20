@@ -79,13 +79,23 @@ class ContactSupportScreen extends StatelessWidget {
               icon: Icons.phone,
               title: 'Call Us',
               subtitle: '1800-123-4567',
-              onTap: () {},
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Call toll-free: 1800-123-4567'),
+                  ),
+                );
+              },
             ),
             _ContactOption(
               icon: Icons.email,
               title: 'Email Us',
               subtitle: 'support@vguard.in',
-              onTap: () {},
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Email: support@vguard.in')),
+                );
+              },
             ),
           ],
         ),

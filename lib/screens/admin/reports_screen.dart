@@ -704,26 +704,30 @@ class _TableRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 72,
             child: Text(
               ticket,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
                 color: AppTheme.primary,
+                fontSize: 11,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
-            flex: 3,
+            flex: 2,
             child: Text(
               customer,
               style: Theme.of(context).textTheme.bodySmall,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 70,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -741,12 +745,14 @@ class _TableRow extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(
-            flex: 2,
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 50,
             child: Text(
               date,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppTheme.textSecondaryLight,
+                fontSize: 11,
               ),
             ),
           ),

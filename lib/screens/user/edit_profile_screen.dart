@@ -41,7 +41,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final firestoreService = context.read<FirestoreService>();
 
     if (authService.currentUser != null) {
-      final user = await firestoreService.getUser(authService.currentUser!.uid);
+      // Use resolved ID to get linked account data for bypass mode users
+      final resolvedId = await authService.getResolvedUserId();
+      final user = await firestoreService.getUser(resolvedId);
       if (user != null && mounted) {
         setState(() {
           _user = user;
@@ -99,13 +101,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveProfile,
-            child: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Save'),
+            child:
+                _isLoading
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                    : const Text('Save'),
           ),
         ],
       ),
@@ -132,11 +135,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           _user?.displayName.isNotEmpty == true
                               ? _user!.displayName[0].toUpperCase()
                               : 'U',
-                          style: Theme.of(context).textTheme.displaySmall
-                              ?.copyWith(
-                                color: AppTheme.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.displaySmall?.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),

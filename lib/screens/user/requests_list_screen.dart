@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme.dart';
@@ -53,82 +54,88 @@ class _RequestsListScreenState extends State<RequestsListScreen>
         color: AppTheme.primary,
         child: NestedScrollView(
           physics: const BouncingScrollPhysics(),
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            // Premium Header
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _headerController,
-                child: _buildHeader(context),
-              ),
-            ),
-            // Tab Bar
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _SliverTabBarDelegate(
-                TabBar(
-                  controller: _tabController,
-                  labelColor: AppTheme.primary,
-                  unselectedLabelColor: AppTheme.textSecondaryLight,
-                  indicatorColor: AppTheme.primary,
-                  indicatorWeight: 3,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+          headerSliverBuilder:
+              (context, innerBoxIsScrolled) => [
+                // Premium Header
+                SliverToBoxAdapter(
+                  child: FadeTransition(
+                    opacity: _headerController,
+                    child: _buildHeader(context),
                   ),
-                  tabs: const [
-                    Tab(text: 'All'),
-                    Tab(text: 'Active'),
-                    Tab(text: 'Completed'),
-                  ],
                 ),
-              ),
-            ),
-          ],
+                // Tab Bar
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _SliverTabBarDelegate(
+                    TabBar(
+                      controller: _tabController,
+                      labelColor: AppTheme.primary,
+                      unselectedLabelColor: AppTheme.textSecondaryLight,
+                      indicatorColor: AppTheme.primary,
+                      indicatorWeight: 3,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                      tabs: const [
+                        Tab(text: 'All'),
+                        Tab(text: 'Active'),
+                        Tab(text: 'Completed'),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
           body: StreamBuilder<UserModel?>(
             stream: authService.userModelStream(),
             builder: (context, userSnapshot) {
-              final effectiveUserId = userSnapshot.data?.id ?? authService.currentUser?.uid;
+              final effectiveUserId =
+                  userSnapshot.data?.id ?? authService.currentUser?.uid;
 
               return StreamBuilder<List<ServiceRequestModel>>(
-                stream: effectiveUserId != null
-                    ? firestoreService.getUserServiceRequests(effectiveUserId)
-                    : Stream.value([]),
+                stream:
+                    effectiveUserId != null
+                        ? firestoreService.getUserServiceRequests(
+                          effectiveUserId,
+                        )
+                        : Stream.value([]),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
                   final allRequests = snapshot.data ?? [];
-                  final activeRequests = allRequests
-                      .where(
-                    (r) =>
-                        r.status == ServiceRequestStatus.pending ||
-                        r.status == ServiceRequestStatus.assigned ||
-                        r.status == ServiceRequestStatus.inProgress,
-                  )
-                  .toList();
-              final completedRequests = allRequests
-                  .where(
-                    (r) =>
-                        r.status == ServiceRequestStatus.resolved ||
-                        r.status == ServiceRequestStatus.completed ||
-                        r.status == ServiceRequestStatus.cancelled,
-                  )
-                  .toList();
+                  final activeRequests =
+                      allRequests
+                          .where(
+                            (r) =>
+                                r.status == ServiceRequestStatus.pending ||
+                                r.status == ServiceRequestStatus.assigned ||
+                                r.status == ServiceRequestStatus.inProgress,
+                          )
+                          .toList();
+                  final completedRequests =
+                      allRequests
+                          .where(
+                            (r) =>
+                                r.status == ServiceRequestStatus.resolved ||
+                                r.status == ServiceRequestStatus.cancelled,
+                          )
+                          .toList();
 
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _RequestsList(requests: allRequests),
-                  _RequestsList(requests: activeRequests),
-                  _RequestsList(requests: completedRequests),
-                ],
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _RequestsList(requests: allRequests),
+                      _RequestsList(requests: activeRequests),
+                      _RequestsList(requests: completedRequests),
+                    ],
+                  );
+                },
               );
             },
-          );
-        },
-      ),
+          ),
         ),
       ),
     );
@@ -290,7 +297,8 @@ class _PremiumRequestCard extends StatelessWidget {
       glowColor: _getStatusColor(request.status),
       onTap: () {
         HapticFeedback.selectionClick();
-        // Navigate to request detail if needed
+        // Navigate to request detail screen
+        context.push('/admin/request/${request.id}');
       },
       child: Column(
         children: [

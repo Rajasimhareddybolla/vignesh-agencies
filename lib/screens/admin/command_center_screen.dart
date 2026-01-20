@@ -119,8 +119,8 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                       0,
                                   icon: Icons.build_circle,
                                   color: AppTheme.warning,
-                                  onTap: () =>
-                                      context.goNamed('admin-requests'),
+                                  onTap:
+                                      () => context.goNamed('admin-requests'),
                                 ),
                               ),
                             ),
@@ -136,8 +136,8 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                       0,
                                   icon: Icons.verified,
                                   color: AppTheme.primary,
-                                  onTap: () =>
-                                      context.goNamed('admin-warranty'),
+                                  onTap:
+                                      () => context.goNamed('admin-warranty'),
                                 ),
                               ),
                             ),
@@ -156,7 +156,15 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                       0,
                                   icon: Icons.people,
                                   color: AppTheme.success,
-                                  onTap: () {},
+                                  onTap: () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Total registered users: ${(stats['totalUsers'] as num?)?.toInt() ?? 0}',
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
@@ -274,7 +282,6 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
   }
 
   Widget _buildPremiumHeader(BuildContext context) {
-    final authService = context.read<AuthService>();
     final greeting = _getGreeting();
 
     return Container(
@@ -284,9 +291,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
         20,
         24,
       ),
-      decoration: BoxDecoration(
-        gradient: AppTheme.adminGradient,
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.adminGradient),
       child: Stack(
         children: [
           // Decorative elements
@@ -367,11 +372,12 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                         const SizedBox(height: 4),
                         Text(
                           'Command Center',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -516,23 +522,24 @@ class _AdminAvatar extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       color: Colors.white,
       elevation: 8,
-      itemBuilder: (context) => [
-        _buildMenuItem(context, 'profile', Icons.person_outline, 'Profile'),
-        _buildMenuItem(
-          context,
-          'settings',
-          Icons.settings_outlined,
-          'Settings',
-        ),
-        const PopupMenuDivider(),
-        _buildMenuItem(
-          context,
-          'logout',
-          Icons.logout,
-          'Logout',
-          isDestructive: true,
-        ),
-      ],
+      itemBuilder:
+          (context) => [
+            _buildMenuItem(context, 'profile', Icons.person_outline, 'Profile'),
+            _buildMenuItem(
+              context,
+              'settings',
+              Icons.settings_outlined,
+              'Settings',
+            ),
+            const PopupMenuDivider(),
+            _buildMenuItem(
+              context,
+              'logout',
+              Icons.logout,
+              'Logout',
+              isDestructive: true,
+            ),
+          ],
       onSelected: (value) async {
         HapticFeedback.mediumImpact();
         switch (value) {
