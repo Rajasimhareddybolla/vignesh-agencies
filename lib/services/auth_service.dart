@@ -18,7 +18,7 @@ class AuthService {
   String? get resolvedUserId {
     // If not logged in
     if (currentUser == null) return null;
-    
+
     // NOTE: This property doesn't resolve linked IDs synchronously
     // because we can't await here.
     // For writes, you should use (await authService.getResolvedUserId()) ?? currentUser.uid
@@ -30,17 +30,19 @@ class AuthService {
     final user = currentUser;
     if (user == null) throw Exception('Not authenticated');
 
-    // First, check if we've already resolved it in memory? 
+    // First, check if we've already resolved it in memory?
     // Ideally we fetch from DB or check a cache.
     // Since this is critical for writes, we'll fetch the document to be safe
     // or rely on userModel if already loaded.
-    
+
     // Fast path: Check the stream first if we can? No, stream is separate.
-    
+
     final doc = await _firestore.collection('users').doc(user.uid).get();
     if (doc.exists) {
       final data = doc.data();
-      if (data != null && data.containsKey('linkedAccountId') && data['linkedAccountId'] != null) {
+      if (data != null &&
+          data.containsKey('linkedAccountId') &&
+          data['linkedAccountId'] != null) {
         return data['linkedAccountId'] as String;
       }
     }
@@ -48,31 +50,55 @@ class AuthService {
   }
 
   // Phone Auth - Send OTP
+  // Set to true for testing (uses 123456 as OTP), false for production (real SMS)
+  static const bool testMode = false; // 👈 Change to false for production
+
   Future<void> sendOTP({
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
     required Function(String error) onError,
     required Function(PhoneAuthCredential credential) onAutoVerify,
   }) async {
+    // Test mode - skip Firebase and use bypass flow
+    if (testMode) {
+      // Simulate a small delay then trigger codeSent with test verificationId
+      await Future.delayed(const Duration(milliseconds: 500));
+      onCodeSent('test-verification-id');
+      return;
+    }
+
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
-        timeout: const Duration(seconds: 60),
+        timeout: const Duration(seconds: 120), // Increased timeout
         verificationCompleted: (PhoneAuthCredential credential) async {
           onAutoVerify(credential);
         },
         verificationFailed: (FirebaseAuthException e) {
-          onError(e.message ?? 'Verification failed');
+          // Better error messages
+          String errorMsg = e.message ?? 'Verification failed';
+          if (e.code == 'too-many-requests' || errorMsg.contains('blocked')) {
+            errorMsg = 'Too many attempts. Please try again in a few hours.';
+          } else if (e.code == 'invalid-phone-number') {
+            errorMsg = 'Invalid phone number format.';
+          } else if (errorMsg.contains('BILLING')) {
+            errorMsg = 'Service unavailable. Please contact support.';
+          }
+          onError(errorMsg);
         },
         codeSent: (String verificationId, int? resendToken) {
           onCodeSent(verificationId);
         },
         codeAutoRetrievalTimeout: (String verificationId) {
-          // Auto-retrieval timeout
+          // Auto-retrieval timeout - this is normal, no action needed
         },
       );
     } catch (e) {
-      onError(e.toString());
+      String errorMsg = e.toString();
+      if (errorMsg.contains('blocked') || errorMsg.contains('unusual')) {
+        errorMsg = 'Too many attempts. Please try again later.';
+      }
+      onError(errorMsg);
     }
   }
 
@@ -93,6 +119,21 @@ class AuthService {
         await _createOrUpdateUser(userCredential.user!);
       }
 
+      return userCredential;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Sign in with credential (for Android auto-verification)
+  Future<UserCredential?> signInWithCredential(
+    PhoneAuthCredential credential,
+  ) async {
+    try {
+      final userCredential = await _auth.signInWithCredential(credential);
+      if (userCredential.user != null) {
+        await _createOrUpdateUser(userCredential.user!);
+      }
       return userCredential;
     } catch (e) {
       rethrow;
@@ -122,37 +163,43 @@ class AuthService {
 
       // Check if user document exists for this phone number
       // We search for ALL users with this phone number to find the "original" one.
-      final existingUserQuery = await _firestore
-          .collection('users')
-          .where('phone', isEqualTo: phoneNumber)
-          .get();
+      final existingUserQuery =
+          await _firestore
+              .collection('users')
+              .where('phone', isEqualTo: phoneNumber)
+              .get();
 
       if (existingUserQuery.docs.isNotEmpty) {
         String? targetUserId;
-        
+
         // Find the best candidate:
         // 1. Must NOT be a proxy/linked account itself
         // 2. Prefer the one created earliest (original)
-        
-        final candidates = existingUserQuery.docs.where((doc) {
-          final data = doc.data();
-          // Exclude if it has linkedAccountId
-          return !data.containsKey('linkedAccountId');
-        }).toList();
+
+        final candidates =
+            existingUserQuery.docs.where((doc) {
+              final data = doc.data();
+              // Exclude if it has linkedAccountId
+              return !data.containsKey('linkedAccountId');
+            }).toList();
 
         if (candidates.isNotEmpty) {
-           // Sort by createdAt just in case to find the oldest
-           candidates.sort((a, b) {
-             final aTime = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-             final bTime = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-             return aTime.compareTo(bTime);
-           });
-           targetUserId = candidates.first.id;
+          // Sort by createdAt just in case to find the oldest
+          candidates.sort((a, b) {
+            final aTime =
+                (a.data()['createdAt'] as Timestamp?)?.toDate() ??
+                DateTime.now();
+            final bTime =
+                (b.data()['createdAt'] as Timestamp?)?.toDate() ??
+                DateTime.now();
+            return aTime.compareTo(bTime);
+          });
+          targetUserId = candidates.first.id;
         } else {
-           // Fallback: verification found users but they are all proxies?
-           // This is weird. Pick the first one from the original query as a fallback.
-           // Or maybe we should just create a new one? No, let's link to the first one found.
-           targetUserId = existingUserQuery.docs.first.id;
+          // Fallback: verification found users but they are all proxies?
+          // This is weird. Pick the first one from the original query as a fallback.
+          // Or maybe we should just create a new one? No, let's link to the first one found.
+          targetUserId = existingUserQuery.docs.first.id;
         }
 
         if (targetUserId != null) {
@@ -161,7 +208,7 @@ class AuthService {
             'linkedAccountId': targetUserId,
             'phone': phoneNumber,
             'lastLoginAt': Timestamp.now(),
-            'isProxy': true, 
+            'isProxy': true,
           }, SetOptions(merge: true));
 
           // Update target user's last login
@@ -171,7 +218,7 @@ class AuthService {
         }
       } else {
         // No existing user found. Create a new one at the current UID.
-        
+
         // NOW check if user document exists for this anonymous user (unlikely unless reused)
         final userDoc = await _firestore.collection('users').doc(uid).get();
 
@@ -222,9 +269,9 @@ class AuthService {
       // Create admin user document
       final adminUser = UserModel(
         id: uid,
-        displayName: 'V-Guard Admin',
-        email: 'admin@vguard.in',
-        referralCode: 'VG-ADMIN',
+        displayName: 'Vignesh Agencies Admin',
+        email: 'admin@vigneshagencies.in',
+        referralCode: 'VA-ADMIN',
         isAdmin: true,
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
@@ -255,10 +302,11 @@ class AuthService {
 
       if (userCredential.user != null) {
         // Check if user document exists, if not create it as admin
-        final userDoc = await _firestore
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .get();
+        final userDoc =
+            await _firestore
+                .collection('users')
+                .doc(userCredential.user!.uid)
+                .get();
 
         if (!userDoc.exists) {
           // Auto-create admin document for email/password users
@@ -266,7 +314,7 @@ class AuthService {
             id: userCredential.user!.uid,
             displayName: userCredential.user!.displayName ?? 'Admin',
             email: email,
-            referralCode: 'VG-ADMIN',
+            referralCode: 'VA-ADMIN',
             isAdmin: true,
             createdAt: DateTime.now(),
             lastLoginAt: DateTime.now(),
@@ -355,10 +403,8 @@ class AuthService {
   Future<UserModel?> getUserModel() async {
     if (currentUser == null) return null;
 
-    final doc = await _firestore
-        .collection('users')
-        .doc(currentUser!.uid)
-        .get();
+    final doc =
+        await _firestore.collection('users').doc(currentUser!.uid).get();
     if (doc.exists) {
       final data = doc.data();
       // Check for linked account (Bypass Mode)
@@ -386,21 +432,21 @@ class AuthService {
         .doc(currentUser!.uid)
         .snapshots()
         .asyncMap((doc) async {
-      if (!doc.exists) return null;
+          if (!doc.exists) return null;
 
-      final data = doc.data();
-      // Check for linked account (Bypass Mode)
-      if (data != null && data.containsKey('linkedAccountId')) {
-        final linkedId = data['linkedAccountId'];
-        final linkedDoc =
-            await _firestore.collection('users').doc(linkedId).get();
-        if (linkedDoc.exists) {
-          return UserModel.fromFirestore(linkedDoc);
-        }
-      }
+          final data = doc.data();
+          // Check for linked account (Bypass Mode)
+          if (data != null && data.containsKey('linkedAccountId')) {
+            final linkedId = data['linkedAccountId'];
+            final linkedDoc =
+                await _firestore.collection('users').doc(linkedId).get();
+            if (linkedDoc.exists) {
+              return UserModel.fromFirestore(linkedDoc);
+            }
+          }
 
-      return UserModel.fromFirestore(doc);
-    });
+          return UserModel.fromFirestore(doc);
+        });
   }
 
   // Check if current user is admin

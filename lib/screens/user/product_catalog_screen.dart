@@ -15,7 +15,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
   final List<Map<String, dynamic>> _catalogProducts = [
     {
       'id': '1',
-      'name': 'V-Guard Zen Fan',
+      'name': 'Vignesh Agencies Zen Fan',
       'category': 'Fan',
       'description':
           'High-speed ceiling fan with anti-dust coating and energy-efficient motor. Operates silently even at high speeds.',
@@ -29,7 +29,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
     },
     {
       'id': '2',
-      'name': 'V-Guard Water Heater',
+      'name': 'Vignesh Agencies Water Heater',
       'category': 'Heater',
       'description':
           'Advanced water heater with polymer protective coating and high-pressure resistance. Perfect for high-rise buildings.',
@@ -43,7 +43,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
     },
     {
       'id': '3',
-      'name': 'V-Guard Stabilizer',
+      'name': 'Vignesh Agencies Stabilizer',
       'category': 'Stabilizer',
       'description':
           'Digital voltage stabilizer for ACs up to 1.5 tons. Protects your appliances from voltage fluctuations and surges.',

@@ -7,7 +7,7 @@ class ContactSupportScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Contact Support')),
+      appBar: AppBar(title: const Text('Contact Vignesh Agencies Support')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -24,7 +24,7 @@ class ContactSupportScreen extends StatelessWidget {
                   Icon(Icons.headset_mic, size: 48, color: AppTheme.primary),
                   SizedBox(height: 16),
                   Text(
-                    'We are here to help!',
+                    'Vignesh Agencies is here to help!',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -33,7 +33,7 @@ class ContactSupportScreen extends StatelessWidget {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Reach out to us for any queries or assistance.',
+                    'Reach out to Vignesh Agencies for any queries or assistance.',
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -62,7 +62,9 @@ class ContactSupportScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Message sent! We will contact you shortly.'),
+                    content: Text(
+                      'Message sent to Vignesh Agencies! We will contact you shortly.',
+                    ),
                   ),
                 );
                 Navigator.pop(context);
@@ -90,10 +92,12 @@ class ContactSupportScreen extends StatelessWidget {
             _ContactOption(
               icon: Icons.email,
               title: 'Email Us',
-              subtitle: 'support@vguard.in',
+              subtitle: 'support@vigneshagencies.in',
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Email: support@vguard.in')),
+                  const SnackBar(
+                    content: Text('Email: support@vigneshagencies.in'),
+                  ),
                 );
               },
             ),

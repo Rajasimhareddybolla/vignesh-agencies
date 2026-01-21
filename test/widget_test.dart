@@ -11,15 +11,17 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          appBar: AppBar(title: const Text('V-Guard Test')),
-          body: const Center(child: Text('V-Guard District Service Hub')),
+          appBar: AppBar(title: const Text('Vignesh Agencies Test')),
+          body: const Center(
+            child: Text('Vignesh Agencies District Service Hub'),
+          ),
         ),
       ),
     );
 
     // Verify that the app renders correctly
-    expect(find.text('V-Guard District Service Hub'), findsOneWidget);
-    expect(find.text('V-Guard Test'), findsOneWidget);
+    expect(find.text('Vignesh Agencies District Service Hub'), findsOneWidget);
+    expect(find.text('Vignesh Agencies Test'), findsOneWidget);
   });
 
   testWidgets('Status badge renders correctly', (WidgetTester tester) async {

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = vguard_service_app
+PRODUCT_NAME = Vignesh Agencies
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.vguard.vguardServiceApp
+PRODUCT_BUNDLE_IDENTIFIER = com.vigneshagencies.serviceApp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.vguard. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Vignesh Agencies. All rights reserved.

@@ -69,7 +69,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     // Invalid credentials
     setState(() {
       _isLoading = false;
-      _errorMessage = 'Use: admin@vguard.in / Admin@123';
+      _errorMessage = 'Use: admin@vigneshagencies.in / Admin@123';
     });
   }
 
@@ -139,7 +139,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Email Address',
-                        hintText: 'admin@vguard.in',
+                        hintText: 'admin@vigneshagencies.in',
                         prefixIcon: Icon(Icons.email_outlined),
                       ),
                       validator: (value) {

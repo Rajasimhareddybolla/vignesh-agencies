@@ -33,12 +33,14 @@ class AllAppliancesScreen extends StatelessWidget {
       body: StreamBuilder<UserModel?>(
         stream: authService.userModelStream(),
         builder: (context, userSnapshot) {
-          final effectiveUserId = userSnapshot.data?.id ?? authService.currentUser?.uid;
+          final effectiveUserId =
+              userSnapshot.data?.id ?? authService.currentUser?.uid;
 
           return StreamBuilder<List<ProductModel>>(
-            stream: effectiveUserId != null
-                ? firestoreService.getUserProducts(effectiveUserId)
-                : Stream.value([]),
+            stream:
+                effectiveUserId != null
+                    ? firestoreService.getUserProducts(effectiveUserId)
+                    : Stream.value([]),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -104,32 +106,32 @@ class AllAppliancesScreen extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8),
-                  Text(
-                    'Register your V-Guard products to\nmanage warranties and service requests',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
-                    ),
+                      Text(
+                        'Register your Vignesh Agencies products to\nmanage warranties and service requests',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => context.pushNamed('add-product'),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Product'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => context.pushNamed('add-product'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Product'),
-                  ),
-                ],
-              ),
-            );
-          }
+                );
+              }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              return _ProductCard(product: product);
-            },
-          );
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return _ProductCard(product: product);
+                },
+              );
             },
           );
         },
@@ -177,9 +179,8 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isWarrantyActive = product.warrantyEndDate.isAfter(DateTime.now());
-    final daysRemaining = product.warrantyEndDate
-        .difference(DateTime.now())
-        .inDays;
+    final daysRemaining =
+        product.warrantyEndDate.difference(DateTime.now()).inDays;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -203,19 +204,20 @@ class _ProductCard extends StatelessWidget {
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.devices,
-                        color: AppTheme.primary,
-                        size: 32,
-                      ),
-                    ),
+                    errorBuilder:
+                        (context, error, stackTrace) => Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.devices,
+                            color: AppTheme.primary,
+                            size: 32,
+                          ),
+                        ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -290,22 +292,25 @@ class _ProductCard extends StatelessWidget {
                                   ? Icons.check_circle
                                   : Icons.cancel,
                               size: 16,
-                              color: isWarrantyActive
-                                  ? AppTheme.success
-                                  : AppTheme.error,
+                              color:
+                                  isWarrantyActive
+                                      ? AppTheme.success
+                                      : AppTheme.error,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               isWarrantyActive
                                   ? '$daysRemaining days left'
                                   : 'Expired',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                    color: isWarrantyActive
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    isWarrantyActive
                                         ? AppTheme.success
                                         : AppTheme.error,
-                                  ),
+                              ),
                             ),
                           ],
                         ),

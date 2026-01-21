@@ -195,7 +195,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Product registered successfully! Awaiting verification.',
+              'Vignesh Agencies product registered successfully! Awaiting verification.',
             ),
             backgroundColor: AppTheme.success,
           ),
@@ -205,7 +205,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to register product: $e';
+        _errorMessage = 'Failed to register product with Vignesh Agencies: $e';
       });
     }
   }

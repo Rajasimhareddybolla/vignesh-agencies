@@ -344,7 +344,7 @@ class AdminShellScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     if (MediaQuery.of(context).size.width >= 1200)
                       Text(
-                        'V-Guard Admin',
+                        'Vignesh Agencies Admin',
                         style: Theme.of(context).textTheme.titleSmall,
                       ),
                   ],

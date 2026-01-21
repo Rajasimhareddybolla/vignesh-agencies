@@ -71,10 +71,7 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
   }
 }
 
-enum ServicePriority {
-  normal,
-  urgent,
-}
+enum ServicePriority { normal, urgent }
 
 extension ServicePriorityExtension on ServicePriority {
   String get displayName {
@@ -104,12 +101,12 @@ class ServiceRequestModel {
   final DateTime createdAt;
   final DateTime? assignedAt;
   final DateTime? resolvedAt;
-  
+
   // Customer details (denormalized for quick access)
   final String? customerName;
   final String? customerPhone;
   final String? customerAddress;
-  
+
   // Product details (denormalized)
   final String? productName;
   final String? productModel;
@@ -149,8 +146,13 @@ class ServiceRequestModel {
       description: data['description'] ?? '',
       evidenceImages: List<String>.from(data['evidenceImages'] ?? []),
       audioRecordingUrl: data['audioRecordingUrl'],
-      status: ServiceRequestStatusExtension.fromString(data['status'] ?? 'pending'),
-      priority: data['priority'] == 'urgent' ? ServicePriority.urgent : ServicePriority.normal,
+      status: ServiceRequestStatusExtension.fromString(
+        data['status'] ?? 'pending',
+      ),
+      priority:
+          data['priority'] == 'urgent'
+              ? ServicePriority.urgent
+              : ServicePriority.normal,
       assignedProvider: data['assignedProvider'],
       technicianName: data['technicianName'],
       resolutionNotes: data['resolutionNotes'],
@@ -255,7 +257,7 @@ class ServiceRequestModel {
 
   // Service providers
   static const List<String> serviceProviders = [
-    'V-Guard Service Center',
+    'Vignesh Agencies Service Center',
     'Authorized Service Partner',
     'Third Party Technician',
   ];

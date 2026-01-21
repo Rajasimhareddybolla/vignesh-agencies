@@ -11,7 +11,7 @@ class TermsScreen extends StatelessWidget {
         padding: EdgeInsets.all(20),
         child: Text('''
 1. Introduction
-Welcome to V-Guard District Service Hub. These Terms and Conditions govern your use of our app.
+Welcome to Vignesh Agencies District Service Hub. These Terms and Conditions govern your use of our app.
 
 2. User Accounts
 You are responsible for maintaining the confidentiality of your account credentials.

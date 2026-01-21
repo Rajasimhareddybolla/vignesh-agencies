@@ -165,9 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         20,
         50,
       ),
-      decoration: BoxDecoration(
-        gradient: AppTheme.primaryGradientExtended,
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.primaryGradientExtended),
       child: Stack(
         children: [
           // Decorative circles
@@ -217,21 +215,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: CircleAvatar(
                   radius: 48,
                   backgroundColor: Colors.white,
-                  backgroundImage: user?.photoUrl != null
-                      ? NetworkImage(user!.photoUrl!)
-                      : null,
-                  child: user?.photoUrl == null
-                      ? Text(
-                          (user?.displayName ?? 'U')
-                              .substring(0, 1)
-                              .toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 40,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primary,
-                          ),
-                        )
-                      : null,
+                  backgroundImage:
+                      user?.photoUrl != null
+                          ? NetworkImage(user!.photoUrl!)
+                          : null,
+                  child:
+                      user?.photoUrl == null
+                          ? Text(
+                            (user?.displayName ?? 'U')
+                                .substring(0, 1)
+                                .toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 40,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primary,
+                            ),
+                          )
+                          : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -314,9 +314,10 @@ class _ProfileScreenState extends State<ProfileScreen>
             children: [
               // Products count
               StreamBuilder<List<ProductModel>>(
-                stream: userId != null
-                    ? firestoreService.getUserProducts(userId)
-                    : Stream.value([]),
+                stream:
+                    userId != null
+                        ? firestoreService.getUserProducts(userId)
+                        : Stream.value([]),
                 builder: (context, snapshot) {
                   final count = snapshot.data?.length ?? 0;
                   return _StatItem(
@@ -344,9 +345,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               // Requests count
               StreamBuilder<List<ServiceRequestModel>>(
-                stream: userId != null
-                    ? firestoreService.getUserServiceRequests(userId)
-                    : Stream.value([]),
+                stream:
+                    userId != null
+                        ? firestoreService.getUserServiceRequests(userId)
+                        : Stream.value([]),
                 builder: (context, snapshot) {
                   final count = snapshot.data?.length ?? 0;
                   return _StatItem(
@@ -374,9 +376,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               // Referrals count
               StreamBuilder<List<ReferralModel>>(
-                stream: userId != null
-                    ? firestoreService.getUserReferrals(userId)
-                    : Stream.value([]),
+                stream:
+                    userId != null
+                        ? firestoreService.getUserReferrals(userId)
+                        : Stream.value([]),
                 builder: (context, snapshot) {
                   final count = snapshot.data?.length ?? 0;
                   return _StatItem(
@@ -512,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                'V-GUARD SERVICE HUB',
+                'VIGNESH AGENCIES SERVICE HUB',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: AppTheme.textSecondaryLight.withAlpha(150),
                   letterSpacing: 2,

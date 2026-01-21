@@ -730,7 +730,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 8),
           Text(
-            'Register your V-Guard products to track\nwarranty and request service',
+            'Register your Vignesh Agencies products to track\nwarranty and request service',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: AppTheme.textSecondaryLight,
             ),

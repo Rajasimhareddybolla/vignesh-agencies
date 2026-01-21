@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../app/theme.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -57,13 +59,15 @@ class _LoginScreenState extends State<LoginScreen>
         curve: Curves.easeOut,
       ),
     );
-    _contentSlideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _contentAnimationController,
-            curve: Curves.easeOut,
-          ),
-        );
+    _contentSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _contentAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
 
     // Start animations
     _logoAnimationController.forward().then((_) {
@@ -103,32 +107,62 @@ class _LoginScreenState extends State<LoginScreen>
     HapticFeedback.lightImpact();
 
     final phoneNumber = _formatPhoneNumber(_phoneController.text.trim());
+    final authService = context.read<AuthService>();
 
-    // Simulate network delay for smooth UX
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    setState(() => _isLoading = false);
-    context.pushNamed(
-      'otp',
-      queryParameters: {'vid': 'bypass-mode'},
-      extra: phoneNumber,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.info_outline, color: Colors.white, size: 20),
-            SizedBox(width: 12),
-            Text('Enter OTP: 123456 to continue'),
-          ],
-        ),
-        backgroundColor: AppTheme.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 4),
-      ),
+    await authService.sendOTP(
+      phoneNumber: phoneNumber,
+      onCodeSent: (verificationId) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        context.pushNamed(
+          'otp',
+          queryParameters: {'vid': verificationId},
+          extra: phoneNumber,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
+                SizedBox(width: 12),
+                Expanded(child: Text('OTP sent to your phone')),
+              ],
+            ),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+          _errorMessage = error;
+        });
+        HapticFeedback.heavyImpact();
+      },
+      onAutoVerify: (credential) async {
+        // Android auto-verification - sign in directly
+        try {
+          await authService.signInWithCredential(credential);
+          if (mounted) {
+            context.go('/home');
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _errorMessage =
+                  'Auto-verification failed. Please enter OTP manually.';
+            });
+          }
+        }
+      },
     );
   }
 
@@ -181,19 +215,21 @@ class _LoginScreenState extends State<LoginScreen>
                         children: [
                           // Title with gradient
                           ShaderMask(
-                            shaderCallback: (bounds) => LinearGradient(
-                              colors: [
-                                AppTheme.textPrimaryLight,
-                                AppTheme.primary,
-                              ],
-                            ).createShader(bounds),
+                            shaderCallback:
+                                (bounds) => LinearGradient(
+                                  colors: [
+                                    AppTheme.textPrimaryLight,
+                                    AppTheme.primary,
+                                  ],
+                                ).createShader(bounds),
                             child: Text(
                               'District Service Hub',
-                              style: Theme.of(context).textTheme.displaySmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.displaySmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -236,10 +272,11 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                                 child: Text(
                                   'or',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: AppTheme.textSecondaryLight,
-                                      ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondaryLight,
+                                  ),
                                 ),
                               ),
                               Expanded(
@@ -296,13 +333,15 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'POWERED BY V-GUARD',
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      letterSpacing: 2,
-                                      color: AppTheme.textSecondaryLight
-                                          .withAlpha(150),
-                                    ),
+                                'POWERED BY VIGNESH AGENCIES',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
+                                  letterSpacing: 2,
+                                  color: AppTheme.textSecondaryLight.withAlpha(
+                                    150,
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Container(
@@ -545,55 +584,59 @@ class _LoginScreenState extends State<LoginScreen>
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: _isLoading
-                        ? [
-                            AppTheme.primary.withAlpha(150),
-                            AppTheme.primaryLight.withAlpha(150),
-                          ]
-                        : [AppTheme.primary, AppTheme.primaryLight],
+                    colors:
+                        _isLoading
+                            ? [
+                              AppTheme.primary.withAlpha(150),
+                              AppTheme.primaryLight.withAlpha(150),
+                            ]
+                            : [AppTheme.primary, AppTheme.primaryLight],
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: _isLoading
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: AppTheme.primary.withAlpha(80),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                ),
-                child: Center(
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.sms_outlined,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Send OTP',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                  boxShadow:
+                      _isLoading
+                          ? []
+                          : [
+                            BoxShadow(
+                              color: AppTheme.primary.withAlpha(80),
+                              blurRadius: 20,
+                              offset: const Offset(0, 8),
                             ),
                           ],
-                        ),
+                ),
+                child: Center(
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                          : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.sms_outlined,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Send OTP',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                 ),
               ),
             ),

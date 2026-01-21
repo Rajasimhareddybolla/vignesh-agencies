@@ -39,13 +39,15 @@ class PromoNotification {
       type: data['type'] ?? 'announcement',
       discountPercent: (data['discountPercent'] as num?)?.toDouble(),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      expiresAt: data['expiresAt'] != null
-          ? (data['expiresAt'] as Timestamp).toDate()
-          : null,
+      expiresAt:
+          data['expiresAt'] != null
+              ? (data['expiresAt'] as Timestamp).toDate()
+              : null,
       isActive: data['isActive'] ?? true,
-      targetUserIds: data['targetUserIds'] != null
-          ? List<String>.from(data['targetUserIds'])
-          : null,
+      targetUserIds:
+          data['targetUserIds'] != null
+              ? List<String>.from(data['targetUserIds'])
+              : null,
     );
   }
 
@@ -70,7 +72,7 @@ class PromoNotification {
       id: '',
       title: '🪔 Happy Diwali! Special Offer',
       body:
-          'Celebrate with ${discount.toInt()}% OFF on all V-Guard products! Limited time offer.',
+          'Celebrate with ${discount.toInt()}% OFF on all Vignesh Agencies products! Limited time offer.',
       type: 'festival',
       discountPercent: discount,
       createdAt: DateTime.now(),

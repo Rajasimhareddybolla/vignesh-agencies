@@ -147,10 +147,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                             onTap: () {
                               showAboutDialog(
                                 context: context,
-                                applicationName: 'V-Guard Admin',
+                                applicationName: 'Vignesh Agencies Admin',
                                 applicationVersion: '1.0.0',
-                                applicationLegalese:
-                                    '© 2024 V-Guard Industries Ltd.',
+                                applicationLegalese: '© 2024 Vignesh Agencies.',
                               );
                             },
                           ),
@@ -386,7 +385,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                'V-GUARD ADMIN',
+                'VIGNESH AGENCIES ADMIN',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: AppTheme.textSecondaryLight.withAlpha(150),
                   letterSpacing: 2,

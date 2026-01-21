@@ -29,7 +29,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
       'type': 'festival',
       'title': '🪔 Happy Diwali! Special Offer',
       'body':
-          'Celebrate with 20% OFF on all V-Guard products! Limited time offer.',
+          'Celebrate with 20% OFF on all Vignesh Agencies products! Limited time offer.',
       'discount': 20.0,
     },
     {
@@ -118,12 +118,13 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
         type: _selectedType,
-        discountPercent: _discountController.text.isNotEmpty
-            ? double.tryParse(_discountController.text)
-            : null,
+        discountPercent:
+            _discountController.text.isNotEmpty
+                ? double.tryParse(_discountController.text)
+                : null,
         createdAt: DateTime.now(),
         // Ensure broadcast notifications don't have specific targets (null implies all)
-        targetUserIds: null, 
+        targetUserIds: null,
       );
 
       await _notificationService.sendPromoNotification(notification);
@@ -137,7 +138,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
             children: [
               Icon(Icons.check_circle, color: Colors.white, size: 20),
               SizedBox(width: 12),
-              Text('Notification sent to all users!'),
+              Text('Notification sent to all Vignesh Agencies users!'),
             ],
           ),
           backgroundColor: AppTheme.success,
@@ -265,22 +266,24 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
                             label: 'Offer',
                             icon: Icons.local_offer,
                             isSelected: _selectedType == 'offer',
-                            onTap: () =>
-                                setState(() => _selectedType = 'offer'),
+                            onTap:
+                                () => setState(() => _selectedType = 'offer'),
                           ),
                           _TypeButton(
                             label: 'Festival',
                             icon: Icons.celebration,
                             isSelected: _selectedType == 'festival',
-                            onTap: () =>
-                                setState(() => _selectedType = 'festival'),
+                            onTap:
+                                () =>
+                                    setState(() => _selectedType = 'festival'),
                           ),
                           _TypeButton(
                             label: 'Reminder',
                             icon: Icons.notifications_active,
                             isSelected: _selectedType == 'reminder',
-                            onTap: () =>
-                                setState(() => _selectedType = 'reminder'),
+                            onTap:
+                                () =>
+                                    setState(() => _selectedType = 'reminder'),
                           ),
                         ],
                       ),
@@ -348,9 +351,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
         20,
         24,
       ),
-      decoration: BoxDecoration(
-        gradient: AppTheme.adminGradient,
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.adminGradient),
       child: Stack(
         children: [
           Positioned(
@@ -483,9 +484,8 @@ class _TypeButton extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isSelected
-                      ? Colors.white
-                      : AppTheme.textSecondaryLight,
+                  color:
+                      isSelected ? Colors.white : AppTheme.textSecondaryLight,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -573,48 +573,53 @@ class _PremiumSendButton extends StatelessWidget {
         height: 56,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isLoading
-                ? [
-                    AppTheme.accent1.withAlpha(150),
-                    AppTheme.primary.withAlpha(150),
-                  ]
-                : [AppTheme.accent1, AppTheme.primary],
+            colors:
+                isLoading
+                    ? [
+                      AppTheme.accent1.withAlpha(150),
+                      AppTheme.primary.withAlpha(150),
+                    ]
+                    : [AppTheme.accent1, AppTheme.primary],
           ),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: isLoading
-              ? []
-              : [
-                  BoxShadow(
-                    color: AppTheme.accent1.withAlpha(80),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-        ),
-        child: Center(
-          child: isLoading
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.send, color: Colors.white, size: 20),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Send to All Users',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+          boxShadow:
+              isLoading
+                  ? []
+                  : [
+                    BoxShadow(
+                      color: AppTheme.accent1.withAlpha(80),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
                     ),
                   ],
-                ),
+        ),
+        child: Center(
+          child:
+              isLoading
+                  ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                  : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.send, color: Colors.white, size: 20),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Send to All Users',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
         ),
       ),
     );

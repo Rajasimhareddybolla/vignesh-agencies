@@ -262,7 +262,7 @@ class _RequestsList extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Your service requests will appear here',
+                'Your Vignesh Agencies service requests will appear here',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondaryLight,
                 ),
@@ -389,101 +389,106 @@ class _PremiumRequestCard extends StatelessWidget {
           ),
 
           // Technician Info
-              if (request.technicianName != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.backgroundLight,
+          if (request.technicianName != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.engineering,
+                      size: 14,
+                      color: AppTheme.success,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Assigned: ${request.technicianName}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (request.status == ServiceRequestStatus.resolved) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  _showCompletionDialog(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: AppTheme.success.withAlpha(30),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.engineering,
-                          size: 14,
-                          color: AppTheme.success,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Assigned: ${request.technicianName}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-              ],
-              if (request.status == ServiceRequestStatus.resolved) ...[
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _showCompletionDialog(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.success,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text('Confirm & Rate Service'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      }
+                child: const Text('Confirm & Rate Service'),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   void _showCompletionDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Completion'),
-        content: const Text(
-          'Are you satisfied with the service provided? This will close the request.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await context.read<FirestoreService>().updateServiceRequestStatus(
-                requestId: request.id,
-                status: ServiceRequestStatus.completed,
-              );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Thank you for your feedback!'),
-                    backgroundColor: AppTheme.success,
-                  ),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.success,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirm Completion'),
+            content: const Text(
+              'Are you satisfied with the Vignesh Agencies service provided? This will close the request.',
             ),
-            child: const Text('Yes, Complete'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await context
+                      .read<FirestoreService>()
+                      .updateServiceRequestStatus(
+                        requestId: request.id,
+                        status: ServiceRequestStatus.completed,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Thank you for your feedback on Vignesh Agencies service!',
+                        ),
+                        backgroundColor: AppTheme.success,
+                      ),
+                    );
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                ),
+                child: const Text('Yes, Complete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 

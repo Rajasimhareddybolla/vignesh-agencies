@@ -70,11 +70,12 @@ class ReferralScreen extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   'TOTAL EARNINGS',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        letterSpacing: 1,
-                                      ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.copyWith(
+                                    color: Colors.white,
+                                    letterSpacing: 1,
+                                  ),
                                 ),
                               ],
                             ),
@@ -84,11 +85,12 @@ class ReferralScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         '₹ ${NumberFormat('#,##0').format(user?.totalEarnings ?? 0)}',
-                        style: Theme.of(context).textTheme.displayMedium
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.displayMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -107,19 +109,21 @@ class ReferralScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'Pending Payout',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: Colors.white.withOpacity(0.8),
-                                      ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   '₹ ${NumberFormat('#,##0').format(user?.pendingPayout ?? 0)}',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleLarge?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ],
                             ),
@@ -188,12 +192,13 @@ class ReferralScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              user?.referralCode ?? 'VG-XXXX',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 2,
-                                  ),
+                              user?.referralCode ?? 'VA-XXXX',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 2,
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.copy),
@@ -226,8 +231,8 @@ class ReferralScreen extends StatelessWidget {
                           onPressed: () {
                             final code = user?.referralCode ?? '';
                             Share.share(
-                              'Hey! Use my referral code $code to register your V-Guard products and get special benefits! Download the app: https://vguard.app/download',
-                              subject: 'V-Guard Referral',
+                              'Hey! Use my referral code $code to register your Vignesh Agencies products and get special benefits! Download the app: https://vigneshagencies.in/download',
+                              subject: 'Vignesh Agencies Referral',
                             );
                           },
                           icon: const Icon(Icons.share),
@@ -260,11 +265,12 @@ class ReferralScreen extends StatelessWidget {
 
                 // Referrals List
                 StreamBuilder<List<ReferralModel>>(
-                  stream: authService.currentUser != null
-                      ? firestoreService.getUserReferrals(
-                          authService.currentUser!.uid,
-                        )
-                      : Stream.value([]),
+                  stream:
+                      authService.currentUser != null
+                          ? firestoreService.getUserReferrals(
+                            authService.currentUser!.uid,
+                          )
+                          : Stream.value([]),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(
@@ -299,18 +305,20 @@ class ReferralScreen extends StatelessWidget {
                             const SizedBox(height: 16),
                             Text(
                               'No referrals yet',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppTheme.textSecondaryLight,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.textSecondaryLight,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'Share your code to start earning!',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: AppTheme.textSecondaryLight,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondaryLight,
+                              ),
                             ),
                           ],
                         ),
@@ -318,9 +326,10 @@ class ReferralScreen extends StatelessWidget {
                     }
 
                     return Column(
-                      children: referrals.map((referral) {
-                        return _ReferralCard(referral: referral);
-                      }).toList(),
+                      children:
+                          referrals.map((referral) {
+                            return _ReferralCard(referral: referral);
+                          }).toList(),
                     );
                   },
                 ),

@@ -24,7 +24,7 @@ class EmptyState extends StatelessWidget {
       icon: Icons.inventory_2_outlined,
       title: 'No Appliances Yet',
       subtitle:
-          'Register your V-Guard products to track\nwarranty and request service',
+          'Register your Vignesh Agencies products to track\nwarranty and request service',
       actionText: 'Add Your First Product',
       onAction: onAddProduct,
     );

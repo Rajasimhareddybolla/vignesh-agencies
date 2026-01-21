@@ -8,17 +8,25 @@ import 'services/firestore_service.dart';
 import 'services/storage_service.dart';
 import 'firebase_options.dart';
 
+import 'services/push_notification_service.dart'; // Add import
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const VGuardServiceApp());
+  // Initialize Push Notifications
+  final pushService = PushNotificationService();
+  // We don't await this strictly to avoid blocking UI, or we can.
+  // Often better to fire and forget or await if critical.
+  await pushService.initialize();
+
+  runApp(const VigneshAgenciesApp());
 }
 
-class VGuardServiceApp extends StatelessWidget {
-  const VGuardServiceApp({super.key});
+class VigneshAgenciesApp extends StatelessWidget {
+  const VigneshAgenciesApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +35,12 @@ class VGuardServiceApp extends StatelessWidget {
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<FirestoreService>(create: (_) => FirestoreService()),
         Provider<StorageService>(create: (_) => StorageService()),
+        Provider<PushNotificationService>(
+          create: (_) => PushNotificationService(),
+        ),
       ],
       child: MaterialApp.router(
-        title: 'V-Guard District Service Hub',
+        title: 'Vignesh Agencies',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,

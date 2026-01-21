@@ -99,20 +99,21 @@ class _OTPScreenState extends State<OTPScreen> {
     try {
       final authService = context.read<AuthService>();
 
-      // Try bypass OTP first (accepts 123456 for any phone)
-      final bypassSuccess = await authService.bypassOTPVerification(
-        phoneNumber: widget.phoneNumber,
-        otp: _otp,
-      );
-
-      if (bypassSuccess) {
-        if (mounted) {
+      // Test mode - use bypass verification with 123456
+      if (AuthService.testMode) {
+        final success = await authService.bypassOTPVerification(
+          phoneNumber: widget.phoneNumber,
+          otp: _otp,
+        );
+        if (success && mounted) {
           context.go('/home');
+          return;
+        } else {
+          throw Exception('Invalid OTP. Use 123456 for test mode.');
         }
-        return;
       }
 
-      // If bypass failed (wrong OTP), try Firebase verification as fallback
+      // Production mode - use Firebase OTP verification
       await authService.verifyOTP(
         verificationId: widget.verificationId,
         otp: _otp,
@@ -124,7 +125,7 @@ class _OTPScreenState extends State<OTPScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Invalid OTP. Please enter 123456 to continue.';
+        _errorMessage = _getErrorMessage(e);
       });
       // Clear OTP fields
       for (var controller in _controllers) {
@@ -132,6 +133,22 @@ class _OTPScreenState extends State<OTPScreen> {
       }
       _focusNodes[0].requestFocus();
     }
+  }
+
+  String _getErrorMessage(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+    if (errorString.contains('invalid-verification-code') ||
+        errorString.contains('invalid-verification-id')) {
+      return 'Invalid OTP. Please check and try again.';
+    }
+    if (errorString.contains('session-expired') ||
+        errorString.contains('code-expired')) {
+      return 'OTP expired. Please request a new one.';
+    }
+    if (errorString.contains('too-many-requests')) {
+      return 'Too many attempts. Please try again later.';
+    }
+    return 'Verification failed. Please try again.';
   }
 
   Future<void> _resendOTP() async {
@@ -308,18 +325,19 @@ class _OTPScreenState extends State<OTPScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _verifyOTP,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                  child:
+                      _isLoading
+                          ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
-                          ),
-                        )
-                      : const Text('Verify OTP'),
+                          )
+                          : const Text('Verify OTP'),
                 ),
               ),
 
@@ -342,9 +360,10 @@ class _OTPScreenState extends State<OTPScreen> {
                           ? 'Resend in ${_resendCountdown}s'
                           : 'Resend OTP',
                       style: TextStyle(
-                        color: _resendCountdown > 0
-                            ? AppTheme.textSecondaryLight
-                            : AppTheme.primary,
+                        color:
+                            _resendCountdown > 0
+                                ? AppTheme.textSecondaryLight
+                                : AppTheme.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
