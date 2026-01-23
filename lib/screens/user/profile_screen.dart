@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../models/user_model.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../models/referral_model.dart';
 import '../../services/auth_service.dart';
@@ -313,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Row(
             children: [
               // Products count
-              StreamBuilder<List<ProductModel>>(
+              StreamBuilder<List<UserApplianceModel>>(
                 stream:
                     userId != null
                         ? firestoreService.getUserProducts(userId)

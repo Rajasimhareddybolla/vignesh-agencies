@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'dart:io';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
@@ -29,7 +29,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
   String? _audioPath;
   bool _isRecording = false;
   bool _isLoading = false;
-  ProductModel? _product;
+  UserApplianceModel? _product;
   String? _errorMessage;
 
   final _imagePicker = ImagePicker();
@@ -232,7 +232,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.asset(
-                                ProductModel.getProductImage(
+                                UserApplianceModel.getProductImage(
                                   _product!.category,
                                 ),
                                 width: 60,

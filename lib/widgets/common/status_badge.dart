@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../models/referral_model.dart';
 

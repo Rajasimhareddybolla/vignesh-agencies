@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
+import '../../widgets/user/marketing_slider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -76,6 +78,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
 
+            // Marketing Slider
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: MarketingSlider(),
+              ),
+            ),
+
             // Quick Actions with staggered animation
             SliverToBoxAdapter(child: _buildQuickActions(context)),
 
@@ -112,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 final effectiveUserId =
                     userSnapshot.data?.id ?? authService.currentUser?.uid;
 
-                return StreamBuilder<List<ProductModel>>(
+                return StreamBuilder<List<UserApplianceModel>>(
                   stream:
                       effectiveUserId != null
                           ? firestoreService.getUserProducts(effectiveUserId)
@@ -313,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        StreamBuilder<List<ProductModel>>(
+                        StreamBuilder<List<UserApplianceModel>>(
                           stream:
                               user != null
                                   ? firestoreService.getUserProducts(user.id)
@@ -550,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     final effectiveUserId =
                         userSnapshot.data?.id ?? authService.currentUser?.uid;
 
-                    return StreamBuilder<List<ProductModel>>(
+                    return StreamBuilder<List<UserApplianceModel>>(
                       stream:
                           effectiveUserId != null
                               ? firestoreService.getUserProducts(
@@ -625,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
                                         child: Image.asset(
-                                          ProductModel.getProductImage(
+                                          UserApplianceModel.getProductImage(
                                             product.category,
                                           ),
                                           width: 56,
@@ -752,7 +762,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildPremiumApplianceCard(
     BuildContext context,
-    ProductModel product,
+    UserApplianceModel product,
   ) {
     return PremiumCard(
       glowColor: _getStatusColor(product),
@@ -782,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.asset(
-                    ProductModel.getProductImage(product.category),
+                    UserApplianceModel.getProductImage(product.category),
                     width: 74,
                     height: 74,
                     fit: BoxFit.cover,
@@ -872,7 +882,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Color _getStatusColor(ProductModel product) {
+  Color _getStatusColor(UserApplianceModel product) {
     switch (product.status) {
       case ProductStatus.active:
         return product.isExpiringSoon ? AppTheme.warning : AppTheme.success;
@@ -887,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  Widget _buildStatusBadge(BuildContext context, ProductModel product) {
+  Widget _buildStatusBadge(BuildContext context, UserApplianceModel product) {
     Color backgroundColor;
     Color textColor;
     IconData? icon;

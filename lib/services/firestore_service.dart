@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/product_model.dart';
+import '../models/user_appliance_model.dart';
 import '../models/service_request_model.dart';
 import '../models/referral_model.dart';
 import '../models/user_model.dart';
+import '../models/catalog_product_model.dart';
+import '../models/order_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -16,7 +18,7 @@ class FirestoreService {
   // ============== PRODUCTS ==============
 
   // Stream of user's products
-  Stream<List<ProductModel>> getUserProducts(String userId) {
+  Stream<List<UserApplianceModel>> getUserProducts(String userId) {
     return _firestore
         .collection('products')
         .where('userId', isEqualTo: userId)
@@ -24,7 +26,7 @@ class FirestoreService {
         .map(
           (snapshot) {
             final docs = snapshot.docs
-                .map((doc) => ProductModel.fromFirestore(doc))
+                .map((doc) => UserApplianceModel.fromFirestore(doc))
                 .toList();
             docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return docs;
@@ -33,7 +35,7 @@ class FirestoreService {
   }
 
   // Add a new product
-  Future<String> addProduct(ProductModel product) async {
+  Future<String> addProduct(UserApplianceModel product) async {
     final docRef = await _firestore
         .collection('products')
         .add(product.toFirestore());
@@ -53,7 +55,7 @@ class FirestoreService {
     if (status == ProductStatus.active) {
       final productDoc = await docRef.get();
       if (productDoc.exists) {
-        final product = ProductModel.fromFirestore(productDoc);
+        final product = UserApplianceModel.fromFirestore(productDoc);
         await _processReferralForProduct(product);
       }
     }
@@ -67,7 +69,7 @@ class FirestoreService {
   }
 
   /// Process referral commission when a user's first product is validated
-  Future<void> _processReferralForProduct(ProductModel product) async {
+  Future<void> _processReferralForProduct(UserApplianceModel product) async {
     try {
       // Find pending referral for this user (where they are the referee)
       final referralsQuery = await _firestore
@@ -105,7 +107,7 @@ class FirestoreService {
   }
 
   // Get products pending validation (admin)
-  Stream<List<ProductModel>> getPendingProducts() {
+  Stream<List<UserApplianceModel>> getPendingProducts() {
     return _firestore
         .collection('products')
         .where('status', isEqualTo: 'pending_validation')
@@ -113,7 +115,7 @@ class FirestoreService {
         .map(
           (snapshot) {
             final docs = snapshot.docs
-                .map((doc) => ProductModel.fromFirestore(doc))
+                .map((doc) => UserApplianceModel.fromFirestore(doc))
                 .toList();
             docs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
             return docs;
@@ -122,22 +124,22 @@ class FirestoreService {
   }
 
   // Get all products (admin)
-  Stream<List<ProductModel>> getAllProducts() {
+  Stream<List<UserApplianceModel>> getAllProducts() {
     return _firestore
         .collection('products')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
-              .map((doc) => ProductModel.fromFirestore(doc))
+              .map((doc) => UserApplianceModel.fromFirestore(doc))
               .toList(),
         );
   }
 
   // Get single product
-  Future<ProductModel?> getProduct(String productId) async {
+  Future<UserApplianceModel?> getProduct(String productId) async {
     final doc = await _firestore.collection('products').doc(productId).get();
-    return doc.exists ? ProductModel.fromFirestore(doc) : null;
+    return doc.exists ? UserApplianceModel.fromFirestore(doc) : null;
   }
 
   // ============== SERVICE REQUESTS ==============
@@ -462,5 +464,208 @@ class FirestoreService {
       return UserModel.fromFirestore(snapshot.docs.first);
     }
     return null;
+  }
+
+  // ============== CATALOG (Admin & User) ==============
+
+  // Get all catalog products (Active only - for Users)
+  Stream<List<CatalogProductModel>> getCatalogProducts({
+    String? categoryId,
+    String? searchQuery,
+  }) {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('catalog_products')
+        .where('isActive', isEqualTo: true);
+
+    if (categoryId != null) {
+      query = query.where('categoryId', isEqualTo: categoryId);
+    }
+
+    return query.snapshots().map((snapshot) {
+      var products =
+          snapshot.docs
+              .map((doc) => CatalogProductModel.fromFirestore(doc))
+              .toList();
+
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final queryLower = searchQuery.toLowerCase();
+        products =
+            products.where((p) {
+              return p.name.toLowerCase().contains(queryLower) ||
+                  p.brand.toLowerCase().contains(queryLower);
+            }).toList();
+      }
+
+      return products;
+    });
+  }
+
+  // Get ALL catalog products (For Admin)
+  Stream<List<CatalogProductModel>> getAdminCatalogProducts() {
+    return _firestore
+        .collection('catalog_products')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => CatalogProductModel.fromFirestore(doc))
+                  .toList(),
+        );
+  }
+
+  // Get single catalog product
+  Future<CatalogProductModel?> getCatalogProduct(String id) async {
+    final doc = await _firestore.collection('catalog_products').doc(id).get();
+    return doc.exists ? CatalogProductModel.fromFirestore(doc) : null;
+  }
+
+  // Add catalog product (Admin)
+  Future<void> addCatalogProduct(CatalogProductModel product) async {
+    // If ID is empty, let Firestore generate it, but we usually want to set it in the model
+    // Here we assume the model has 'id' empty, so we add and update, or set id before.
+    // Better: use .doc().set() if we generate ID locally, or .add() if not.
+    // Let's us .add() and then update the ID field if needed, or just rely on doc ID.
+    // However, our model has 'id' field.
+    final docRef = _firestore.collection('catalog_products').doc();
+    final productWithId = product.copyWith(id: docRef.id);
+    await docRef.set(productWithId.toFirestore());
+  }
+
+  // Update catalog product (Admin)
+  Future<void> updateCatalogProduct(CatalogProductModel product) async {
+    await _firestore
+        .collection('catalog_products')
+        .doc(product.id)
+        .update(product.toFirestore());
+  }
+
+  // Delete catalog product
+  Future<void> deleteCatalogProduct(String id) async {
+    await _firestore.collection('catalog_products').doc(id).delete();
+  }
+
+  // ============== ORDERS ==============
+
+  // Place a new Order
+  Future<String> placeOrder(OrderModel order) async {
+    // 1. Create Order
+    final docRef = _firestore.collection('orders').doc();
+    final orderWithId = OrderModel(
+      id: docRef.id,
+      userId: order.userId,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      address: order.address,
+      orderedAt: order.orderedAt,
+      deliveredAt: order.deliveredAt,
+      trackingNumber: order.trackingNumber,
+    );
+
+    await docRef.set(orderWithId.toFirestore());
+
+    // 2. (Optional) Auto-register appliances if warranty starts immediately?
+    // Usually warranty starts from delivery. So we handle that on 'delivered' status.
+
+    return docRef.id;
+  }
+
+  // Get User Orders
+  Stream<List<OrderModel>> getUserOrders(String userId) {
+    return _firestore
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .orderBy('orderedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList(),
+        );
+  }
+
+  // Get All Orders (Admin)
+  Stream<List<OrderModel>> getAllOrders({OrderStatus? status}) {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('orders')
+        .orderBy('orderedAt', descending: true);
+
+    if (status != null) {
+      query = query.where('status', isEqualTo: status.firestoreValue);
+    }
+
+    return query.snapshots().map(
+      (snapshot) =>
+          snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList(),
+    );
+  }
+
+  // Update Order Status (Admin)
+  Future<void> updateOrderStatus(
+    String orderId,
+    OrderStatus status, {
+    String? trackingNumber,
+  }) async {
+    final updates = <String, dynamic>{'status': status.firestoreValue};
+
+    if (status == OrderStatus.delivered) {
+      updates['deliveredAt'] = Timestamp.now();
+    }
+    if (trackingNumber != null) {
+      updates['trackingNumber'] = trackingNumber;
+    }
+
+    await _firestore.collection('orders').doc(orderId).update(updates);
+
+    // If Delivered, Automatically Register Valid Appliances
+    if (status == OrderStatus.delivered) {
+      await _autoRegisterAppliancesFromOrder(orderId);
+    }
+  }
+
+  // Auto-register appliances when order is delivered
+  Future<void> _autoRegisterAppliancesFromOrder(String orderId) async {
+    final orderDoc = await _firestore.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) return;
+
+    final order = OrderModel.fromFirestore(orderDoc);
+
+    // Check if we already registered these (idempotency check could be added,
+    // but for now we assume this runs once on status change)
+
+    final batch = _firestore.batch();
+
+    for (var item in order.items) {
+      // For each quantity
+      for (int i = 0; i < item.quantity; i++) {
+        final newApplianceRef = _firestore.collection('products').doc();
+
+        final warrantyEndDate = DateTime.now().add(
+          Duration(days: item.warrantyMonths * 30),
+        );
+
+        final appliance = UserApplianceModel(
+          id: newApplianceRef.id,
+          userId: order.userId,
+          category: 'Other', // We might need to map category from catalog product
+          productName: item.productName,
+          modelNumber: item.selectedAttributes.values.join(' ') +
+              (item.sku != null ? ' (${item.sku})' : ''),
+          purchaseDate: DateTime.now(), // Delivered date = start of warranty
+          warrantyEndDate: warrantyEndDate,
+          status: ProductStatus.active, // Auto-active
+          validatedBy: 'SYSTEM',
+          validatedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          purchaseAmount: item.price,
+          storeLocation: 'Online Store',
+        );
+
+        batch.set(newApplianceRef, appliance.toFirestore());
+      }
+    }
+
+    await batch.commit();
   }
 }

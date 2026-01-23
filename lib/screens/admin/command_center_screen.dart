@@ -462,6 +462,26 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
               context.goNamed('admin-notifications');
             },
           ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.inventory_2,
+            label: 'Product\nCatalog',
+            color: AppTheme.primary,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-products');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.shopping_cart,
+            label: 'Order\nManager',
+            color: Colors.orange,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-orders');
+            },
+          ),
         ],
       ),
     );

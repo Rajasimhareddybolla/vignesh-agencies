@@ -57,7 +57,7 @@ extension ProductStatusExtension on ProductStatus {
   }
 }
 
-class ProductModel {
+class UserApplianceModel {
   final String id;
   final String userId;
   final String category;
@@ -75,7 +75,7 @@ class ProductModel {
   final double? purchaseAmount;
   final String? storeLocation;
 
-  ProductModel({
+  UserApplianceModel({
     required this.id,
     required this.userId,
     required this.category,
@@ -94,9 +94,9 @@ class ProductModel {
     this.storeLocation,
   });
 
-  factory ProductModel.fromFirestore(DocumentSnapshot doc) {
+  factory UserApplianceModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    return ProductModel(
+    return UserApplianceModel(
       id: doc.id,
       userId: data['userId'] ?? '',
       category: data['category'] ?? '',
@@ -142,7 +142,7 @@ class ProductModel {
     };
   }
 
-  ProductModel copyWith({
+  UserApplianceModel copyWith({
     String? category,
     String? productName,
     String? modelNumber,
@@ -157,7 +157,7 @@ class ProductModel {
     double? purchaseAmount,
     String? storeLocation,
   }) {
-    return ProductModel(
+    return UserApplianceModel(
       id: id,
       userId: userId,
       category: category ?? this.category,

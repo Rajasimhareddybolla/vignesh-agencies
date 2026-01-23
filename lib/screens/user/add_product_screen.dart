@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
@@ -169,7 +169,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       );
 
       // Create product model
-      final product = ProductModel(
+      final product = UserApplianceModel(
         id: '',
         userId: userId,
         category: _selectedCategory!,
@@ -240,7 +240,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   prefixIcon: Icon(Icons.category_outlined),
                 ),
                 items:
-                    ProductModel.categories.map((category) {
+                    UserApplianceModel.categories.map((category) {
                       return DropdownMenuItem(
                         value: category,
                         child: Row(

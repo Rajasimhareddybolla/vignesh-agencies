@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
@@ -36,7 +36,7 @@ class AllAppliancesScreen extends StatelessWidget {
           final effectiveUserId =
               userSnapshot.data?.id ?? authService.currentUser?.uid;
 
-          return StreamBuilder<List<ProductModel>>(
+          return StreamBuilder<List<UserApplianceModel>>(
             stream:
                 effectiveUserId != null
                     ? firestoreService.getUserProducts(effectiveUserId)
@@ -141,7 +141,7 @@ class AllAppliancesScreen extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
-  final ProductModel product;
+  final UserApplianceModel product;
 
   const _ProductCard({required this.product});
 

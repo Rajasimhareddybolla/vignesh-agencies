@@ -18,6 +18,7 @@ import '../screens/user/requests_list_screen.dart';
 import '../screens/user/profile_screen.dart';
 import '../screens/user/edit_profile_screen.dart';
 import '../screens/user/all_appliances_screen.dart';
+import '../screens/user/product_detail_screen.dart';
 import '../screens/admin/command_center_screen.dart';
 import '../screens/admin/service_requests_screen.dart';
 import '../screens/admin/service_request_detail_screen.dart';
@@ -25,7 +26,12 @@ import '../screens/admin/warranty_validation_screen.dart';
 import '../screens/admin/payout_manager_screen.dart';
 import '../screens/admin/reports_screen.dart';
 import '../screens/admin/send_notification_screen.dart';
+import '../screens/admin/send_notification_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
+import '../screens/admin/products/product_list_screen.dart';
+import '../screens/admin/products/add_edit_product_screen.dart';
+import '../screens/admin/products/admin_orders_screen.dart';
+import '../models/catalog_product_model.dart';
 import '../services/auth_service.dart';
 
 class AppRouter {
@@ -168,6 +174,15 @@ class AppRouter {
         name: 'all-appliances',
         builder: (context, state) => const AllAppliancesScreen(),
       ),
+      GoRoute(
+        path: '/product-detail/:productId',
+        name: 'product-detail',
+        builder: (context, state) {
+          final productId = state.pathParameters['productId'] ?? '';
+          final product = state.extra as CatalogProductModel?;
+          return ProductDetailScreen(productId: productId, product: product);
+        },
+      ),
 
       // Admin Shell Route with Side Navigation
       ShellRoute(
@@ -225,6 +240,18 @@ class AppRouter {
                 (context, state) =>
                     const NoTransitionPage(child: AdminSettingsScreen()),
           ),
+          GoRoute(
+            path: '/admin/products',
+            name: 'admin-products',
+            pageBuilder: (context, state) => 
+                const NoTransitionPage(child: AdminProductListScreen()),
+          ),
+           GoRoute(
+            path: '/admin/orders',
+            name: 'admin-orders',
+            pageBuilder: (context, state) => 
+                const NoTransitionPage(child: AdminOrdersScreen()),
+          ),
         ],
       ),
       GoRoute(
@@ -233,6 +260,19 @@ class AppRouter {
         builder: (context, state) {
           final requestId = state.pathParameters['requestId'] ?? '';
           return ServiceRequestDetailScreen(requestId: requestId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/products/add',
+        name: 'admin-add-product',
+        builder: (context, state) => const AddEditProductScreen(),
+      ),
+      GoRoute(
+        path: '/admin/products/edit',
+        name: 'admin-edit-product',
+        builder: (context, state) {
+            final product = state.extra as CatalogProductModel?;
+            return AddEditProductScreen(product: product);
         },
       ),
     ],

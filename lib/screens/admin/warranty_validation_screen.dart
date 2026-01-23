@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../services/firestore_service.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/common/premium_widgets.dart';
@@ -62,7 +62,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
             ),
 
             // Products List
-            StreamBuilder<List<ProductModel>>(
+            StreamBuilder<List<UserApplianceModel>>(
               stream: firestoreService.getPendingProducts(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -227,7 +227,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
 
   Future<void> _approveProduct(
     BuildContext context,
-    ProductModel product,
+    UserApplianceModel product,
   ) async {
     final firestoreService = context.read<FirestoreService>();
     final authService = context.read<AuthService>();
@@ -274,7 +274,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
 
   Future<void> _showRejectDialog(
     BuildContext context,
-    ProductModel product,
+    UserApplianceModel product,
   ) async {
     final reasonController = TextEditingController();
 
@@ -421,7 +421,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
 }
 
 class _PremiumValidationCard extends StatefulWidget {
-  final ProductModel product;
+  final UserApplianceModel product;
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
@@ -485,7 +485,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.asset(
-                        ProductModel.getProductImage(widget.product.category),
+                        UserApplianceModel.getProductImage(widget.product.category),
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
