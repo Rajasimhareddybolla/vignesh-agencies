@@ -3,5 +3,27 @@
     "source": "functions",
     "runtime": "nodejs20"
   },
-  "flutter": {"platforms": {"android": {"default": {"projectId": "freelancing-c82c1", "appId": "1:683528535970:android:cf3ab0982ab0b885b53cfb", "fileOutput": "android/app/google-services.json"}}, "dart": {"lib/firebase_options.dart": {"projectId": "freelancing-c82c1", "configurations": {"android": "1:683528535970:android:cf3ab0982ab0b885b53cfb", "web": "1:683528535970:web:f544d83861eeb605b53cfb"}}}}}
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "freelancing-c82c1",
+          "appId": "1:683528535970:android:cf3ab0982ab0b885b53cfb",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "freelancing-c82c1",
+          "configurations": {
+            "android": "1:683528535970:android:cf3ab0982ab0b885b53cfb",
+            "web": "1:683528535970:web:f544d83861eeb605b53cfb"
+          }
+        }
+      }
+    }
+  },
+  "storage": {
+    "rules": "storage.rules"
+  }
 }

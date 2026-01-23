@@ -296,6 +296,83 @@ class _RequestRow extends StatelessWidget {
                       color: AppTheme.textSecondaryLight,
                     ),
                   ),
+                  // Media Attachments Indicator
+                  if (request.evidenceImages.isNotEmpty ||
+                      (request.audioRecordingUrl != null &&
+                          request.audioRecordingUrl!.isNotEmpty)) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (request.evidenceImages.isNotEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.image,
+                                  size: 12,
+                                  color: AppTheme.primary,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '${request.evidenceImages.length}',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        if (request.audioRecordingUrl != null &&
+                            request.audioRecordingUrl!.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.success.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.mic,
+                                  size: 12,
+                                  color: AppTheme.success,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Audio',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.success,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),

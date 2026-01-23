@@ -71,7 +71,10 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
   }
 }
 
-enum ServicePriority { normal, urgent }
+enum ServicePriority {
+  normal,
+  urgent,
+}
 
 extension ServicePriorityExtension on ServicePriority {
   String get displayName {
@@ -101,12 +104,12 @@ class ServiceRequestModel {
   final DateTime createdAt;
   final DateTime? assignedAt;
   final DateTime? resolvedAt;
-
+  
   // Customer details (denormalized for quick access)
   final String? customerName;
   final String? customerPhone;
   final String? customerAddress;
-
+  
   // Product details (denormalized)
   final String? productName;
   final String? productModel;
@@ -137,33 +140,50 @@ class ServiceRequestModel {
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    print('DEBUG MODEL: Raw Firestore data for ${doc.id}:');
+    print('DEBUG MODEL:   evidenceImages raw: ${data['evidenceImages']}');
+    print('DEBUG MODEL:   evidenceImages type: ${data['evidenceImages']?.runtimeType}');
+    print('DEBUG MODEL:   audioRecordingUrl raw: ${data['audioRecordingUrl']}');
+    
+    // Safety check for evidenceImages
+    List<String> images = [];
+    if (data['evidenceImages'] is List) {
+      images = (data['evidenceImages'] as List)
+          .map((e) => e.toString())
+          .toList();
+    }
+    
+    print('DEBUG MODEL:   Parsed images: $images');
+
     return ServiceRequestModel(
       id: doc.id,
-      userId: data['userId'] ?? '',
-      productId: data['productId'] ?? '',
-      ticketNumber: data['ticketNumber'] ?? '',
-      issueType: data['issueType'] ?? '',
-      description: data['description'] ?? '',
-      evidenceImages: List<String>.from(data['evidenceImages'] ?? []),
-      audioRecordingUrl: data['audioRecordingUrl'],
-      status: ServiceRequestStatusExtension.fromString(
-        data['status'] ?? 'pending',
-      ),
-      priority:
-          data['priority'] == 'urgent'
-              ? ServicePriority.urgent
-              : ServicePriority.normal,
-      assignedProvider: data['assignedProvider'],
-      technicianName: data['technicianName'],
-      resolutionNotes: data['resolutionNotes'],
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      assignedAt: (data['assignedAt'] as Timestamp?)?.toDate(),
-      resolvedAt: (data['resolvedAt'] as Timestamp?)?.toDate(),
-      customerName: data['customerName'],
-      customerPhone: data['customerPhone'],
-      customerAddress: data['customerAddress'],
-      productName: data['productName'],
-      productModel: data['productModel'],
+      userId: data['userId']?.toString() ?? '',
+      productId: data['productId']?.toString() ?? '',
+      ticketNumber: data['ticketNumber']?.toString() ?? '',
+      issueType: data['issueType']?.toString() ?? '',
+      description: data['description']?.toString() ?? '',
+      evidenceImages: images,
+      audioRecordingUrl: data['audioRecordingUrl']?.toString(),
+      status: ServiceRequestStatusExtension.fromString(data['status']?.toString() ?? 'pending'),
+      priority: data['priority'] == 'urgent' ? ServicePriority.urgent : ServicePriority.normal,
+      assignedProvider: data['assignedProvider']?.toString(),
+      technicianName: data['technicianName']?.toString(),
+      resolutionNotes: data['resolutionNotes']?.toString(),
+      createdAt: (data['createdAt'] is Timestamp) 
+          ? (data['createdAt'] as Timestamp).toDate() 
+          : DateTime.now(),
+      assignedAt: (data['assignedAt'] is Timestamp) 
+          ? (data['assignedAt'] as Timestamp).toDate() 
+          : null,
+      resolvedAt: (data['resolvedAt'] is Timestamp) 
+          ? (data['resolvedAt'] as Timestamp).toDate() 
+          : null,
+      customerName: data['customerName']?.toString(),
+      customerPhone: data['customerPhone']?.toString(),
+      customerAddress: data['customerAddress']?.toString(),
+      productName: data['productName']?.toString(),
+      productModel: data['productModel']?.toString(),
     );
   }
 
@@ -257,7 +277,7 @@ class ServiceRequestModel {
 
   // Service providers
   static const List<String> serviceProviders = [
-    'Vignesh Agencies Service Center',
+    'V-Guard Service Center',
     'Authorized Service Partner',
     'Third Party Technician',
   ];

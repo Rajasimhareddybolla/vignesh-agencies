@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Firebase Storage Rules for V-Guard Service App
+// Deploy these rules using: firebase deploy --only storage
+// Or copy-paste them in Firebase Console > Storage > Rules
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check file size (max 10MB for images, 50MB for audio)
+    function isValidImageSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
+    function isValidAudioSize() {
+      return request.resource.size < 50 * 1024 * 1024;
+    }
+    
+    // Bill images - users can only write to their own folder
+    match /bills/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize();
+    }
+    
+    // Evidence images for service requests
+    match /evidence/{requestId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidImageSize();
+    }
+    
+    // Audio recordings for service requests
+    match /audio/{requestId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidAudioSize();
+    }
+    
+    // Product images (if any)
+    match /products/{productId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidImageSize();
+    }
+  }
+}
