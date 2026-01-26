@@ -22,7 +22,7 @@ class AddEditProductScreen extends StatefulWidget {
 
 class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -30,7 +30,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _basePriceController = TextEditingController();
   final _offerPriceController = TextEditingController();
   final _warrantyController = TextEditingController();
-  
+
   // State
   String? _selectedCategory;
   List<String> _images = []; // URLs
@@ -87,22 +87,22 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         setState(() => _newImages.add(img));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a category')));
       return;
     }
     if (_images.isEmpty && _newImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add at least one image')),
       );
       return;
@@ -112,20 +112,22 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
     try {
       final firestoreService = context.read<FirestoreService>();
-      final storageService = context.read<StorageService>(); // Assume this exists for general uploads
+      final storageService =
+          context
+              .read<StorageService>(); // Assume this exists for general uploads
 
       // Upload new images
-      // NOTE: We need a generic upload method in StorageService. 
+      // NOTE: We need a generic upload method in StorageService.
       // Assuming 'uploadProductImage' exists or we can use a generic one.
       // For now, I'll assume we can upload.
-      
+
       List<String> finalImageUrls = List.from(_images);
-      
+
       for (var file in _newImages) {
-        // Mock upload or use real service if available
-        // final url = await storageService.uploadProductImage(file);
-        // finalImageUrls.add(url);
-        finalImageUrls.add('https://via.placeholder.com/300'); // MOCK for MVP if service not ready
+        final url = await storageService.uploadProductImage(imageFile: file);
+        if (url != null) {
+          finalImageUrls.add(url);
+        }
       }
 
       final product = CatalogProductModel(
@@ -153,21 +155,20 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       }
 
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Product saved successfully!')),
         );
         context.pop();
       }
-
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving product: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error saving product: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
+
   // UI Builders...
 
   @override
@@ -176,143 +177,194 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       appBar: AppBar(
         title: Text(widget.product == null ? 'Add Product' : 'Edit Product'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _saveProduct,
-          ),
+          IconButton(icon: const Icon(Icons.check), onPressed: _saveProduct),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Basic Details'),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Product Name'),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedCategory,
-                      decoration: const InputDecoration(labelText: 'Category'),
-                      items: UserApplianceModel.categories.map((c) => 
-                        DropdownMenuItem(value: c, child: Text(c))
-                      ).toList(),
-                      onChanged: (v) => setState(() => _selectedCategory = v),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _descriptionController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(labelText: 'Description'),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('Pricing & Warranty'),
-                     Row(
-                      children: [
-                        Expanded(child: TextFormField(
-                          controller: _basePriceController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Base Price (₹)'),
-                          validator: (v) => v!.isEmpty ? 'Required' : null,
-                        )),
-                        const SizedBox(width: 12),
-                        Expanded(child: TextFormField(
-                          controller: _offerPriceController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Offer Price (Optional)'),
-                        )),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                       controller: _warrantyController,
-                       keyboardType: TextInputType.number,
-                       decoration: const InputDecoration(labelText: 'Warranty (Months)'),
-                    ),
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader('Basic Details'),
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Product Name',
+                        ),
+                        validator: (v) => v!.isEmpty ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedCategory,
+                        decoration: const InputDecoration(
+                          labelText: 'Category',
+                        ),
+                        items:
+                            UserApplianceModel.categories
+                                .map(
+                                  (c) => DropdownMenuItem(
+                                    value: c,
+                                    child: Text(c),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (v) => setState(() => _selectedCategory = v),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
+                      ),
 
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('Images'),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Pricing & Warranty'),
+                      Row(
                         children: [
-                          GestureDetector(
-                            onTap: _pickImage,
-                            child: Container(
-                              width: 80, height: 80,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withAlpha(20),
-                                borderRadius: BorderRadius.circular(8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _basePriceController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Base Price (₹)',
                               ),
-                              child: const Icon(Icons.add_a_photo, color: AppTheme.primary),
+                              validator: (v) => v!.isEmpty ? 'Required' : null,
                             ),
                           ),
-                          ..._images.map((url) => Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Image.network(url, width: 80, height: 80, fit: BoxFit.cover),
-                          )),
-                           ..._newImages.map((file) => Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Image.file(File(file.path), width: 80, height: 80, fit: BoxFit.cover),
-                          )),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _offerPriceController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Offer Price (Optional)',
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _warrantyController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Warranty (Months)',
+                        ),
+                      ),
 
-                    const SizedBox(height: 24),
-                    _buildSectionHeader('Specifications (Key-Value)'),
-                     // Simplified Specs Editor
-                     ..._specifications.entries.map((e) => ListTile(
-                       title: Text(e.key),
-                       subtitle: Text(e.value),
-                       trailing: IconButton(
-                         icon: const Icon(Icons.delete, size: 16),
-                         onPressed: () => setState(() => _specifications.remove(e.key)),
-                       ),
-                     )),
-                     ElevatedButton.icon(
-                       onPressed: _showAddSpecDialog,
-                       icon: const Icon(Icons.add),
-                       label: const Text('Add Specification'),
-                     ),
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Images'),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withAlpha(20),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.add_a_photo,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                            ),
+                            ..._images.map(
+                              (url) => Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Image.network(
+                                  url,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            ..._newImages.map(
+                              (file) => Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Image.file(
+                                  File(file.path),
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                     const SizedBox(height: 24),
-                     _buildSectionHeader('Variations'),
-                     // Placeholder for variations logic
-                    ..._variations.map((v) => ListTile(
-                       title: Text(v.attributes.toString()),
-                       subtitle: Text('₹${v.price}'),
-                       trailing: IconButton(
-                         icon: const Icon(Icons.delete, size: 16),
-                         onPressed: () => setState(() => _variations.remove(v)),
-                       ),
-                     )),
-                     ElevatedButton.icon(
-                       onPressed: _showAddVariationDialog,
-                       icon: const Icon(Icons.add),
-                       label: const Text('Add Variation'),
-                     ),
-                     
-                     const SizedBox(height: 50),
-                  ],
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Specifications (Key-Value)'),
+                      // Simplified Specs Editor
+                      ..._specifications.entries.map(
+                        (e) => ListTile(
+                          title: Text(e.key),
+                          subtitle: Text(e.value),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, size: 16),
+                            onPressed:
+                                () => setState(
+                                  () => _specifications.remove(e.key),
+                                ),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _showAddSpecDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Specification'),
+                      ),
+
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Variations'),
+                      // Placeholder for variations logic
+                      ..._variations.map(
+                        (v) => ListTile(
+                          title: Text(v.attributes.toString()),
+                          subtitle: Text('₹${v.price}'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, size: 16),
+                            onPressed:
+                                () => setState(() => _variations.remove(v)),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _showAddVariationDialog,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Variation'),
+                      ),
+
+                      const SizedBox(height: 50),
+                    ],
+                  ),
                 ),
               ),
-            ),
     );
   }
 
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+      child: Text(
+        title,
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -321,25 +373,42 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     String value = '';
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Specification'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(decoration: const InputDecoration(labelText: 'Name (e.g. Power)'), onChanged: (v) => key = v),
-            TextField(decoration: const InputDecoration(labelText: 'Value (e.g. 500W)'), onChanged: (v) => value = v),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () {
-            if(key.isNotEmpty && value.isNotEmpty) {
-              setState(() => _specifications[key] = value);
-              Navigator.pop(context);
-            }
-          }, child: const Text('Add')),
-        ],
-      )
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Specification'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Name (e.g. Power)',
+                  ),
+                  onChanged: (v) => key = v,
+                ),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Value (e.g. 500W)',
+                  ),
+                  onChanged: (v) => value = v,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (key.isNotEmpty && value.isNotEmpty) {
+                    setState(() => _specifications[key] = value);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
     );
   }
 
@@ -348,35 +417,59 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     String attrKey = 'Color'; // Default
     String attrValue = '';
     String price = _basePriceController.text;
-    
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Variation'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(decoration: const InputDecoration(labelText: 'Attribute (e.g. Color)'), onChanged: (v) => attrKey = v),
-            TextField(decoration: const InputDecoration(labelText: 'Value (e.g. Red)'), onChanged: (v) => attrValue = v),
-            TextField(decoration: const InputDecoration(labelText: 'Price override'), onChanged: (v) => price = v),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(onPressed: () {
-            if(attrKey.isNotEmpty && attrValue.isNotEmpty) {
-               setState(() {
-                 _variations.add(ProductVariation(
-                   id: DateTime.now().millisecondsSinceEpoch.toString(),
-                   attributes: {attrKey: attrValue},
-                   price: double.tryParse(price) ?? 0,
-                 ));
-               });
-              Navigator.pop(context);
-            }
-          }, child: const Text('Add')),
-        ],
-      )
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add Variation'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Attribute (e.g. Color)',
+                  ),
+                  onChanged: (v) => attrKey = v,
+                ),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Value (e.g. Red)',
+                  ),
+                  onChanged: (v) => attrValue = v,
+                ),
+                TextField(
+                  decoration: const InputDecoration(
+                    labelText: 'Price override',
+                  ),
+                  onChanged: (v) => price = v,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (attrKey.isNotEmpty && attrValue.isNotEmpty) {
+                    setState(() {
+                      _variations.add(
+                        ProductVariation(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          attributes: {attrKey: attrValue},
+                          price: double.tryParse(price) ?? 0,
+                        ),
+                      );
+                    });
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Add'),
+              ),
+            ],
+          ),
     );
   }
 }

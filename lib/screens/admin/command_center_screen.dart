@@ -474,6 +474,16 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
           ),
           const SizedBox(width: 12),
           _PremiumQuickAction(
+            icon: Icons.campaign_rounded,
+            label: 'Manage\nPromotions',
+            color: Colors.purple,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-marketing');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
             icon: Icons.shopping_cart,
             label: 'Order\nManager',
             color: Colors.orange,

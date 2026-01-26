@@ -9,6 +9,8 @@ import 'services/storage_service.dart';
 import 'firebase_options.dart';
 
 import 'services/push_notification_service.dart'; // Add import
+import 'services/cart_service.dart';
+import 'services/order_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +40,8 @@ class VigneshAgenciesApp extends StatelessWidget {
         Provider<PushNotificationService>(
           create: (_) => PushNotificationService(),
         ),
+        Provider<OrderService>(create: (_) => OrderService()),
+        ChangeNotifierProvider<CartService>(create: (_) => CartService()),
       ],
       child: MaterialApp.router(
         title: 'Vignesh Agencies',

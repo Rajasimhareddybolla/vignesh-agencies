@@ -87,6 +87,7 @@ class CatalogProductModel {
   }
 
   CatalogProductModel copyWith({
+    String? id,
     String? name,
     String? description,
     String? categoryId,
@@ -104,7 +105,7 @@ class CatalogProductModel {
     DateTime? updatedAt,
   }) {
     return CatalogProductModel(
-      id: id,
+      id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: categoryId ?? this.categoryId,

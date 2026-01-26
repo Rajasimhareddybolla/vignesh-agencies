@@ -44,11 +44,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     _prefillUserData();
   }
 
-  void _prefillUserData() {
-    final user = context.read<AuthService>().currentUserModel;
-    if (user != null) {
-      _nameController.text = user.displayName;
-      _phoneController.text = user.phoneNumber;
+  Future<void> _prefillUserData() async {
+    final user = await context.read<AuthService>().getUserModel();
+    if (user != null && mounted) {
+      setState(() {
+        _nameController.text = user.displayName;
+        _phoneController.text = user.phone ?? '';
+      });
       // If we had saved addresses, we'd prefill here
     }
   }

@@ -134,6 +134,7 @@ class OrderItem {
   final int quantity;
   final double price; // Price at time of purchase
   final int warrantyMonths; // Warranty at time of purchase
+  final String? sku;
 
   OrderItem({
     required this.productId,
@@ -144,6 +145,7 @@ class OrderItem {
     required this.quantity,
     required this.price,
     required this.warrantyMonths,
+    this.sku,
   });
 
   factory OrderItem.fromMap(Map<String, dynamic> map) {
@@ -157,6 +159,7 @@ class OrderItem {
       quantity: map['quantity'] ?? 1,
       price: (map['price'] ?? 0).toDouble(),
       warrantyMonths: map['warrantyMonths'] ?? 12,
+      sku: map['sku'],
     );
   }
 
@@ -170,6 +173,7 @@ class OrderItem {
       'quantity': quantity,
       'price': price,
       'warrantyMonths': warrantyMonths,
+      'sku': sku,
     };
   }
 }

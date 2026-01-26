@@ -8,9 +8,10 @@ import '../../models/service_request_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
-import '../../services/firestore_service.dart';
+
 import '../../widgets/common/premium_widgets.dart';
 import '../../widgets/user/marketing_slider.dart';
+import '../../services/cart_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -308,8 +309,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         onPressed: () => context.push('/notifications'),
                         backgroundColor: Colors.white.withAlpha(40),
                         iconColor: Colors.white,
-                        showBadge: true,
-                        badgeCount: 3,
+                        // TODO: Connect to notification stream
+                        showBadge: false,
+                        // badgeCount: 0,
+                      ),
+                      const SizedBox(width: 8),
+                      // Cart Button
+                      Consumer<CartService>(
+                        builder: (context, cart, _) {
+                          return PremiumIconButton(
+                            icon: Icons.shopping_cart_outlined,
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              context.push('/cart');
+                            },
+                            backgroundColor: Colors.white.withAlpha(40),
+                            iconColor: Colors.white,
+                            showBadge: cart.itemCount > 0,
+                            badgeCount: cart.itemCount,
+                          );
+                        },
                       ),
                     ],
                   ),

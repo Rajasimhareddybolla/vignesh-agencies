@@ -63,18 +63,18 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
               children: [
                 // Search
                 GlassContainer(
-                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                   child: TextField(
-                     controller: _searchController,
-                     decoration: const InputDecoration(
-                       hintText: 'Search appliances...',
-                       border: InputBorder.none,
-                       icon: Icon(Icons.search, color: AppTheme.primary),
-                     ),
-                   ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Search appliances...',
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: AppTheme.primary),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Categories
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -85,14 +85,16 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                         isSelected: _selectedCategory == 'All',
                         onTap: () => setState(() => _selectedCategory = 'All'),
                       ),
-                      ...UserApplianceModel.categories.map((c) => Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: _CategoryChip(
-                          label: c,
-                          isSelected: _selectedCategory == c,
-                          onTap: () => setState(() => _selectedCategory = c),
+                      ...UserApplianceModel.categories.map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: _CategoryChip(
+                            label: c,
+                            isSelected: _selectedCategory == c,
+                            onTap: () => setState(() => _selectedCategory = c),
+                          ),
                         ),
-                      )),
+                      ),
                     ],
                   ),
                 ),
@@ -104,7 +106,8 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
           Expanded(
             child: StreamBuilder<List<CatalogProductModel>>(
               stream: firestoreService.getCatalogProducts(
-                categoryId: _selectedCategory == 'All' ? null : _selectedCategory,
+                categoryId:
+                    _selectedCategory == 'All' ? null : _selectedCategory,
                 searchQuery: _searchQuery,
               ),
               builder: (context, snapshot) {
@@ -119,12 +122,17 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                         Icon(Icons.search_off, size: 60, color: AppTheme.textSecondaryLight.withAlpha(100)),
-                         const SizedBox(height: 16),
-                         Text(
-                           'No products found',
-                           style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppTheme.textSecondaryLight),
-                         ),
+                        Icon(
+                          Icons.search_off,
+                          size: 60,
+                          color: AppTheme.textSecondaryLight.withAlpha(100),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No products found',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                        ),
                       ],
                     ),
                   );
@@ -134,7 +142,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                   padding: const EdgeInsets.all(20),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    childAspectRatio: 0.75, // Taller cards
+                    childAspectRatio: 0.68, // Taller cards to prevent overflow
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -179,13 +187,16 @@ class _CategoryChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primary : AppTheme.backgroundLight,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: isSelected ? [
-            BoxShadow(
-              color: AppTheme.primary.withAlpha(80),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            )
-          ] : null,
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withAlpha(80),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                  : null,
         ),
         child: Text(
           label,
@@ -208,19 +219,18 @@ class _CatalogProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navigate to Product Detail
-         context.push('/product-detail/${product.id}', extra: product); 
+        context.push('/product-detail/${product.id}', extra: product);
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderLight),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.borderLight.withOpacity(0.5)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(5),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: AppTheme.primary.withAlpha(10),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -229,24 +239,62 @@ class _CatalogProductCard extends StatelessWidget {
           children: [
             // Image
             Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: CachedNetworkImage(
-                  imageUrl: product.images.isNotEmpty ? product.images.first : '',
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: AppTheme.backgroundLight,
-                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              flex: 6,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl:
+                          product.images.isNotEmpty ? product.images.first : '',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder:
+                          (context, url) => Container(
+                            color: AppTheme.backgroundLight,
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                      errorWidget:
+                          (context, url, error) => Container(
+                            color: AppTheme.backgroundLight,
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                          ),
+                    ),
                   ),
-                  errorWidget: (context, url, error) => Container(
-                    color: AppTheme.backgroundLight,
-                    child: const Icon(Icons.image_not_supported, color: AppTheme.textSecondaryLight),
-                  ),
-                ),
+                  if (product.offerPrice != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_calculateDiscount(product.basePrice, product.offerPrice!)}% OFF',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-            
+
             // Details
             Expanded(
               flex: 4,
@@ -260,18 +308,23 @@ class _CatalogProductCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.brand,
-                          style: Theme.of(context).textTheme.caption?.copyWith(
+                          product.brand.toUpperCase(),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
                             color: AppTheme.primary,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                             fontSize: 10,
+                            letterSpacing: 1.0,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           product.name,
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
                             height: 1.2,
                           ),
                           maxLines: 2,
@@ -294,22 +347,34 @@ class _CatalogProductCard extends StatelessWidget {
                                   color: AppTheme.textSecondaryLight,
                                 ),
                               ),
-                             Text(
-                                '₹${(product.offerPrice ?? product.basePrice).toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.textPrimaryLight,
-                                ),
+                            Text(
+                              '₹${(product.offerPrice ?? product.basePrice).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.textPrimaryLight,
+                                fontSize: 16,
                               ),
+                            ),
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.all(6),
-                           decoration: BoxDecoration(
-                             color: AppTheme.primary,
-                             borderRadius: BorderRadius.circular(10),
-                           ),
-                           child: const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primary.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -321,5 +386,10 @@ class _CatalogProductCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  int _calculateDiscount(double base, double offer) {
+    if (base == 0) return 0;
+    return ((base - offer) / base * 100).round();
   }
 }

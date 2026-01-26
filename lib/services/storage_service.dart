@@ -15,7 +15,7 @@ class StorageService {
     try {
       final fileName = '${_uuid.v4()}.${imageFile.path.split('.').last}';
       final ref = _storage.ref().child('bills/$userId/$fileName');
-      
+
       final uploadTask = await ref.putFile(
         File(imageFile.path),
         SettableMetadata(
@@ -26,10 +26,34 @@ class StorageService {
           },
         ),
       );
-      
+
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading bill image: $e');
+      return null;
+    }
+  }
+
+  // Upload product image (Admin)
+  Future<String?> uploadProductImage({required XFile imageFile}) async {
+    try {
+      final fileName = '${_uuid.v4()}.${imageFile.path.split('.').last}';
+      final ref = _storage.ref().child('products/$fileName');
+
+      final uploadTask = await ref.putFile(
+        File(imageFile.path),
+        SettableMetadata(
+          contentType: 'image/${imageFile.path.split('.').last}',
+          customMetadata: {
+            'uploadedBy': 'ADMIN',
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      print('Error uploading product image: $e');
       return null;
     }
   }
@@ -43,7 +67,7 @@ class StorageService {
     try {
       final fileName = '${_uuid.v4()}.${imageFile.path.split('.').last}';
       final ref = _storage.ref().child('evidence/$requestId/$fileName');
-      
+
       final uploadTask = await ref.putFile(
         File(imageFile.path),
         SettableMetadata(
@@ -55,7 +79,7 @@ class StorageService {
           },
         ),
       );
-      
+
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading evidence image: $e');
@@ -72,7 +96,7 @@ class StorageService {
     try {
       final fileName = '${_uuid.v4()}.m4a';
       final ref = _storage.ref().child('audio/$requestId/$fileName');
-      
+
       final uploadTask = await ref.putFile(
         File(filePath),
         SettableMetadata(
@@ -84,7 +108,7 @@ class StorageService {
           },
         ),
       );
-      
+
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading audio: $e');
@@ -99,7 +123,7 @@ class StorageService {
     required List<XFile> imageFiles,
   }) async {
     final urls = <String>[];
-    
+
     for (final file in imageFiles) {
       final url = await uploadEvidenceImage(
         userId: userId,
@@ -110,7 +134,7 @@ class StorageService {
         urls.add(url);
       }
     }
-    
+
     return urls;
   }
 

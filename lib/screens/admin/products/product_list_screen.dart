@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme.dart';
 import '../../../models/catalog_product_model.dart';
@@ -26,8 +26,9 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
   void initState() {
     super.initState();
     _headerController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600))
-      ..forward();
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..forward();
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text);
     });
@@ -91,34 +92,40 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                   // Filter locally for smoother experience
                   if (_searchQuery.isNotEmpty) {
                     final query = _searchQuery.toLowerCase();
-                    products = products.where((p) {
-                      return p.name.toLowerCase().contains(query) ||
-                          p.brand.toLowerCase().contains(query);
-                    }).toList();
+                    products =
+                        products.where((p) {
+                          return p.name.toLowerCase().contains(query) ||
+                              p.brand.toLowerCase().contains(query);
+                        }).toList();
                   }
 
                   if (products.isEmpty) {
                     return SliverFillRemaining(
-                        child: _buildEmptyState(context));
+                      child: _buildEmptyState(context),
+                    );
                   }
 
                   return SliverPadding(
-                    padding:
-                        const EdgeInsets.fromLTRB(20, 0, 20, 100), // Bottom padding for FAB
+                    padding: const EdgeInsets.fromLTRB(
+                      20,
+                      0,
+                      20,
+                      100,
+                    ), // Bottom padding for FAB
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          return StaggeredFadeIn(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildProductCard(
-                                  context, products[index], firestoreService),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        return StaggeredFadeIn(
+                          index: index,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildProductCard(
+                              context,
+                              products[index],
+                              firestoreService,
                             ),
-                          );
-                        },
-                        childCount: products.length,
-                      ),
+                          ),
+                        );
+                      }, childCount: products.length),
                     ),
                   );
                 },
@@ -146,10 +153,12 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
   Widget _buildHeader(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-          20, MediaQuery.of(context).padding.top + 16, 20, 24),
-      decoration: BoxDecoration(
-        gradient: AppTheme.adminGradient,
+        20,
+        MediaQuery.of(context).padding.top + 16,
+        20,
+        24,
       ),
+      decoration: BoxDecoration(gradient: AppTheme.adminGradient),
       child: Stack(
         children: [
           Positioned(
@@ -180,10 +189,12 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                     const SizedBox(width: 16),
                     Text(
                       'Product Catalog',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -193,8 +204,8 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                   child: Text(
                     'Manage your inventory and products',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withAlpha(200),
-                        ),
+                      color: Colors.white.withAlpha(200),
+                    ),
                   ),
                 ),
               ],
@@ -216,8 +227,11 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
               color: AppTheme.primary.withAlpha(20),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.inventory_2_outlined,
-                size: 48, color: AppTheme.primary),
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              size: 48,
+              color: AppTheme.primary,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -230,16 +244,19 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                 ? 'Try adjusting your search'
                 : 'Add your first product to the catalog',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
-                ),
+              color: AppTheme.textSecondaryLight,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProductCard(BuildContext context, CatalogProductModel product,
-      FirestoreService firestoreService) {
+  Widget _buildProductCard(
+    BuildContext context,
+    CatalogProductModel product,
+    FirestoreService firestoreService,
+  ) {
     return PremiumCard(
       onTap: () => context.pushNamed('admin-edit-product', extra: product),
       child: Row(
@@ -249,24 +266,24 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: CachedNetworkImage(
-              imageUrl: product.images.isNotEmpty
-                  ? product.images.first
-                  : 'https://via.placeholder.com/150', // Placeholder
+              imageUrl: product.images.isNotEmpty ? product.images.first : '',
               width: 80,
               height: 80,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppTheme.backgroundLight,
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppTheme.backgroundLight,
-                child: const Icon(Icons.image_not_supported),
-              ),
+              placeholder:
+                  (context, url) => Container(
+                    color: AppTheme.backgroundLight,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+              errorWidget:
+                  (context, url, error) => Container(
+                    color: AppTheme.backgroundLight,
+                    child: const Icon(Icons.image_not_supported),
+                  ),
             ),
           ),
           const SizedBox(width: 16),
-          
+
           // Details
           Expanded(
             child: Column(
@@ -278,9 +295,8 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                     Expanded(
                       child: Text(
                         product.name,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -292,31 +308,37 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                 Text(
                   '₹${product.basePrice.toStringAsFixed(0)}',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.category,
-                        size: 14, color: AppTheme.textSecondaryLight),
+                    const Icon(
+                      Icons.category,
+                      size: 14,
+                      color: AppTheme.textSecondaryLight,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       product.categoryId, // Should map to readable name ideally
-                      style: Theme.of(context).textTheme.caption?.copyWith(
-                            color: AppTheme.textSecondaryLight,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondaryLight,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.layers,
-                        size: 14, color: AppTheme.textSecondaryLight),
+                    const Icon(
+                      Icons.layers,
+                      size: 14,
+                      color: AppTheme.textSecondaryLight,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       '${product.variations.length} Variants',
-                      style: Theme.of(context).textTheme.caption?.copyWith(
-                            color: AppTheme.textSecondaryLight,
-                          ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondaryLight,
+                      ),
                     ),
                   ],
                 ),
@@ -339,9 +361,10 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: isActive
-            ? AppTheme.success.withAlpha(30)
-            : AppTheme.error.withAlpha(30),
+        color:
+            isActive
+                ? AppTheme.success.withAlpha(30)
+                : AppTheme.error.withAlpha(30),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
