@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../app/theme.dart';
 import '../../models/user_model.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../models/referral_model.dart';
 import '../../services/auth_service.dart';
@@ -94,7 +94,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                             title: 'Notifications',
                             subtitle: 'Manage your notification preferences',
                             iconColor: AppTheme.warning,
-                            badge: 3,
                             onTap: () => context.push('/notifications'),
                           ),
                           _PremiumMenuItem(
@@ -103,6 +102,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                             subtitle: 'Manage your service addresses',
                             iconColor: AppTheme.success,
                             onTap: () => context.push('/saved-addresses'),
+                          ),
+                          _PremiumMenuItem(
+                            icon: Icons.redeem,
+                            title: 'Redeem Referral Code',
+                            subtitle: 'Enter code to get rewards',
+                            iconColor: Colors.purple,
+                            onTap: () => _showRedeemDialog(context),
                           ),
                         ]),
                       ),
@@ -313,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           child: Row(
             children: [
               // Products count
-              StreamBuilder<List<ProductModel>>(
+              StreamBuilder<List<UserApplianceModel>>(
                 stream:
                     userId != null
                         ? firestoreService.getUserProducts(userId)
@@ -540,6 +546,99 @@ class _ProfileScreenState extends State<ProfileScreen>
       ),
     );
   }
+
+  void _showRedeemDialog(BuildContext context) {
+    final controller = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Text('Redeem Referral Code'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Enter a referral code from a friend to unlock special benefits.',
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        labelText: 'Referral Code',
+                        hintText: 'e.g. VA-1234',
+                        border: OutlineInputBorder(),
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () async {
+                              final code = controller.text.trim();
+                              if (code.isEmpty) return;
+
+                              setState(() => isLoading = true);
+                              try {
+                                await context
+                                    .read<AuthService>()
+                                    .redeemReferral(code);
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Referral code redeemed successfully!',
+                                      ),
+                                      backgroundColor: AppTheme.success,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.toString().replaceAll(
+                                          'Exception: ',
+                                          '',
+                                        ),
+                                      ),
+                                      backgroundColor: AppTheme.error,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted)
+                                  setState(() => isLoading = false);
+                              }
+                            },
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Text('Redeem'),
+                  ),
+                ],
+              );
+            },
+          ),
+    );
+  }
 }
 
 class _StatItem extends StatelessWidget {
@@ -594,7 +693,6 @@ class _PremiumMenuItem extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Color iconColor;
-  final int? badge;
   final VoidCallback onTap;
 
   const _PremiumMenuItem({
@@ -602,7 +700,6 @@ class _PremiumMenuItem extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.iconColor,
-    this.badge,
     required this.onTap,
   });
 
@@ -651,27 +748,7 @@ class _PremiumMenuItem extends StatelessWidget {
                 ],
               ),
             ),
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppTheme.error,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '$badge',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            else
-              const Icon(
-                Icons.chevron_right,
-                color: AppTheme.textSecondaryLight,
-              ),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondaryLight),
           ],
         ),
       ),

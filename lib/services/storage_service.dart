@@ -21,7 +21,7 @@ class StorageService {
       
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('bills/$userId/$fileName');
-      
+
       final uploadTask = await ref.putFile(
         File(imageFile.path),
         SettableMetadata(
@@ -32,10 +32,34 @@ class StorageService {
           },
         ),
       );
-      
+
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading bill image: $e');
+      return null;
+    }
+  }
+
+  // Upload product image (Admin)
+  Future<String?> uploadProductImage({required XFile imageFile}) async {
+    try {
+      final fileName = '${_uuid.v4()}.${imageFile.path.split('.').last}';
+      final ref = _storage.ref().child('products/$fileName');
+
+      final uploadTask = await ref.putFile(
+        File(imageFile.path),
+        SettableMetadata(
+          contentType: 'image/${imageFile.path.split('.').last}',
+          customMetadata: {
+            'uploadedBy': 'ADMIN',
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      print('Error uploading product image: $e');
       return null;
     }
   }
@@ -59,12 +83,9 @@ class StorageService {
 
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('evidence/$requestId/$fileName');
-      
-      print('Starting upload to: ${ref.fullPath}');
 
-      // Create the upload task
-      final uploadTask = ref.putFile(
-        file,
+      final uploadTask = await ref.putFile(
+        File(imageFile.path),
         SettableMetadata(
           contentType: 'image/$extension',
           customMetadata: {
@@ -75,18 +96,7 @@ class StorageService {
         ),
       );
 
-      // Await the task specifically
-      final snapshot = await uploadTask.whenComplete(() {});
-
-      print('Upload task finished with state: ${snapshot.state}');
-
-      if (snapshot.state == TaskState.success) {
-        final downloadUrl = await ref.getDownloadURL();
-        print('Got download URL: $downloadUrl');
-        return downloadUrl;
-      } else {
-        throw Exception('Upload failed with state: ${snapshot.state}');
-      }
+      return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading evidence image: $e');
       // If it's a storage exception, print code
@@ -112,11 +122,9 @@ class StorageService {
 
       final fileName = '${_uuid.v4()}.m4a';
       final ref = _storage.ref().child('audio/$requestId/$fileName');
-      
-      print('Starting audio upload to: ${ref.fullPath}');
 
-      final uploadTask = ref.putFile(
-        file,
+      final uploadTask = await ref.putFile(
+        File(filePath),
         SettableMetadata(
           contentType: 'audio/mp4',
           customMetadata: {
@@ -126,14 +134,8 @@ class StorageService {
           },
         ),
       );
-      
-      final snapshot = await uploadTask.whenComplete(() {});
 
-      if (snapshot.state == TaskState.success) {
-         return await ref.getDownloadURL();
-      } else {
-        throw Exception('Audio upload failed with state: ${snapshot.state}');
-      }
+      return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading audio: $e');
       if (e is FirebaseException) {
@@ -150,7 +152,7 @@ class StorageService {
     required List<XFile> imageFiles,
   }) async {
     final urls = <String>[];
-    
+
     for (final file in imageFiles) {
       try {
         final url = await uploadEvidenceImage(
@@ -168,7 +170,7 @@ class StorageService {
         throw e;
       }
     }
-    
+
     return urls;
   }
 

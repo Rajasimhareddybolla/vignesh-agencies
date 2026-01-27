@@ -138,7 +138,9 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
             children: [
               Icon(Icons.check_circle, color: Colors.white, size: 20),
               SizedBox(width: 12),
-              Text('Notification sent to all Vignesh Agencies users!'),
+              Expanded(
+                child: Text('Notification sent to all Vignesh Agencies users!'),
+              ),
             ],
           ),
           backgroundColor: AppTheme.success,

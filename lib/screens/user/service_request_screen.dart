@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'dart:io';
 import '../../app/theme.dart';
-import '../../models/product_model.dart';
+import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
@@ -29,7 +29,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
   String? _audioPath;
   bool _isRecording = false;
   bool _isLoading = false;
-  ProductModel? _product;
+  UserApplianceModel? _product;
   String? _errorMessage;
 
   final _imagePicker = ImagePicker();
@@ -259,90 +259,99 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
         ),
         title: const Text('Request Service'),
       ),
-      body: _product == null
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Selected Appliance Card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                        border: Border.all(
-                          color: AppTheme.primary.withOpacity(0.2),
+      body:
+          _product == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Selected Appliance Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(
+                            AppTheme.radiusMd,
+                          ),
+                          border: Border.all(
+                            color: AppTheme.primary.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.asset(
+                                UserApplianceModel.getProductImage(
+                                  _product!.category,
+                                ),
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'SELECTED APPLIANCE',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall?.copyWith(
+                                      color: AppTheme.primary,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _product!.productName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color:
+                                              _product!.isUnderWarranty
+                                                  ? AppTheme.success
+                                                  : AppTheme.textSecondaryLight,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _product!.isUnderWarranty
+                                            ? 'Under Warranty'
+                                            : 'Warranty Expired',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall?.copyWith(
+                                          color:
+                                              _product!.isUnderWarranty
+                                                  ? AppTheme.success
+                                                  : AppTheme.textSecondaryLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.asset(
-                              ProductModel.getProductImage(_product!.category),
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'SELECTED APPLIANCE',
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color: AppTheme.primary,
-                                        letterSpacing: 0.5,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _product!.productName,
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: _product!.isUnderWarranty
-                                            ? AppTheme.success
-                                            : AppTheme.textSecondaryLight,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      _product!.isUnderWarranty
-                                          ? 'Under Warranty'
-                                          : 'Warranty Expired',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            color: _product!.isUnderWarranty
-                                                ? AppTheme.success
-                                                : AppTheme.textSecondaryLight,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
 
                     const SizedBox(height: 24),
 

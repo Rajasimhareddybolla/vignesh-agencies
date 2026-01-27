@@ -79,8 +79,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   keyboardType: TextInputType.phone,
-                  validator: (v) =>
-                      v?.length == 10 ? null : 'Enter valid phone',
+                  validator:
+                      (v) => v?.length == 10 ? null : 'Enter valid phone',
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -102,8 +102,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                           labelText: 'City',
                           prefixIcon: Icon(Icons.location_city),
                         ),
-                        validator: (v) =>
-                            v?.isNotEmpty == true ? null : 'Required',
+                        validator:
+                            (v) => v?.isNotEmpty == true ? null : 'Required',
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -124,21 +124,22 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 const Text('Address Type'),
                 const SizedBox(height: 8),
                 Row(
-                  children: ['Home', 'Work', 'Other'].map((t) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(t),
-                        selected: type == t,
-                        onSelected: (selected) {
-                          if (selected) {
-                            type = t;
-                            (context as Element).markNeedsBuild();
-                          }
-                        },
-                      ),
-                    );
-                  }).toList(),
+                  children:
+                      ['Home', 'Work', 'Other'].map((t) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(t),
+                            selected: type == t,
+                            onSelected: (selected) {
+                              if (selected) {
+                                type = t;
+                                (context as Element).markNeedsBuild();
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -147,7 +148,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                     onPressed: () async {
                       if (formKey.currentState!.validate()) {
                         final authService = context.read<AuthService>();
-                        final uid = authService.currentUser!.uid;
+                        // Use resolved UID to support linked accounts (bypass mode)
+                        final uid = await authService.getResolvedUserId();
                         final data = {
                           'name': nameController.text.trim(),
                           'phone': phoneController.text.trim(),
@@ -204,143 +206,164 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         ),
         title: const Text('Saved Addresses'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('users')
-            .doc(authService.currentUser!.uid)
-            .collection('addresses')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError)
-            return const Center(child: Text('Error loading addresses'));
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<String>(
+        future: authService.getResolvedUserId(),
+        builder: (context, uidSnapshot) {
+          if (uidSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.location_off_outlined,
-                    size: 64,
-                    color: AppTheme.textSecondaryLight.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No addresses saved',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
-                    ),
-                  ),
-                ],
-              ),
-            );
+          if (uidSnapshot.hasError || !uidSnapshot.hasData) {
+            return const Center(child: Text('Error loading user profile'));
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(20),
-            itemCount: docs.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 16),
-            itemBuilder: (context, index) {
-              final doc = docs[index];
-              final data = doc.data() as Map<String, dynamic>;
+          final uid = uidSnapshot.data!;
 
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderLight),
-                  boxShadow: AppTheme.cardShadow,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return StreamBuilder<QuerySnapshot>(
+            stream:
+                _firestore
+                    .collection('users')
+                    .doc(uid)
+                    .collection('addresses')
+                    .orderBy('createdAt', descending: true)
+                    .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError)
+                return const Center(child: Text('Error loading addresses'));
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final docs = snapshot.data!.docs;
+              if (docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.location_off_outlined,
+                        size: 64,
+                        color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No addresses saved',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(color: AppTheme.textSecondaryLight),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.all(20),
+                itemCount: docs.length,
+                separatorBuilder:
+                    (context, index) => const SizedBox(height: 16),
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.borderLight),
+                      boxShadow: AppTheme.cardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            data['type'] ?? 'Home',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                data['type'] ?? 'Home',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.labelSmall?.copyWith(
                                   color: AppTheme.primary,
                                   fontWeight: FontWeight.bold,
                                 ),
-                          ),
-                        ),
-                        PopupMenuButton(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Text('Edit'),
+                              ),
                             ),
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text(
-                                'Delete',
-                                style: TextStyle(color: Colors.red),
+                            PopupMenuButton(
+                              itemBuilder:
+                                  (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Text('Edit'),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ),
+                                  ],
+                              onSelected: (value) async {
+                                if (value == 'edit') {
+                                  _showAddAddressSheet(
+                                    context,
+                                    existingAddress: data,
+                                    docId: doc.id,
+                                  );
+                                } else if (value == 'delete') {
+                                  await doc.reference.delete();
+                                }
+                              },
+                              child: const Icon(
+                                Icons.more_vert,
+                                color: AppTheme.textSecondaryLight,
                               ),
                             ),
                           ],
-                          onSelected: (value) async {
-                            if (value == 'edit') {
-                              _showAddAddressSheet(
-                                context,
-                                existingAddress: data,
-                                docId: doc.id,
-                              );
-                            } else if (value == 'delete') {
-                              await doc.reference.delete();
-                            }
-                          },
-                          child: const Icon(
-                            Icons.more_vert,
-                            color: AppTheme.textSecondaryLight,
-                          ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      data['name'] ?? '',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(data['address'] ?? ''),
-                    Text('${data['city'] ?? ''} - ${data['pincode'] ?? ''}'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.phone_outlined,
-                          size: 14,
-                          color: AppTheme.textSecondaryLight,
-                        ),
-                        const SizedBox(width: 4),
+                        const SizedBox(height: 12),
                         Text(
-                          data['phone'] ?? '',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                          data['name'] ?? '',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(data['address'] ?? ''),
+                        Text(
+                          '${data['city'] ?? ''} - ${data['pincode'] ?? ''}',
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.phone_outlined,
+                              size: 14,
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              data['phone'] ?? '',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondaryLight,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  );
+                },
               );
             },
           );

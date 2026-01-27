@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
+import '../../models/catalog_product_model.dart';
+import '../../models/user_appliance_model.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
 
 class ProductCatalogScreen extends StatefulWidget {
@@ -12,235 +17,379 @@ class ProductCatalogScreen extends StatefulWidget {
 }
 
 class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
-  final List<Map<String, dynamic>> _catalogProducts = [
-    {
-      'id': '1',
-      'name': 'Vignesh Agencies Zen Fan',
-      'category': 'Fan',
-      'description':
-          'High-speed ceiling fan with anti-dust coating and energy-efficient motor. Operates silently even at high speeds.',
-      'features': [
-        'Anti-Dust',
-        'High Speed',
-        'Silent Operation',
-        'REMOTE Control',
-      ],
-      'image': 'assets/images/fan.png',
-    },
-    {
-      'id': '2',
-      'name': 'Vignesh Agencies Water Heater',
-      'category': 'Heater',
-      'description':
-          'Advanced water heater with polymer protective coating and high-pressure resistance. Perfect for high-rise buildings.',
-      'features': [
-        '5-Star Rating',
-        'Glass Lined Tank',
-        'Rust Proof',
-        'Auto Cut-off',
-      ],
-      'image': 'assets/images/heater.png',
-    },
-    {
-      'id': '3',
-      'name': 'Vignesh Agencies Stabilizer',
-      'category': 'Stabilizer',
-      'description':
-          'Digital voltage stabilizer for ACs up to 1.5 tons. Protects your appliances from voltage fluctuations and surges.',
-      'features': [
-        'Digital Display',
-        'Time Delay',
-        'High Voltage Cut-off',
-        'Wall Mountable',
-      ],
-      'image': 'assets/images/stabilizer.png',
-    },
-    {
-      'id': '4',
-      'name': 'Induction Cooktop',
-      'category': 'Appliance',
-      'description':
-          'Efficient induction cooktop with 7 Indian cooking menus and preset timer function.',
-      'features': ['Touch Controls', 'Auto-off', 'Power Saver', 'Easy Clean'],
-      'image': 'assets/images/induction.png',
-    },
-    {
-      'id': '5',
-      'name': 'Inverter Battery',
-      'category': 'Inverter',
-      'description':
-          'Long-lasting tubular battery with low maintenance and fast charging capability.',
-      'features': [
-        '36 Month Warranty',
-        'High Backup',
-        'Tubular Technology',
-        'Deep Cycle',
-      ],
-      'image': 'assets/images/inverter.png',
-    },
-  ];
+  String _selectedCategory = 'All';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final firestoreService = context.read<FirestoreService>();
+
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text('Product Catalog'),
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: _catalogProducts.length,
-        itemBuilder: (context, index) {
-          final product = _catalogProducts[index];
-          return StaggeredFadeIn(
-            index: index,
-            child: _buildProductCard(context, product),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      // Use standard card decoration or custom premium card
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10), // Fixed alpha
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+        title: const Text('Store'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cart feature coming soon!')),
+              );
+            },
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          // Image / Header
+          // Search & Filter
           Container(
-            height: 180,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppTheme.backgroundLight,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Image.asset(
-                      product['image'],
-                      height: 120,
-                      fit: BoxFit.contain,
-                      errorBuilder:
-                          (context, error, stackTrace) => Icon(
-                            _getIconForCategory(product['category']),
-                            size: 80,
-                            color: AppTheme.primary.withOpacity(0.3),
-                          ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      product['category'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Content
-          Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            color: Colors.white,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  product['name'],
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  product['description'],
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                // Search
+                GlassContainer(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: const InputDecoration(
+                      hintText: 'Search appliances...',
+                      border: InputBorder.none,
+                      icon: Icon(Icons.search, color: AppTheme.primary),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children:
-                      (product['features'] as List<String>).map((feature) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+
+                // Categories
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _CategoryChip(
+                        label: 'All',
+                        isSelected: _selectedCategory == 'All',
+                        onTap: () => setState(() => _selectedCategory = 'All'),
+                      ),
+                      ...UserApplianceModel.categories.map(
+                        (c) => Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: _CategoryChip(
+                            label: c,
+                            isSelected: _selectedCategory == c,
+                            onTap: () => setState(() => _selectedCategory = c),
                           ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              color: AppTheme.primary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
+            ),
+          ),
+
+          // Product Grid
+          Expanded(
+            child: StreamBuilder<List<CatalogProductModel>>(
+              stream: firestoreService.getCatalogProducts(
+                categoryId:
+                    _selectedCategory == 'All' ? null : _selectedCategory,
+                searchQuery: _searchQuery,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final products = snapshot.data ?? [];
+
+                if (products.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 60,
+                          color: AppTheme.textSecondaryLight.withAlpha(100),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No products found',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.68, // Taller cards to prevent overflow
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    return StaggeredFadeIn(
+                      index: index,
+                      child: _CatalogProductCard(product: products[index]),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  IconData _getIconForCategory(String category) {
-    switch (category.toLowerCase()) {
-      case 'fan':
-        return Icons.wind_power;
-      case 'heater':
-        return Icons.water_drop;
-      case 'stabilizer':
-        return Icons.electrical_services;
-      case 'inverter':
-        return Icons.battery_charging_full;
-      default:
-        return Icons.inventory_2;
-    }
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary : AppTheme.backgroundLight,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow:
+              isSelected
+                  ? [
+                    BoxShadow(
+                      color: AppTheme.primary.withAlpha(80),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.textSecondaryLight,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CatalogProductCard extends StatelessWidget {
+  final CatalogProductModel product;
+
+  const _CatalogProductCard({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        context.push('/product-detail/${product.id}', extra: product);
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.borderLight.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withAlpha(10),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Image
+            Expanded(
+              flex: 6,
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl:
+                          product.images.isNotEmpty ? product.images.first : '',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder:
+                          (context, url) => Container(
+                            color: AppTheme.backgroundLight,
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                      errorWidget:
+                          (context, url, error) => Container(
+                            color: AppTheme.backgroundLight,
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              color: AppTheme.textSecondaryLight,
+                            ),
+                          ),
+                    ),
+                  ),
+                  if (product.offerPrice != null)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${_calculateDiscount(product.basePrice, product.offerPrice!)}% OFF',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            // Details
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product.brand.toUpperCase(),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          product.name,
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (product.offerPrice != null)
+                              Text(
+                                '₹${product.basePrice.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  decoration: TextDecoration.lineThrough,
+                                  color: AppTheme.textSecondaryLight,
+                                ),
+                              ),
+                            Text(
+                              '₹${(product.offerPrice ?? product.basePrice).toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.textPrimaryLight,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primary.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _calculateDiscount(double base, double offer) {
+    if (base == 0) return 0;
+    return ((base - offer) / base * 100).round();
   }
 }

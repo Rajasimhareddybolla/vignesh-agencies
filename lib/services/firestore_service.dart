@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/product_model.dart';
+import '../models/user_appliance_model.dart';
 import '../models/service_request_model.dart';
 import '../models/referral_model.dart';
 import '../models/user_model.dart';
+import '../models/catalog_product_model.dart';
+import '../models/order_model.dart';
+import '../models/marketing_banner_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -13,27 +16,72 @@ class FirestoreService {
     return doc.exists ? UserModel.fromFirestore(doc) : null;
   }
 
+  // ============== MARKETING BANNERS ==============
+
+  // Get active marketing banners
+  Stream<List<MarketingBannerModel>> getMarketingBanners() {
+    return _firestore
+        .collection('marketing_banners')
+        .where('isActive', isEqualTo: true)
+        .orderBy('priority', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => MarketingBannerModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  // Get all marketing banners (Admin)
+  Stream<List<MarketingBannerModel>> getAllMarketingBanners() {
+    return _firestore
+        .collection('marketing_banners')
+        .orderBy('priority', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => MarketingBannerModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  // Add marketing banner
+  Future<void> addMarketingBanner(MarketingBannerModel banner) async {
+    await _firestore.collection('marketing_banners').add(banner.toFirestore());
+  }
+
+  // Delete marketing banner
+  Future<void> deleteMarketingBanner(String bannerId) async {
+    await _firestore.collection('marketing_banners').doc(bannerId).delete();
+  }
+
+  // Toggle banner status
+  Future<void> toggleBannerStatus(String bannerId, bool isActive) async {
+    await _firestore.collection('marketing_banners').doc(bannerId).update({
+      'isActive': isActive,
+    });
+  }
+
   // ============== PRODUCTS ==============
 
   // Stream of user's products
-  Stream<List<ProductModel>> getUserProducts(String userId) {
+  Stream<List<UserApplianceModel>> getUserProducts(String userId) {
     return _firestore
         .collection('products')
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map(
-          (snapshot) {
-            final docs = snapshot.docs
-                .map((doc) => ProductModel.fromFirestore(doc))
-                .toList();
-            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return docs;
-          },
-        );
+        .map((snapshot) {
+          final docs =
+              snapshot.docs
+                  .map((doc) => UserApplianceModel.fromFirestore(doc))
+                  .toList();
+          docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return docs;
+        });
   }
 
   // Add a new product
-  Future<String> addProduct(ProductModel product) async {
+  Future<String> addProduct(UserApplianceModel product) async {
     final docRef = await _firestore
         .collection('products')
         .add(product.toFirestore());
@@ -53,7 +101,7 @@ class FirestoreService {
     if (status == ProductStatus.active) {
       final productDoc = await docRef.get();
       if (productDoc.exists) {
-        final product = ProductModel.fromFirestore(productDoc);
+        final product = UserApplianceModel.fromFirestore(productDoc);
         await _processReferralForProduct(product);
       }
     }
@@ -67,15 +115,16 @@ class FirestoreService {
   }
 
   /// Process referral commission when a user's first product is validated
-  Future<void> _processReferralForProduct(ProductModel product) async {
+  Future<void> _processReferralForProduct(UserApplianceModel product) async {
     try {
       // Find pending referral for this user (where they are the referee)
-      final referralsQuery = await _firestore
-          .collection('referrals')
-          .where('refereeId', isEqualTo: product.userId)
-          .where('status', isEqualTo: 'pending')
-          .limit(1)
-          .get();
+      final referralsQuery =
+          await _firestore
+              .collection('referrals')
+              .where('refereeId', isEqualTo: product.userId)
+              .where('status', isEqualTo: 'pending')
+              .limit(1)
+              .get();
 
       if (referralsQuery.docs.isNotEmpty) {
         final referralDoc = referralsQuery.docs.first;
@@ -105,39 +154,39 @@ class FirestoreService {
   }
 
   // Get products pending validation (admin)
-  Stream<List<ProductModel>> getPendingProducts() {
+  Stream<List<UserApplianceModel>> getPendingProducts() {
     return _firestore
         .collection('products')
         .where('status', isEqualTo: 'pending_validation')
         .snapshots()
-        .map(
-          (snapshot) {
-            final docs = snapshot.docs
-                .map((doc) => ProductModel.fromFirestore(doc))
-                .toList();
-            docs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-            return docs;
-          },
-        );
+        .map((snapshot) {
+          final docs =
+              snapshot.docs
+                  .map((doc) => UserApplianceModel.fromFirestore(doc))
+                  .toList();
+          docs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return docs;
+        });
   }
 
   // Get all products (admin)
-  Stream<List<ProductModel>> getAllProducts() {
+  Stream<List<UserApplianceModel>> getAllProducts() {
     return _firestore
         .collection('products')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ProductModel.fromFirestore(doc))
-              .toList(),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => UserApplianceModel.fromFirestore(doc))
+                  .toList(),
         );
   }
 
   // Get single product
-  Future<ProductModel?> getProduct(String productId) async {
+  Future<UserApplianceModel?> getProduct(String productId) async {
     final doc = await _firestore.collection('products').doc(productId).get();
-    return doc.exists ? ProductModel.fromFirestore(doc) : null;
+    return doc.exists ? UserApplianceModel.fromFirestore(doc) : null;
   }
 
   // ============== SERVICE REQUESTS ==============
@@ -148,15 +197,14 @@ class FirestoreService {
         .collection('service_requests')
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map(
-          (snapshot) {
-            final docs = snapshot.docs
-                .map((doc) => ServiceRequestModel.fromFirestore(doc))
-                .toList();
-            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return docs;
-          },
-        );
+        .map((snapshot) {
+          final docs =
+              snapshot.docs
+                  .map((doc) => ServiceRequestModel.fromFirestore(doc))
+                  .toList();
+          docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return docs;
+        });
   }
 
   // Create a new service request
@@ -207,9 +255,10 @@ class FirestoreService {
     }
 
     return query.snapshots().map((snapshot) {
-      final docs = snapshot.docs
-          .map((doc) => ServiceRequestModel.fromFirestore(doc))
-          .toList();
+      final docs =
+          snapshot.docs
+              .map((doc) => ServiceRequestModel.fromFirestore(doc))
+              .toList();
       docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return docs;
     });
@@ -217,20 +266,19 @@ class FirestoreService {
 
   // Get single service request
   Future<ServiceRequestModel?> getServiceRequest(String requestId) async {
-    final doc = await _firestore
-        .collection('service_requests')
-        .doc(requestId)
-        .get();
+    final doc =
+        await _firestore.collection('service_requests').doc(requestId).get();
     return doc.exists ? ServiceRequestModel.fromFirestore(doc) : null;
   }
 
   // Get pending service requests count
   Future<int> getPendingRequestsCount() async {
-    final snapshot = await _firestore
-        .collection('service_requests')
-        .where('status', isEqualTo: 'pending')
-        .count()
-        .get();
+    final snapshot =
+        await _firestore
+            .collection('service_requests')
+            .where('status', isEqualTo: 'pending')
+            .count()
+            .get();
     return snapshot.count ?? 0;
   }
 
@@ -242,15 +290,14 @@ class FirestoreService {
         .collection('referrals')
         .where('referrerId', isEqualTo: userId)
         .snapshots()
-        .map(
-          (snapshot) {
-            final docs = snapshot.docs
-                .map((doc) => ReferralModel.fromFirestore(doc))
-                .toList();
-            docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            return docs;
-          },
-        );
+        .map((snapshot) {
+          final docs =
+              snapshot.docs
+                  .map((doc) => ReferralModel.fromFirestore(doc))
+                  .toList();
+          docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return docs;
+        });
   }
 
   // Create a referral when new user signs up with code
@@ -294,10 +341,8 @@ class FirestoreService {
     });
 
     // Update referrer's pending payout
-    final referral = await _firestore
-        .collection('referrals')
-        .doc(referralId)
-        .get();
+    final referral =
+        await _firestore.collection('referrals').doc(referralId).get();
     final referrerId = referral.data()?['referrerId'];
     if (referrerId != null) {
       await _firestore.collection('users').doc(referrerId).update({
@@ -308,10 +353,8 @@ class FirestoreService {
 
   // Mark referral as paid (admin)
   Future<void> markReferralPaid(String referralId) async {
-    final referral = await _firestore
-        .collection('referrals')
-        .doc(referralId)
-        .get();
+    final referral =
+        await _firestore.collection('referrals').doc(referralId).get();
     final referralData = referral.data();
 
     if (referralData != null) {
@@ -351,11 +394,12 @@ class FirestoreService {
     final pendingPayout = userDoc.data()?['pendingPayout'] ?? 0.0;
 
     // Mark all pending referrals for this user as paid
-    final pendingReferrals = await _firestore
-        .collection('referrals')
-        .where('referrerId', isEqualTo: userId)
-        .where('status', isEqualTo: 'purchased')
-        .get();
+    final pendingReferrals =
+        await _firestore
+            .collection('referrals')
+            .where('referrerId', isEqualTo: userId)
+            .where('status', isEqualTo: 'purchased')
+            .get();
 
     final batch = _firestore.batch();
     for (final doc in pendingReferrals.docs) {
@@ -393,24 +437,27 @@ class FirestoreService {
   // ============== DASHBOARD STATS (Admin) ==============
 
   Future<Map<String, dynamic>> getDashboardStats() async {
-    final pendingRequests = await _firestore
-        .collection('service_requests')
-        .where('status', isEqualTo: 'pending')
-        .count()
-        .get();
+    final pendingRequests =
+        await _firestore
+            .collection('service_requests')
+            .where('status', isEqualTo: 'pending')
+            .count()
+            .get();
 
-    final pendingRegistrations = await _firestore
-        .collection('products')
-        .where('status', isEqualTo: 'pending_validation')
-        .count()
-        .get();
+    final pendingRegistrations =
+        await _firestore
+            .collection('products')
+            .where('status', isEqualTo: 'pending_validation')
+            .count()
+            .get();
 
     final totalUsers = await _firestore.collection('users').count().get();
 
-    final usersWithPayouts = await _firestore
-        .collection('users')
-        .where('pendingPayout', isGreaterThan: 0)
-        .get();
+    final usersWithPayouts =
+        await _firestore
+            .collection('users')
+            .where('pendingPayout', isGreaterThan: 0)
+            .get();
 
     double totalPendingPayouts = 0;
     for (final doc in usersWithPayouts.docs) {
@@ -452,15 +499,223 @@ class FirestoreService {
 
   // Lookup user by referral code
   Future<UserModel?> getUserByReferralCode(String code) async {
-    final snapshot = await _firestore
-        .collection('users')
-        .where('referralCode', isEqualTo: code)
-        .limit(1)
-        .get();
+    final snapshot =
+        await _firestore
+            .collection('users')
+            .where('referralCode', isEqualTo: code)
+            .limit(1)
+            .get();
 
     if (snapshot.docs.isNotEmpty) {
       return UserModel.fromFirestore(snapshot.docs.first);
     }
     return null;
+  }
+
+  // ============== CATALOG (Admin & User) ==============
+
+  // Get all catalog products (Active only - for Users)
+  Stream<List<CatalogProductModel>> getCatalogProducts({
+    String? categoryId,
+    String? searchQuery,
+  }) {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('catalog_products')
+        .where('isActive', isEqualTo: true);
+
+    if (categoryId != null) {
+      query = query.where('categoryId', isEqualTo: categoryId);
+    }
+
+    return query.snapshots().map((snapshot) {
+      var products =
+          snapshot.docs
+              .map((doc) => CatalogProductModel.fromFirestore(doc))
+              .toList();
+
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        final queryLower = searchQuery.toLowerCase();
+        products =
+            products.where((p) {
+              return p.name.toLowerCase().contains(queryLower) ||
+                  p.brand.toLowerCase().contains(queryLower);
+            }).toList();
+      }
+
+      return products;
+    });
+  }
+
+  // Get ALL catalog products (For Admin)
+  Stream<List<CatalogProductModel>> getAdminCatalogProducts() {
+    return _firestore
+        .collection('catalog_products')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => CatalogProductModel.fromFirestore(doc))
+                  .toList(),
+        );
+  }
+
+  // Get single catalog product
+  Future<CatalogProductModel?> getCatalogProduct(String id) async {
+    final doc = await _firestore.collection('catalog_products').doc(id).get();
+    return doc.exists ? CatalogProductModel.fromFirestore(doc) : null;
+  }
+
+  // Add catalog product (Admin)
+  Future<void> addCatalogProduct(CatalogProductModel product) async {
+    // If ID is empty, let Firestore generate it, but we usually want to set it in the model
+    // Here we assume the model has 'id' empty, so we add and update, or set id before.
+    // Better: use .doc().set() if we generate ID locally, or .add() if not.
+    // Let's us .add() and then update the ID field if needed, or just rely on doc ID.
+    // However, our model has 'id' field.
+    final docRef = _firestore.collection('catalog_products').doc();
+    final productWithId = product.copyWith(id: docRef.id);
+    await docRef.set(productWithId.toFirestore());
+  }
+
+  // Update catalog product (Admin)
+  Future<void> updateCatalogProduct(CatalogProductModel product) async {
+    await _firestore
+        .collection('catalog_products')
+        .doc(product.id)
+        .update(product.toFirestore());
+  }
+
+  // Delete catalog product
+  Future<void> deleteCatalogProduct(String id) async {
+    await _firestore.collection('catalog_products').doc(id).delete();
+  }
+
+  // ============== ORDERS ==============
+
+  // Place a new Order
+  Future<String> placeOrder(OrderModel order) async {
+    // 1. Create Order
+    final docRef = _firestore.collection('orders').doc();
+    final orderWithId = OrderModel(
+      id: docRef.id,
+      userId: order.userId,
+      items: order.items,
+      totalAmount: order.totalAmount,
+      status: order.status,
+      paymentMethod: order.paymentMethod,
+      address: order.address,
+      orderedAt: order.orderedAt,
+      deliveredAt: order.deliveredAt,
+      trackingNumber: order.trackingNumber,
+    );
+
+    await docRef.set(orderWithId.toFirestore());
+
+    // 2. (Optional) Auto-register appliances if warranty starts immediately?
+    // Usually warranty starts from delivery. So we handle that on 'delivered' status.
+
+    return docRef.id;
+  }
+
+  // Get User Orders
+  Stream<List<OrderModel>> getUserOrders(String userId) {
+    return _firestore
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .orderBy('orderedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => OrderModel.fromFirestore(doc))
+                  .toList(),
+        );
+  }
+
+  // Get All Orders (Admin)
+  Stream<List<OrderModel>> getAllOrders({OrderStatus? status}) {
+    Query<Map<String, dynamic>> query = _firestore
+        .collection('orders')
+        .orderBy('orderedAt', descending: true);
+
+    if (status != null) {
+      query = query.where('status', isEqualTo: status.firestoreValue);
+    }
+
+    return query.snapshots().map(
+      (snapshot) =>
+          snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList(),
+    );
+  }
+
+  // Update Order Status (Admin)
+  Future<void> updateOrderStatus(
+    String orderId,
+    OrderStatus status, {
+    String? trackingNumber,
+  }) async {
+    final updates = <String, dynamic>{'status': status.firestoreValue};
+
+    if (status == OrderStatus.delivered) {
+      updates['deliveredAt'] = Timestamp.now();
+    }
+    if (trackingNumber != null) {
+      updates['trackingNumber'] = trackingNumber;
+    }
+
+    await _firestore.collection('orders').doc(orderId).update(updates);
+
+    // If Delivered, Automatically Register Valid Appliances
+    if (status == OrderStatus.delivered) {
+      await _autoRegisterAppliancesFromOrder(orderId);
+    }
+  }
+
+  // Auto-register appliances when order is delivered
+  Future<void> _autoRegisterAppliancesFromOrder(String orderId) async {
+    final orderDoc = await _firestore.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) return;
+
+    final order = OrderModel.fromFirestore(orderDoc);
+
+    // Check if we already registered these (idempotency check could be added,
+    // but for now we assume this runs once on status change)
+
+    final batch = _firestore.batch();
+
+    for (var item in order.items) {
+      // For each quantity
+      for (int i = 0; i < item.quantity; i++) {
+        final newApplianceRef = _firestore.collection('products').doc();
+
+        final warrantyEndDate = DateTime.now().add(
+          Duration(days: item.warrantyMonths * 30),
+        );
+
+        final appliance = UserApplianceModel(
+          id: newApplianceRef.id,
+          userId: order.userId,
+          category:
+              'Other', // We might need to map category from catalog product
+          productName: item.productName,
+          modelNumber:
+              item.selectedAttributes.values.join(' ') +
+              (item.sku != null ? ' (${item.sku})' : ''),
+          purchaseDate: DateTime.now(), // Delivered date = start of warranty
+          warrantyEndDate: warrantyEndDate,
+          status: ProductStatus.active, // Auto-active
+          validatedBy: 'SYSTEM',
+          validatedAt: DateTime.now(),
+          createdAt: DateTime.now(),
+          purchaseAmount: item.price,
+          storeLocation: 'Online Store',
+        );
+
+        batch.set(newApplianceRef, appliance.toFirestore());
+      }
+    }
+
+    await batch.commit();
   }
 }

@@ -4,6 +4,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/otp_screen.dart';
 import '../screens/auth/admin_login_screen.dart';
 import '../screens/user/notifications_screen.dart';
+import '../screens/user/cart_screen.dart';
 import '../screens/user/product_catalog_screen.dart';
 import '../screens/user/saved_addresses_screen.dart';
 import '../screens/user/all_referrals_screen.dart';
@@ -15,9 +16,11 @@ import '../screens/user/add_product_screen.dart';
 import '../screens/user/service_request_screen.dart';
 import '../screens/user/referral_screen.dart';
 import '../screens/user/requests_list_screen.dart';
+import '../screens/user/orders_screen.dart';
 import '../screens/user/profile_screen.dart';
 import '../screens/user/edit_profile_screen.dart';
 import '../screens/user/all_appliances_screen.dart';
+import '../screens/user/product_detail_screen.dart';
 import '../screens/admin/command_center_screen.dart';
 import '../screens/admin/service_requests_screen.dart';
 import '../screens/admin/service_request_detail_screen.dart';
@@ -26,7 +29,14 @@ import '../screens/admin/payout_manager_screen.dart';
 import '../screens/admin/reports_screen.dart';
 import '../screens/admin/send_notification_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
+import '../screens/admin/products/product_list_screen.dart';
+import '../screens/admin/products/add_edit_product_screen.dart';
+import '../screens/admin/products/admin_orders_screen.dart';
+import '../screens/admin/marketing_manager_screen.dart';
+import '../screens/admin/add_banner_screen.dart';
+import '../models/catalog_product_model.dart';
 import '../services/auth_service.dart';
+import '../screens/user/checkout_screen.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -108,6 +118,11 @@ class AppRouter {
         path: '/privacy',
         builder: (context, state) => const PrivacyScreen(),
       ),
+      GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
+      GoRoute(
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
 
       // User Shell Route with Bottom Navigation
       ShellRoute(
@@ -128,6 +143,13 @@ class AppRouter {
             pageBuilder:
                 (context, state) =>
                     const NoTransitionPage(child: RequestsListScreen()),
+          ),
+          GoRoute(
+            path: '/orders',
+            name: 'orders',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: OrdersScreen()),
           ),
           GoRoute(
             path: '/profile',
@@ -167,6 +189,15 @@ class AppRouter {
         path: '/all-appliances',
         name: 'all-appliances',
         builder: (context, state) => const AllAppliancesScreen(),
+      ),
+      GoRoute(
+        path: '/product-detail/:productId',
+        name: 'product-detail',
+        builder: (context, state) {
+          final productId = state.pathParameters['productId'] ?? '';
+          final product = state.extra as CatalogProductModel?;
+          return ProductDetailScreen(productId: productId, product: product);
+        },
       ),
 
       // Admin Shell Route with Side Navigation
@@ -225,6 +256,34 @@ class AppRouter {
                 (context, state) =>
                     const NoTransitionPage(child: AdminSettingsScreen()),
           ),
+          GoRoute(
+            path: '/admin/products',
+            name: 'admin-products',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AdminProductListScreen()),
+          ),
+          GoRoute(
+            path: '/admin/orders',
+            name: 'admin-orders',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AdminOrdersScreen()),
+          ),
+          GoRoute(
+            path: '/admin/marketing',
+            name: 'admin-marketing',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: MarketingManagerScreen()),
+          ),
+          GoRoute(
+            path: '/admin/marketing/add',
+            name: 'admin-add-marketing',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AddBannerScreen()),
+          ),
         ],
       ),
       GoRoute(
@@ -233,6 +292,19 @@ class AppRouter {
         builder: (context, state) {
           final requestId = state.pathParameters['requestId'] ?? '';
           return ServiceRequestDetailScreen(requestId: requestId);
+        },
+      ),
+      GoRoute(
+        path: '/admin/products/add',
+        name: 'admin-add-product',
+        builder: (context, state) => const AddEditProductScreen(),
+      ),
+      GoRoute(
+        path: '/admin/products/edit',
+        name: 'admin-edit-product',
+        builder: (context, state) {
+          final product = state.extra as CatalogProductModel?;
+          return AddEditProductScreen(product: product);
         },
       ),
     ],
@@ -274,6 +346,11 @@ class UserShellScreen extends StatelessWidget {
               label: 'Requests',
             ),
             NavigationDestination(
+              icon: Icon(Icons.receipt_long_outlined),
+              selectedIcon: Icon(Icons.receipt_long),
+              label: 'My Orders',
+            ),
+            NavigationDestination(
               icon: Icon(Icons.person_outline),
               selectedIcon: Icon(Icons.person),
               label: 'Profile',
@@ -288,7 +365,8 @@ class UserShellScreen extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/home')) return 0;
     if (location.startsWith('/requests')) return 1;
-    if (location.startsWith('/profile')) return 2;
+    if (location.startsWith('/orders')) return 2;
+    if (location.startsWith('/profile')) return 3;
     return 0;
   }
 
@@ -301,6 +379,9 @@ class UserShellScreen extends StatelessWidget {
         context.goNamed('requests');
         break;
       case 2:
+        context.goNamed('orders');
+        break;
+      case 3:
         context.goNamed('profile');
         break;
     }
