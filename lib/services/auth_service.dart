@@ -6,6 +6,10 @@ import '../models/referral_model.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  // Cache for admin status to avoid repeated Firestore calls
+  bool? _cachedIsAdmin;
+  String? _cachedAdminUserId;
 
   // Stream of auth state changes
   Stream<User?> get authStateChanges => _auth.authStateChanges();
@@ -450,14 +454,35 @@ class AuthService {
         });
   }
 
-  // Check if current user is admin
+  // Check if current user is admin (with caching)
   Future<bool> isCurrentUserAdmin() async {
+    final user = currentUser;
+    if (user == null) return false;
+    
+    // Return cached value if available and for the same user
+    if (_cachedIsAdmin != null && _cachedAdminUserId == user.uid) {
+      return _cachedIsAdmin!;
+    }
+    
+    // Fetch and cache admin status
     final userModel = await getUserModel();
-    return userModel?.isAdmin ?? false;
+    _cachedIsAdmin = userModel?.isAdmin ?? false;
+    _cachedAdminUserId = user.uid;
+    
+    return _cachedIsAdmin!;
+  }
+  
+  // Clear admin cache (call when user data might have changed)
+  void clearAdminCache() {
+    _cachedIsAdmin = null;
+    _cachedAdminUserId = null;
   }
 
   // Sign out
   Future<void> signOut() async {
+    // Clear cache on sign out
+    _cachedIsAdmin = null;
+    _cachedAdminUserId = null;
     await _auth.signOut();
   }
 

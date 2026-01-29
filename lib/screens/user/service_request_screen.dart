@@ -120,6 +120,12 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       return;
     }
 
+    // Validate product exists
+    if (_product == null) {
+      setState(() => _errorMessage = 'Product not found. Please try again.');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -132,6 +138,16 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
 
       // Use resolved ID to ensure we create requests for the linked account
       final userId = await authService.getResolvedUserId();
+
+      // 🔒 SECURITY: Validate product ownership
+      if (_product!.userId != userId) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'You can only raise service requests for your own products.';
+        });
+        return;
+      }
+
       final user = await authService.getUserModel();
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
 

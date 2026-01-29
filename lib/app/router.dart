@@ -16,6 +16,7 @@ import '../screens/user/add_product_screen.dart';
 import '../screens/user/service_request_screen.dart';
 import '../screens/user/referral_screen.dart';
 import '../screens/user/requests_list_screen.dart';
+import '../screens/user/user_service_request_detail_screen.dart';
 import '../screens/user/orders_screen.dart';
 import '../screens/user/profile_screen.dart';
 import '../screens/user/edit_profile_screen.dart';
@@ -197,6 +198,14 @@ class AppRouter {
           final productId = state.pathParameters['productId'] ?? '';
           final product = state.extra as CatalogProductModel?;
           return ProductDetailScreen(productId: productId, product: product);
+        },
+      ),
+      GoRoute(
+        path: '/user/request/:requestId',
+        name: 'user-request-detail',
+        builder: (context, state) {
+          final requestId = state.pathParameters['requestId'] ?? '';
+          return UserServiceRequestDetailScreen(requestId: requestId);
         },
       ),
 

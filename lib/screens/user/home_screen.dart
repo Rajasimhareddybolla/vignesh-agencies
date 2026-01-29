@@ -36,6 +36,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       curve: Curves.easeOut,
     );
     _headerAnimationController.forward();
+    
+    // Initialize cart with user's persisted cart data
+    _initializeCart();
+  }
+
+  Future<void> _initializeCart() async {
+    try {
+      final authService = context.read<AuthService>();
+      final cartService = context.read<CartService>();
+      final userId = await authService.getResolvedUserId();
+      await cartService.initializeCart(userId);
+    } catch (e) {
+      // Silently fail - cart will just be empty
+      debugPrint('Error initializing cart: $e');
+    }
   }
 
   @override

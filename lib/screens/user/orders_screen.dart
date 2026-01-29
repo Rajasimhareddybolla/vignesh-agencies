@@ -187,6 +187,8 @@ class _PremiumOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalItems = order.items.fold(0, (sum, i) => sum + i.quantity);
     final isDelivered = order.status == OrderStatus.delivered;
+    final canCancel = order.status == OrderStatus.pending || 
+                      order.status == OrderStatus.confirmed;
 
     return PremiumCard(
       onTap: () {
@@ -315,6 +317,77 @@ class _PremiumOrderCard extends StatelessWidget {
               ),
             ),
           ],
+          // Cancel Button for pending/confirmed orders
+          if (canCancel) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showCancelDialog(context, order),
+                icon: const Icon(Icons.cancel_outlined, size: 18),
+                label: const Text('Cancel Order'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  side: const BorderSide(color: AppTheme.error),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showCancelDialog(BuildContext context, OrderModel order) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel Order?'),
+        content: Text(
+          'Are you sure you want to cancel Order #${order.id.substring(order.id.length - 6).toUpperCase()}?\n\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('No, Keep Order'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                final authService = context.read<AuthService>();
+                final firestoreService = context.read<FirestoreService>();
+                final userId = await authService.getResolvedUserId();
+                
+                await firestoreService.cancelOrder(order.id, userId);
+                
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Order cancelled successfully'),
+                      backgroundColor: AppTheme.success,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to cancel: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.error,
+            ),
+            child: const Text('Yes, Cancel Order'),
+          ),
         ],
       ),
     );

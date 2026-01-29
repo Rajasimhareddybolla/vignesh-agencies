@@ -234,6 +234,8 @@ class FirestoreService {
       updates['assignedAt'] = Timestamp.now();
     } else if (status == ServiceRequestStatus.resolved) {
       updates['resolvedAt'] = Timestamp.now();
+    } else if (status == ServiceRequestStatus.completed) {
+      updates['completedAt'] = Timestamp.now();
     }
 
     await _firestore
@@ -269,6 +271,15 @@ class FirestoreService {
     final doc =
         await _firestore.collection('service_requests').doc(requestId).get();
     return doc.exists ? ServiceRequestModel.fromFirestore(doc) : null;
+  }
+
+  // Get single service request as stream (for real-time updates)
+  Stream<ServiceRequestModel?> getServiceRequestStream(String requestId) {
+    return _firestore
+        .collection('service_requests')
+        .doc(requestId)
+        .snapshots()
+        .map((doc) => doc.exists ? ServiceRequestModel.fromFirestore(doc) : null);
   }
 
   // Get pending service requests count
@@ -672,6 +683,34 @@ class FirestoreService {
     }
   }
 
+  // Cancel Order (User) - Only allowed before shipping
+  Future<void> cancelOrder(String orderId, String userId) async {
+    final orderDoc = await _firestore.collection('orders').doc(orderId).get();
+    if (!orderDoc.exists) throw Exception('Order not found');
+
+    final order = OrderModel.fromFirestore(orderDoc);
+
+    // Validate ownership
+    if (order.userId != userId) {
+      throw Exception('You can only cancel your own orders');
+    }
+
+    // Only allow cancellation before shipping
+    if (order.status == OrderStatus.shipped ||
+        order.status == OrderStatus.delivered) {
+      throw Exception('Cannot cancel order after it has been shipped');
+    }
+
+    if (order.status == OrderStatus.cancelled) {
+      throw Exception('Order is already cancelled');
+    }
+
+    await _firestore.collection('orders').doc(orderId).update({
+      'status': OrderStatus.cancelled.firestoreValue,
+      'cancelledAt': Timestamp.now(),
+    });
+  }
+
   // Auto-register appliances when order is delivered
   Future<void> _autoRegisterAppliancesFromOrder(String orderId) async {
     final orderDoc = await _firestore.collection('orders').doc(orderId).get();
@@ -696,8 +735,7 @@ class FirestoreService {
         final appliance = UserApplianceModel(
           id: newApplianceRef.id,
           userId: order.userId,
-          category:
-              'Other', // We might need to map category from catalog product
+          category: item.category, // Use category from order item
           productName: item.productName,
           modelNumber:
               item.selectedAttributes.values.join(' ') +
@@ -717,5 +755,48 @@ class FirestoreService {
     }
 
     await batch.commit();
+
+    // 🎁 Process referral commission for online purchases
+    await _processReferralForOrderDelivery(order.userId, order.totalAmount);
+  }
+
+  /// Process referral commission when an order is delivered (for online purchases)
+  Future<void> _processReferralForOrderDelivery(String userId, double orderAmount) async {
+    try {
+      // Find pending referral for this user (where they are the referee)
+      final referralsQuery = await _firestore
+          .collection('referrals')
+          .where('refereeId', isEqualTo: userId)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (referralsQuery.docs.isNotEmpty) {
+        final referralDoc = referralsQuery.docs.first;
+        const commission = 100.0; // Fixed commission reward
+
+        // 1. Update Referral Status
+        await referralDoc.reference.update({
+          'status': 'purchased',
+          'commission': commission,
+          'purchaseAmount': orderAmount,
+          'purchasedAt': FieldValue.serverTimestamp(),
+        });
+
+        // 2. Update Referrer's Wallet
+        final referrerId = referralDoc.data()['referrerId'];
+        if (referrerId != null) {
+          await _firestore.collection('users').doc(referrerId).update({
+            'totalEarnings': FieldValue.increment(commission),
+            'pendingPayout': FieldValue.increment(commission),
+          });
+        }
+        
+        print('Referral commission processed for order delivery: User $userId, Referrer $referrerId');
+      }
+    } catch (e) {
+      print('Error processing referral for order delivery: $e');
+      // Non-blocking error - don't fail the order delivery
+    }
   }
 }

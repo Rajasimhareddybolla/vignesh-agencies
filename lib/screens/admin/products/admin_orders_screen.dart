@@ -429,21 +429,193 @@ class _OrderCard extends StatelessWidget {
           if (order.status == OrderStatus.confirmed)
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: () {
                   HapticFeedback.mediumImpact();
-                  firestoreService.updateOrderStatus(
-                    order.id,
-                    OrderStatus.delivered,
-                  );
+                  _showShipOrderDialog(context, order, firestoreService);
                 },
+                icon: const Icon(Icons.local_shipping, size: 18),
+                label: const Text('Mark as Shipped'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+
+          if (order.status == OrderStatus.shipped)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  _showDeliverOrderDialog(context, order, firestoreService);
+                },
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: const Text('Mark as Delivered'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.success,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Mark Delivered (COD Received)'),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  void _showShipOrderDialog(BuildContext context, OrderModel order, FirestoreService firestoreService) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.blue.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.local_shipping, color: Colors.blue),
+            ),
+            const SizedBox(width: 12),
+            const Text('Ship Order'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Customer: ${order.address.name}',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Mark this order as shipped? The customer will be notified.',
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              firestoreService.updateOrderStatus(
+                order.id,
+                OrderStatus.shipped,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Order marked as shipped! Customer notified.'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+            icon: const Icon(Icons.local_shipping, size: 18),
+            label: const Text('Confirm Shipped'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeliverOrderDialog(BuildContext context, OrderModel order, FirestoreService firestoreService) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.success.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.check_circle, color: AppTheme.success),
+            ),
+            const SizedBox(width: 12),
+            const Text('Deliver Order'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Customer: ${order.address.name}',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Amount: ₹${order.totalAmount.toStringAsFixed(0)} (COD)',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withAlpha(30),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.warning.withAlpha(50)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppTheme.warning, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Confirm only after receiving COD payment from customer.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              firestoreService.updateOrderStatus(
+                order.id,
+                OrderStatus.delivered,
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Order delivered successfully! Product registered for warranty.'),
+                  backgroundColor: AppTheme.success,
+                ),
+              );
+            },
+            icon: const Icon(Icons.check_circle, size: 18),
+            label: const Text('Confirm Delivered'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.success,
+            ),
+          ),
         ],
       ),
     );
@@ -457,21 +629,31 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Color color;
+    IconData icon;
     switch (status) {
       case OrderStatus.pending:
         color = AppTheme.warning;
+        icon = Icons.schedule;
         break;
       case OrderStatus.confirmed:
         color = AppTheme.primary;
+        icon = Icons.check;
+        break;
+      case OrderStatus.shipped:
+        color = Colors.blue;
+        icon = Icons.local_shipping;
         break;
       case OrderStatus.delivered:
         color = AppTheme.success;
+        icon = Icons.check_circle;
         break;
       case OrderStatus.cancelled:
         color = AppTheme.error;
+        icon = Icons.cancel;
         break;
       default:
         color = Colors.grey;
+        icon = Icons.help_outline;
     }
 
     return Container(
@@ -480,13 +662,20 @@ class _StatusBadge extends StatelessWidget {
         color: color.withAlpha(30),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        status.displayName,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.bold,
-          fontSize: 10,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
+          Text(
+            status.displayName,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
+        ],
       ),
     );
   }

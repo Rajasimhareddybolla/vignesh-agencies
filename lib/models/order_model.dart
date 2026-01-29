@@ -130,6 +130,7 @@ class OrderItem {
   final String? variationId;
   final String productName;
   final String productImage;
+  final String category; // Product category for appliance registration
   final Map<String, String> selectedAttributes; // e.g. {"Color": "Red"}
   final int quantity;
   final double price; // Price at time of purchase
@@ -141,6 +142,7 @@ class OrderItem {
     this.variationId,
     required this.productName,
     required this.productImage,
+    this.category = 'Other',
     required this.selectedAttributes,
     required this.quantity,
     required this.price,
@@ -154,6 +156,7 @@ class OrderItem {
       variationId: map['variationId'],
       productName: map['productName'] ?? '',
       productImage: map['productImage'] ?? '',
+      category: map['category'] ?? 'Other',
       selectedAttributes:
           Map<String, String>.from(map['selectedAttributes'] ?? {}),
       quantity: map['quantity'] ?? 1,
@@ -169,6 +172,7 @@ class OrderItem {
       'variationId': variationId,
       'productName': productName,
       'productImage': productImage,
+      'category': category,
       'selectedAttributes': selectedAttributes,
       'quantity': quantity,
       'price': price,

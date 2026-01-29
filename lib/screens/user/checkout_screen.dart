@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../app/theme.dart';
 import '../../models/order_model.dart'; // For AddressModel
 import '../../services/cart_service.dart';
@@ -26,6 +27,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _pincodeController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isLoadingProfile = true;
+  List<Map<String, dynamic>> _savedAddresses = [];
+  String? _selectedAddressId;
 
   @override
   void initState() {
@@ -33,14 +37,58 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _prefillUserData();
   }
 
-  void _prefillUserData() {
+  Future<void> _prefillUserData() async {
     final authService = context.read<AuthService>();
-    final user = authService.currentUser;
-    if (user != null) {
-      _nameController.text = user.displayName ?? '';
-      _phoneController.text = user.phoneNumber ?? '';
+    
+    try {
+      // Get user model for profile data
+      final userModel = await authService.getUserModel();
+      final userId = await authService.getResolvedUserId();
+      
+      if (userModel != null && mounted) {
+        _nameController.text = userModel.displayName;
+        _phoneController.text = userModel.phone ?? '';
+      }
+      
+      // Fetch saved addresses
+      final addressesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('addresses')
+          .orderBy('updatedAt', descending: true)
+          .get();
+      
+      if (mounted) {
+        setState(() {
+          _savedAddresses = addressesSnapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          
+          // Auto-select first address if available
+          if (_savedAddresses.isNotEmpty) {
+            _selectAddress(_savedAddresses.first);
+          }
+          
+          _isLoadingProfile = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingProfile = false);
+      }
     }
-    // Ideally fetch saved addresses here
+  }
+
+  void _selectAddress(Map<String, dynamic> address) {
+    setState(() {
+      _selectedAddressId = address['id'];
+      _nameController.text = address['name'] ?? _nameController.text;
+      _phoneController.text = address['phone'] ?? _phoneController.text;
+      _streetController.text = address['address'] ?? '';
+      _cityController.text = address['city'] ?? '';
+      _stateController.text = address['state'] ?? '';
+      _pincodeController.text = address['pincode'] ?? '';
+    });
   }
 
   @override
@@ -54,6 +102,89 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  void _showOrderConfirmation() {
+    if (!_formKey.currentState!.validate()) return;
+    
+    final cart = context.read<CartService>();
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm Order'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You are about to place an order for ${cart.itemCount} item(s).',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total Amount:'),
+                      Text(
+                        '₹${cart.totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Delivering to:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${_nameController.text}\n${_streetController.text}, ${_cityController.text}\n${_stateController.text} - ${_pincodeController.text}',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Payment: Cash on Delivery',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _placeOrder();
+            },
+            child: const Text('Confirm & Place Order'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -63,8 +194,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final cartService = context.read<CartService>();
       final orderService = context.read<OrderService>();
       final authService = context.read<AuthService>();
-      final userId = authService.currentUser?.uid;
+      
+      // Use resolved user ID to handle linked accounts in bypass mode
+      final userId = await authService.getResolvedUserId();
 
+      // getResolvedUserId() throws if not authenticated, but we check anyway
+      // ignore: unnecessary_null_comparison
       if (userId == null) throw Exception('User not logged in');
 
       final address = AddressModel(
@@ -143,6 +278,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingProfile) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Checkout'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Checkout'),
@@ -158,6 +306,101 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Saved Addresses Section
+              if (_savedAddresses.isNotEmpty) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildSectionTitle('Saved Addresses'),
+                    TextButton(
+                      onPressed: () => context.push('/saved-addresses'),
+                      child: const Text('Manage'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _savedAddresses.length,
+                    itemBuilder: (context, index) {
+                      final address = _savedAddresses[index];
+                      final isSelected = _selectedAddressId == address['id'];
+                      return GestureDetector(
+                        onTap: () => _selectAddress(address),
+                        child: Container(
+                          width: 200,
+                          margin: const EdgeInsets.only(right: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? AppTheme.primary.withOpacity(0.1) 
+                                : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected 
+                                  ? AppTheme.primary 
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    address['type'] == 'Home' 
+                                        ? Icons.home 
+                                        : address['type'] == 'Work' 
+                                            ? Icons.work 
+                                            : Icons.location_on,
+                                    size: 16,
+                                    color: isSelected 
+                                        ? AppTheme.primary 
+                                        : Colors.grey,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    address['type'] ?? 'Address',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected 
+                                          ? AppTheme.primary 
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  if (isSelected) ...[
+                                    const Spacer(),
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 16,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                '${address['address']}, ${address['city']}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               _buildSectionTitle('Shipping Address'),
               const SizedBox(height: 16),
 
@@ -268,7 +511,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _placeOrder,
+                  onPressed: _isLoading ? null : _showOrderConfirmation,
                   child:
                       _isLoading
                           ? const CircularProgressIndicator(color: Colors.white)

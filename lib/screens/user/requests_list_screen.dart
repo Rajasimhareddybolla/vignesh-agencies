@@ -112,14 +112,15 @@ class _RequestsListScreenState extends State<RequestsListScreen>
                             (r) =>
                                 r.status == ServiceRequestStatus.pending ||
                                 r.status == ServiceRequestStatus.assigned ||
-                                r.status == ServiceRequestStatus.inProgress,
+                                r.status == ServiceRequestStatus.inProgress ||
+                                r.status == ServiceRequestStatus.resolved,
                           )
                           .toList();
                   final completedRequests =
                       allRequests
                           .where(
                             (r) =>
-                                r.status == ServiceRequestStatus.resolved ||
+                                r.status == ServiceRequestStatus.completed ||
                                 r.status == ServiceRequestStatus.cancelled,
                           )
                           .toList();
@@ -297,8 +298,8 @@ class _PremiumRequestCard extends StatelessWidget {
       glowColor: _getStatusColor(request.status),
       onTap: () {
         HapticFeedback.selectionClick();
-        // Navigate to request detail screen
-        context.push('/admin/request/${request.id}');
+        // Navigate to user request detail screen (read-only view for clients)
+        context.push('/user/request/${request.id}');
       },
       child: Column(
         children: [

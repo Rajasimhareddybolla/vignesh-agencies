@@ -25,6 +25,7 @@ class OrderService {
                   item.product.images.isNotEmpty
                       ? item.product.images.first
                       : '',
+              category: item.product.categoryId, // Include category for appliance registration
               selectedAttributes: item.variation?.attributes ?? {},
               quantity: item.quantity,
               price: item.price,

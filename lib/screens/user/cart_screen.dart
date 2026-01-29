@@ -54,7 +54,7 @@ class CartScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () => context.push('/product-catalog'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,
