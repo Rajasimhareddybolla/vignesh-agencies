@@ -18,7 +18,7 @@ class StorageService {
       if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
         extension = 'jpg';
       }
-      
+
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('bills/$userId/$fileName');
 
@@ -36,6 +36,41 @@ class StorageService {
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       print('Error uploading bill image: $e');
+      return null;
+    }
+  }
+
+  // Upload profile image (User & Admin)
+  Future<String?> uploadProfileImage({
+    required String userId,
+    required XFile imageFile,
+  }) async {
+    try {
+      String extension = imageFile.path.split('.').last.toLowerCase();
+      // Fallback if extension is missing or too long (likely not an extension)
+      if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
+        extension = 'jpg';
+      }
+
+      final fileName = '${_uuid.v4()}.$extension';
+      // Store in profiles/{userId}/{fileName}
+      final ref = _storage.ref().child('profiles/$userId/$fileName');
+
+      final uploadTask = await ref.putFile(
+        File(imageFile.path),
+        SettableMetadata(
+          contentType: 'image/$extension',
+          customMetadata: {
+            'uploadedBy': userId,
+            'uploadedAt': DateTime.now().toIso8601String(),
+            'type': 'profile_picture',
+          },
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      print('Error uploading profile image: $e');
       return null;
     }
   }
@@ -115,7 +150,7 @@ class StorageService {
     required String filePath,
   }) async {
     try {
-       final file = File(filePath);
+      final file = File(filePath);
       if (!await file.exists()) {
         throw Exception('Source audio file does not exist: $filePath');
       }
@@ -139,7 +174,7 @@ class StorageService {
     } catch (e) {
       print('Error uploading audio: $e');
       if (e is FirebaseException) {
-         print('Firebase Exception: ${e.code} - ${e.message}');
+        print('Firebase Exception: ${e.code} - ${e.message}');
       }
       rethrow;
     }

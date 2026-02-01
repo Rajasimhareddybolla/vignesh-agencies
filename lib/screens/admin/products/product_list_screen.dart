@@ -266,6 +266,7 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: CachedNetworkImage(
+              memCacheWidth: 200,
               imageUrl: product.images.isNotEmpty ? product.images.first : '',
               width: 80,
               height: 80,

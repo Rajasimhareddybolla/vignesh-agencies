@@ -35,6 +35,7 @@ import '../screens/admin/products/add_edit_product_screen.dart';
 import '../screens/admin/products/admin_orders_screen.dart';
 import '../screens/admin/marketing_manager_screen.dart';
 import '../screens/admin/add_banner_screen.dart';
+import '../screens/admin/agents_management_screen.dart';
 import '../models/catalog_product_model.dart';
 import '../services/auth_service.dart';
 import '../screens/user/checkout_screen.dart';
@@ -292,6 +293,13 @@ class AppRouter {
             pageBuilder:
                 (context, state) =>
                     const NoTransitionPage(child: AddBannerScreen()),
+          ),
+          GoRoute(
+            path: '/admin/agents',
+            name: 'admin-agents',
+            pageBuilder:
+                (context, state) =>
+                    const NoTransitionPage(child: AgentsManagementScreen()),
           ),
         ],
       ),

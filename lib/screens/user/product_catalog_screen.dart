@@ -58,7 +58,7 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
           // Search & Filter
           Container(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            color: Colors.white,
+            color: Theme.of(context).scaffoldBackgroundColor,
             child: Column(
               children: [
                 // Search
@@ -185,7 +185,7 @@ class _CategoryChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : AppTheme.backgroundLight,
+          color: isSelected ? AppTheme.primary : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow:
               isSelected
@@ -223,9 +223,11 @@ class _CatalogProductCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppTheme.borderLight.withOpacity(0.5)),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primary.withAlpha(10),
@@ -247,20 +249,21 @@ class _CatalogProductCard extends StatelessWidget {
                       top: Radius.circular(20),
                     ),
                     child: CachedNetworkImage(
+                      memCacheWidth: 400,
                       imageUrl:
                           product.images.isNotEmpty ? product.images.first : '',
                       fit: BoxFit.cover,
                       width: double.infinity,
                       placeholder:
                           (context, url) => Container(
-                            color: AppTheme.backgroundLight,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             child: const Center(
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
                           ),
                       errorWidget:
                           (context, url, error) => Container(
-                            color: AppTheme.backgroundLight,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             child: const Icon(
                               Icons.image_not_supported,
                               color: AppTheme.textSecondaryLight,

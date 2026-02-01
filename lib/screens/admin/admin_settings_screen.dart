@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/common/premium_widgets.dart';
+import '../../providers/theme_provider.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -104,10 +105,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                             subtitle: 'Light / Dark / System',
                             iconColor: const Color(0xFF8B5CF6),
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Theme settings coming soon'),
-                                ),
+                              final themeProvider =
+                                  context.read<ThemeProvider>();
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (context) => _ThemeSelectionDialog(
+                                      currentTheme: themeProvider.themeMode,
+                                      onThemeSelected: (mode) {
+                                        themeProvider.setThemeMode(mode);
+                                        Navigator.pop(context);
+                                      },
+                                    ),
                               );
                             },
                           ),
@@ -220,11 +229,18 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: const Color(0xFF1a1a2e),
-                  child: const Icon(
-                    Icons.admin_panel_settings,
-                    color: Colors.white,
-                    size: 36,
-                  ),
+                  backgroundImage:
+                      user?.photoUrl != null
+                          ? NetworkImage(user!.photoUrl!)
+                          : null,
+                  child:
+                      user?.photoUrl == null
+                          ? const Icon(
+                            Icons.admin_panel_settings,
+                            color: Colors.white,
+                            size: 36,
+                          )
+                          : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -307,9 +323,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.borderLight.withAlpha(150)),
+            border: Border.all(
+              color: Theme.of(context).dividerColor.withAlpha(50),
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.primary.withAlpha(8),
@@ -329,7 +347,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                       height: 1,
                       indent: 70,
                       endIndent: 16,
-                      color: AppTheme.borderLight.withAlpha(100),
+                      color: Theme.of(context).dividerColor.withAlpha(50),
                     ),
                 ],
               ],
@@ -465,7 +483,7 @@ class _PremiumMenuItem extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
                       ),
                     ),
                   ],
@@ -547,6 +565,109 @@ class _LogoutConfirmDialog extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeSelectionDialog extends StatelessWidget {
+  final ThemeMode currentTheme;
+  final Function(ThemeMode) onThemeSelected;
+
+  const _ThemeSelectionDialog({
+    required this.currentTheme,
+    required this.onThemeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select Theme',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 24),
+            _buildThemeOption(
+              context,
+              'System Default',
+              ThemeMode.system,
+              Icons.brightness_auto,
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              context,
+              'Light Mode',
+              ThemeMode.light,
+              Icons.light_mode,
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              context,
+              'Dark Mode',
+              ThemeMode.dark,
+              Icons.dark_mode,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    String title,
+    ThemeMode mode,
+    IconData icon,
+  ) {
+    final isSelected = currentTheme == mode;
+    return InkWell(
+      onTap: () => onThemeSelected(mode),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? AppTheme.primary.withAlpha(20) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                isSelected
+                    ? AppTheme.primary
+                    : Theme.of(context).dividerColor.withAlpha(50),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color:
+                  isSelected ? AppTheme.primary : AppTheme.textSecondaryLight,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                color:
+                    isSelected
+                        ? AppTheme.primary
+                        : Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
           ],
         ),
       ),

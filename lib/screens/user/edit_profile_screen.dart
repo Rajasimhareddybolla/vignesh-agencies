@@ -5,6 +5,9 @@ import '../../app/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/storage_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -21,6 +24,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   bool _isLoading = false;
   UserModel? _user;
+  File? _imageFile;
+  final _picker = ImagePicker();
 
   @override
   void initState() {
@@ -48,10 +53,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         setState(() {
           _user = user;
           _nameController.text = user.displayName;
-          _emailController.text = user.email ?? '';
+          _emailController.text = user.email;
           _phoneController.text = user.phone ?? '';
         });
       }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -62,12 +88,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       final firestoreService = context.read<FirestoreService>();
+      final storageService = context.read<StorageService>();
+
+      String? photoUrl;
+
+      if (_imageFile != null) {
+        photoUrl = await storageService.uploadProfileImage(
+          userId: _user!.id,
+          imageFile: XFile(_imageFile!.path),
+        );
+      }
 
       await firestoreService.updateUserProfile(
         userId: _user!.id,
         displayName: _nameController.text.trim(),
         email: _emailController.text.trim(),
+        photoUrl: photoUrl,
       );
+
+      // FORCE REFRESH: If we are in bypass mode (editing a linked account),
+      // the userModelStream (which listens to the proxy user) won't update
+      // because the proxy doc didn't change. We must touch the proxy doc
+      // to trigger the asyncMap and fetch the new linked data.
+      final currentUser = context.read<AuthService>().currentUser;
+      if (currentUser != null && currentUser.uid != _user!.id) {
+        await firestoreService.updateUserProfile(
+          userId: currentUser.uid,
+          displayName:
+              currentUser.displayName ??
+              'User', // No-op change just to touch doc
+          // We just want to trigger an update, actually updating lastLogin via a service method would be cleaner
+          // but reuse existing method for now.
+        );
+        // Or better, just update a timestamp field directly if we had a method
+        // But updateUserProfile updates 'lastLoginAt' internally! So calling it specifically updates the timestamp.
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,42 +178,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Stack(
                   children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          _user?.displayName.isNotEmpty == true
-                              ? _user!.displayName[0].toUpperCase()
-                              : 'U',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.displaySmall?.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          image:
+                              _imageFile != null
+                                  ? DecorationImage(
+                                    image: FileImage(_imageFile!),
+                                    fit: BoxFit.cover,
+                                  )
+                                  : (_user?.photoUrl != null
+                                      ? DecorationImage(
+                                        image: NetworkImage(_user!.photoUrl!),
+                                        fit: BoxFit.cover,
+                                      )
+                                      : null),
                         ),
+                        child:
+                            _imageFile == null && _user?.photoUrl == null
+                                ? Center(
+                                  child: Text(
+                                    _user?.displayName.isNotEmpty == true
+                                        ? _user!.displayName[0].toUpperCase()
+                                        : 'U',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.displaySmall?.copyWith(
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                                : null,
                       ),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 16,
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -217,7 +293,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   hintText: 'Phone number',
                   prefixIcon: const Icon(Icons.phone_outlined),
                   filled: true,
-                  fillColor: AppTheme.backgroundLight,
+                  fillColor:
+                      Theme.of(context).brightness == Brightness.light
+                          ? Colors.grey.shade200
+                          : Colors.white.withOpacity(0.05),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor.withOpacity(0.1),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).dividerColor.withOpacity(0.1),
+                    ),
+                  ),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.lock_outline, size: 20),
                     onPressed: () {

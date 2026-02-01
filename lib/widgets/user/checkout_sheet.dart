@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../models/catalog_product_model.dart';
 import '../../models/order_model.dart'; // For AddressModel and OrderModel
@@ -26,7 +27,7 @@ class CheckoutSheet extends StatefulWidget {
 
 class _CheckoutSheetState extends State<CheckoutSheet> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Form Controllers
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -68,7 +69,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
 
   Future<void> _placeOrder() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
 
     try {
@@ -94,11 +95,14 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         productId: widget.product.id,
         variationId: widget.selectedVariation?.id,
         productName: widget.product.name,
-        productImage: widget.product.images.isNotEmpty ? widget.product.images.first : '',
+        productImage:
+            widget.product.images.isNotEmpty ? widget.product.images.first : '',
         selectedAttributes: widget.selectedVariation?.attributes ?? {},
         quantity: 1, // Simple quantity for now
         price: widget.price,
-        warrantyMonths: widget.selectedVariation?.warrantyMonths ?? widget.product.warrantyMonths,
+        warrantyMonths:
+            widget.selectedVariation?.warrantyMonths ??
+            widget.product.warrantyMonths,
       );
 
       final order = OrderModel(
@@ -118,9 +122,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         _showSuccessDialog(context, orderId);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error placing order: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error placing order: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -130,50 +134,62 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.success.withAlpha(20),
-                shape: BoxShape.circle,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withAlpha(20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: AppTheme.success,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Order Placed!',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Order ID: ${orderId.substring(orderId.length - 6).toUpperCase()}',
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Your order has been placed successfully.\nYou can track it in the Requests tab.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.textSecondaryLight),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  context.pop(); // Close dialog
+                  context.go('/home'); // Go home
+                },
+                child: const Text('Back to Home'),
               ),
-              child: const Icon(Icons.check_circle, color: AppTheme.success, size: 48),
-            ),
-            const SizedBox(height: 16),
-            Text('Order Placed!', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text('Order ID: ${orderId.substring(orderId.length - 6).toUpperCase()}'),
-            const SizedBox(height: 16),
-            const Text(
-              'Your order has been placed successfully.\nYou can track it in the Requests tab.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondaryLight),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-               context.pop(); // Close dialog
-               context.go('/home'); // Go home
-            },
-            child: const Text('Back to Home'),
+              ElevatedButton(
+                onPressed: () {
+                  context.pop();
+                  // context.push('/orders'); // TODO: Create user orders screen if separate from requests
+                  // For now simpler to go home
+                  context.go('/home');
+                },
+                child: const Text('View Orders'),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.pop();
-              // context.push('/orders'); // TODO: Create user orders screen if separate from requests
-              // For now simpler to go home
-              context.go('/home'); 
-            },
-            child: const Text('View Orders'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -184,8 +200,15 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        20,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -193,14 +216,23 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
           // Handle
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: AppTheme.borderLight, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.borderLight,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 20),
-          Text('Checkout', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            'Checkout',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 20),
-          
+
           Flexible(
             child: SingleChildScrollView(
               child: Form(
@@ -218,19 +250,44 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       child: Row(
                         children: [
                           if (widget.product.images.isNotEmpty)
-                             ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.product.images.first, width: 60, height: 60, fit: BoxFit.cover)),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: widget.product.images.first,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 200,
+                              ),
+                            ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(widget.product.name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1),
+                                Text(
+                                  widget.product.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                ),
                                 if (widget.selectedVariation != null)
                                   Text(
-                                    widget.selectedVariation!.attributes.values.join(', '),
-                                    style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryLight),
+                                    widget.selectedVariation!.attributes.values
+                                        .join(', '),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.textSecondaryLight,
+                                    ),
                                   ),
-                                Text('₹${widget.price.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                                Text(
+                                  '₹${widget.price.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -238,49 +295,77 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
+
                     // Shipping Address Form
-                    Text('Shipping Address', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Shipping Address',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline)),
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
                       validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone_outlined)),
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
                       validator: (v) => v!.length < 10 ? 'Invalid Phone' : null,
                     ),
-                     const SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: _streetController,
-                      decoration: const InputDecoration(labelText: 'Street / Area', prefixIcon: Icon(Icons.home_outlined)),
+                      decoration: const InputDecoration(
+                        labelText: 'Street / Area',
+                        prefixIcon: Icon(Icons.home_outlined),
+                      ),
                       validator: (v) => v!.isEmpty ? 'Required' : null,
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: TextFormField(
-                           controller: _cityController,
-                           decoration: const InputDecoration(labelText: 'City'),
-                           validator: (v) => v!.isEmpty ? 'Required' : null,
-                        )),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cityController,
+                            decoration: const InputDecoration(
+                              labelText: 'City',
+                            ),
+                            validator: (v) => v!.isEmpty ? 'Required' : null,
+                          ),
+                        ),
                         const SizedBox(width: 12),
-                        Expanded(child: TextFormField(
-                           controller: _pincodeController,
-                           keyboardType: TextInputType.number,
-                           decoration: const InputDecoration(labelText: 'Pincode'),
-                           validator: (v) => v!.length != 6 ? 'Invalid PIN' : null,
-                        )),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _pincodeController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Pincode',
+                            ),
+                            validator:
+                                (v) => v!.length != 6 ? 'Invalid PIN' : null,
+                          ),
+                        ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 24),
                     // Payment Method
-                    Text('Payment Method', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                    Text(
+                      'Payment Method',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -293,7 +378,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                         children: [
                           Icon(Icons.money, color: AppTheme.primary),
                           SizedBox(width: 12),
-                          Text('Cash on Delivery', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                          Text(
+                            'Cash on Delivery',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                            ),
+                          ),
                           Spacer(),
                           Icon(Icons.check_circle, color: AppTheme.primary),
                         ],
@@ -305,7 +396,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               ),
             ),
           ),
-          
+
           ElevatedButton(
             onPressed: _isLoading ? null : _placeOrder,
             style: ElevatedButton.styleFrom(
@@ -313,16 +404,27 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            child: _isLoading 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Confirm Order'),
-                    const SizedBox(width: 8),
-                    Text('• ₹${widget.price.toStringAsFixed(0)}', style: TextStyle(color: Colors.white.withAlpha(200))),
-                  ],
-                ),
+            child:
+                _isLoading
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Confirm Order'),
+                        const SizedBox(width: 8),
+                        Text(
+                          '• ₹${widget.price.toStringAsFixed(0)}',
+                          style: TextStyle(color: Colors.white.withAlpha(200)),
+                        ),
+                      ],
+                    ),
           ),
         ],
       ),

@@ -38,7 +38,7 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(30),
                 ),
@@ -68,13 +68,15 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
                       height: 120,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                         border: Border.all(
                           color:
                               _selectedImage != null
                                   ? AppTheme.primary
-                                  : AppTheme.borderLight,
+                                  : Theme.of(
+                                    context,
+                                  ).dividerColor.withAlpha(50),
                           width: 2,
                           style:
                               _selectedImage != null
@@ -265,7 +267,7 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
   Widget _buildLivePreview(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: AppTheme.backgroundLight,
+      color: Theme.of(context).scaffoldBackgroundColor,
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
       child: Column(
         children: [
@@ -316,7 +318,7 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
             width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: Colors.white,
+              color: Theme.of(context).cardColor,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),

@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'services/push_notification_service.dart'; // Add import
 import 'services/cart_service.dart';
 import 'services/order_service.dart';
+import 'providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,14 +43,19 @@ class VigneshAgenciesApp extends StatelessWidget {
         ),
         Provider<OrderService>(create: (_) => OrderService()),
         ChangeNotifierProvider<CartService>(create: (_) => CartService()),
+        ChangeNotifierProvider<ThemeProvider>(create: (_) => ThemeProvider()),
       ],
-      child: MaterialApp.router(
-        title: 'Vignesh Agencies',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        routerConfig: AppRouter.router,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp.router(
+            title: 'Vignesh Agencies',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            routerConfig: AppRouter.router,
+          );
+        },
       ),
     );
   }

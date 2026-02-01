@@ -94,7 +94,7 @@ class CartScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
@@ -160,9 +160,9 @@ class _CartItemTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
         boxShadow: AppTheme.cardShadow,
       ),
       child: Row(

@@ -6,9 +6,18 @@ import '../models/user_model.dart';
 import '../models/catalog_product_model.dart';
 import '../models/order_model.dart';
 import '../models/marketing_banner_model.dart';
+import '../models/support_message_model.dart';
+import '../models/agent_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // ============== SUPPORT MESSAGES ==============
+
+  // Send a support message
+  Future<void> sendSupportMessage(SupportMessageModel message) async {
+    await _firestore.collection('support_messages').add(message.toFirestore());
+  }
 
   // Get user by ID
   Future<UserModel?> getUser(String userId) async {
@@ -221,6 +230,8 @@ class FirestoreService {
     required ServiceRequestStatus status,
     String? assignedProvider,
     String? technicianName,
+    String? technicianPhone,
+    String? technicianAddress,
     String? resolutionNotes,
   }) async {
     final updates = <String, dynamic>{'status': status.firestoreValue};
@@ -228,6 +239,9 @@ class FirestoreService {
     if (assignedProvider != null)
       updates['assignedProvider'] = assignedProvider;
     if (technicianName != null) updates['technicianName'] = technicianName;
+    if (technicianPhone != null) updates['technicianPhone'] = technicianPhone;
+    if (technicianAddress != null)
+      updates['technicianAddress'] = technicianAddress;
     if (resolutionNotes != null) updates['resolutionNotes'] = resolutionNotes;
 
     if (status == ServiceRequestStatus.assigned) {
@@ -279,7 +293,9 @@ class FirestoreService {
         .collection('service_requests')
         .doc(requestId)
         .snapshots()
-        .map((doc) => doc.exists ? ServiceRequestModel.fromFirestore(doc) : null);
+        .map(
+          (doc) => doc.exists ? ServiceRequestModel.fromFirestore(doc) : null,
+        );
   }
 
   // Get pending service requests count
@@ -434,6 +450,7 @@ class FirestoreService {
     required String userId,
     required String displayName,
     String? email,
+    String? photoUrl,
   }) async {
     final updates = <String, dynamic>{
       'displayName': displayName,
@@ -441,6 +458,9 @@ class FirestoreService {
     };
     if (email != null && email.isNotEmpty) {
       updates['email'] = email;
+    }
+    if (photoUrl != null) {
+      updates['photoUrl'] = photoUrl;
     }
     await _firestore.collection('users').doc(userId).update(updates);
   }
@@ -761,15 +781,19 @@ class FirestoreService {
   }
 
   /// Process referral commission when an order is delivered (for online purchases)
-  Future<void> _processReferralForOrderDelivery(String userId, double orderAmount) async {
+  Future<void> _processReferralForOrderDelivery(
+    String userId,
+    double orderAmount,
+  ) async {
     try {
       // Find pending referral for this user (where they are the referee)
-      final referralsQuery = await _firestore
-          .collection('referrals')
-          .where('refereeId', isEqualTo: userId)
-          .where('status', isEqualTo: 'pending')
-          .limit(1)
-          .get();
+      final referralsQuery =
+          await _firestore
+              .collection('referrals')
+              .where('refereeId', isEqualTo: userId)
+              .where('status', isEqualTo: 'pending')
+              .limit(1)
+              .get();
 
       if (referralsQuery.docs.isNotEmpty) {
         final referralDoc = referralsQuery.docs.first;
@@ -791,12 +815,84 @@ class FirestoreService {
             'pendingPayout': FieldValue.increment(commission),
           });
         }
-        
-        print('Referral commission processed for order delivery: User $userId, Referrer $referrerId');
+
+        print(
+          'Referral commission processed for order delivery: User $userId, Referrer $referrerId',
+        );
       }
     } catch (e) {
       print('Error processing referral for order delivery: $e');
       // Non-blocking error - don't fail the order delivery
     }
+  }
+
+  // ============== AGENTS ==============
+
+  // Get all active agents
+  Stream<List<AgentModel>> getActiveAgents() {
+    return _firestore
+        .collection('agents')
+        .where('isActive', isEqualTo: true)
+        .orderBy('name')
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => AgentModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  // Get all agents (admin)
+  Stream<List<AgentModel>> getAllAgents() {
+    return _firestore
+        .collection('agents')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => AgentModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  // Add a new agent
+  Future<String> addAgent(AgentModel agent) async {
+    final docRef = await _firestore
+        .collection('agents')
+        .add(agent.toFirestore());
+    return docRef.id;
+  }
+
+  // Update an agent
+  Future<void> updateAgent(AgentModel agent) async {
+    await _firestore
+        .collection('agents')
+        .doc(agent.id)
+        .update(agent.toFirestore());
+  }
+
+  // Delete an agent
+  Future<void> deleteAgent(String agentId) async {
+    await _firestore.collection('agents').doc(agentId).delete();
+  }
+
+  // Toggle agent active status
+  Future<void> toggleAgentStatus(String agentId, bool isActive) async {
+    await _firestore.collection('agents').doc(agentId).update({
+      'isActive': isActive,
+    });
+  }
+
+  // Update agent's last assigned timestamp
+  Future<void> updateAgentLastAssigned(String agentId) async {
+    await _firestore.collection('agents').doc(agentId).update({
+      'lastAssignedAt': Timestamp.now(),
+    });
+  }
+
+  // Get single agent
+  Future<AgentModel?> getAgent(String agentId) async {
+    final doc = await _firestore.collection('agents').doc(agentId).get();
+    return doc.exists ? AgentModel.fromFirestore(doc) : null;
   }
 }

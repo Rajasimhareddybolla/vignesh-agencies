@@ -94,6 +94,7 @@ class _MarketingSliderState extends State<MarketingSlider> {
                                         imageUrl: banner.imageUrl,
                                         fit: BoxFit.cover,
                                         width: double.infinity,
+                                        memCacheWidth: 800,
                                         placeholder:
                                             (context, url) => _buildShimmer(),
                                         errorWidget:

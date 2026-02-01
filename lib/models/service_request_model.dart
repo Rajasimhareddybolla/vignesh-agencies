@@ -71,10 +71,7 @@ extension ServiceRequestStatusExtension on ServiceRequestStatus {
   }
 }
 
-enum ServicePriority {
-  normal,
-  urgent,
-}
+enum ServicePriority { normal, urgent }
 
 extension ServicePriorityExtension on ServicePriority {
   String get displayName {
@@ -100,16 +97,18 @@ class ServiceRequestModel {
   final ServicePriority priority;
   final String? assignedProvider;
   final String? technicianName;
+  final String? technicianPhone;
+  final String? technicianAddress;
   final String? resolutionNotes;
   final DateTime createdAt;
   final DateTime? assignedAt;
   final DateTime? resolvedAt;
-  
+
   // Customer details (denormalized for quick access)
   final String? customerName;
   final String? customerPhone;
   final String? customerAddress;
-  
+
   // Product details (denormalized)
   final String? productName;
   final String? productModel;
@@ -127,6 +126,8 @@ class ServiceRequestModel {
     this.priority = ServicePriority.normal,
     this.assignedProvider,
     this.technicianName,
+    this.technicianPhone,
+    this.technicianAddress,
     this.resolutionNotes,
     required this.createdAt,
     this.assignedAt,
@@ -140,20 +141,21 @@ class ServiceRequestModel {
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     print('DEBUG MODEL: Raw Firestore data for ${doc.id}:');
     print('DEBUG MODEL:   evidenceImages raw: ${data['evidenceImages']}');
-    print('DEBUG MODEL:   evidenceImages type: ${data['evidenceImages']?.runtimeType}');
+    print(
+      'DEBUG MODEL:   evidenceImages type: ${data['evidenceImages']?.runtimeType}',
+    );
     print('DEBUG MODEL:   audioRecordingUrl raw: ${data['audioRecordingUrl']}');
-    
+
     // Safety check for evidenceImages
     List<String> images = [];
     if (data['evidenceImages'] is List) {
-      images = (data['evidenceImages'] as List)
-          .map((e) => e.toString())
-          .toList();
+      images =
+          (data['evidenceImages'] as List).map((e) => e.toString()).toList();
     }
-    
+
     print('DEBUG MODEL:   Parsed images: $images');
 
     return ServiceRequestModel(
@@ -165,20 +167,30 @@ class ServiceRequestModel {
       description: data['description']?.toString() ?? '',
       evidenceImages: images,
       audioRecordingUrl: data['audioRecordingUrl']?.toString(),
-      status: ServiceRequestStatusExtension.fromString(data['status']?.toString() ?? 'pending'),
-      priority: data['priority'] == 'urgent' ? ServicePriority.urgent : ServicePriority.normal,
+      status: ServiceRequestStatusExtension.fromString(
+        data['status']?.toString() ?? 'pending',
+      ),
+      priority:
+          data['priority'] == 'urgent'
+              ? ServicePriority.urgent
+              : ServicePriority.normal,
       assignedProvider: data['assignedProvider']?.toString(),
       technicianName: data['technicianName']?.toString(),
+      technicianPhone: data['technicianPhone']?.toString(),
+      technicianAddress: data['technicianAddress']?.toString(),
       resolutionNotes: data['resolutionNotes']?.toString(),
-      createdAt: (data['createdAt'] is Timestamp) 
-          ? (data['createdAt'] as Timestamp).toDate() 
-          : DateTime.now(),
-      assignedAt: (data['assignedAt'] is Timestamp) 
-          ? (data['assignedAt'] as Timestamp).toDate() 
-          : null,
-      resolvedAt: (data['resolvedAt'] is Timestamp) 
-          ? (data['resolvedAt'] as Timestamp).toDate() 
-          : null,
+      createdAt:
+          (data['createdAt'] is Timestamp)
+              ? (data['createdAt'] as Timestamp).toDate()
+              : DateTime.now(),
+      assignedAt:
+          (data['assignedAt'] is Timestamp)
+              ? (data['assignedAt'] as Timestamp).toDate()
+              : null,
+      resolvedAt:
+          (data['resolvedAt'] is Timestamp)
+              ? (data['resolvedAt'] as Timestamp).toDate()
+              : null,
       customerName: data['customerName']?.toString(),
       customerPhone: data['customerPhone']?.toString(),
       customerAddress: data['customerAddress']?.toString(),
@@ -200,6 +212,8 @@ class ServiceRequestModel {
       'priority': priority == ServicePriority.urgent ? 'urgent' : 'normal',
       'assignedProvider': assignedProvider,
       'technicianName': technicianName,
+      'technicianPhone': technicianPhone,
+      'technicianAddress': technicianAddress,
       'resolutionNotes': resolutionNotes,
       'createdAt': Timestamp.fromDate(createdAt),
       'assignedAt': assignedAt != null ? Timestamp.fromDate(assignedAt!) : null,
@@ -221,6 +235,8 @@ class ServiceRequestModel {
     ServicePriority? priority,
     String? assignedProvider,
     String? technicianName,
+    String? technicianPhone,
+    String? technicianAddress,
     String? resolutionNotes,
     DateTime? assignedAt,
     DateTime? resolvedAt,
@@ -243,6 +259,8 @@ class ServiceRequestModel {
       priority: priority ?? this.priority,
       assignedProvider: assignedProvider ?? this.assignedProvider,
       technicianName: technicianName ?? this.technicianName,
+      technicianPhone: technicianPhone ?? this.technicianPhone,
+      technicianAddress: technicianAddress ?? this.technicianAddress,
       resolutionNotes: resolutionNotes ?? this.resolutionNotes,
       createdAt: createdAt,
       assignedAt: assignedAt ?? this.assignedAt,

@@ -492,6 +492,16 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
               context.goNamed('admin-orders');
             },
           ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.engineering,
+            label: 'Agent\\nManagement',
+            color: const Color(0xFF10B981),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-agents');
+            },
+          ),
         ],
       ),
     );
@@ -503,9 +513,11 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
         ),
         child: Column(
           children: [
@@ -532,7 +544,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
             Text(
               'Activity will appear here as users interact',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: Theme.of(context).textTheme.bodySmall?.color,
               ),
             ),
           ],
@@ -550,7 +562,7 @@ class _AdminAvatar extends StatelessWidget {
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       elevation: 8,
       itemBuilder:
           (context) => [
@@ -701,9 +713,11 @@ class _PremiumStatCardState extends State<_PremiumStatCard>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withAlpha(50),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: widget.color.withAlpha(
@@ -753,7 +767,7 @@ class _PremiumStatCardState extends State<_PremiumStatCard>
                   Text(
                     widget.title,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                 ],
@@ -787,9 +801,11 @@ class _PremiumQuickAction extends StatelessWidget {
         width: 100,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
         ),
         child: Column(
           children: [
@@ -831,9 +847,9 @@ class _PremiumActivityCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(8),
@@ -877,7 +893,7 @@ class _PremiumActivityCard extends StatelessWidget {
                 Text(
                   activity['description'] ?? '',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
               ],

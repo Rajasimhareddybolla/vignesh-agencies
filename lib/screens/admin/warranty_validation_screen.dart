@@ -85,10 +85,10 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
                         index: index,
                         child: _PremiumValidationCard(
                           product: products[index],
-                          onApprove: () =>
-                              _approveProduct(context, products[index]),
-                          onReject: () =>
-                              _showRejectDialog(context, products[index]),
+                          onApprove:
+                              () => _approveProduct(context, products[index]),
+                          onReject:
+                              () => _showRejectDialog(context, products[index]),
                         ),
                       ),
                       childCount: products.length,
@@ -111,9 +111,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
         20,
         24,
       ),
-      decoration: BoxDecoration(
-        gradient: AppTheme.adminGradient,
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.adminGradient),
       child: Stack(
         children: [
           Positioned(
@@ -235,13 +233,14 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
     // Show confirmation
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => _PremiumConfirmDialog(
-        title: 'Approve Registration',
-        message: 'Approve "${product.productName}" registration?',
-        confirmText: 'Approve',
-        confirmColor: AppTheme.success,
-        icon: Icons.check_circle,
-      ),
+      builder:
+          (context) => _PremiumConfirmDialog(
+            title: 'Approve Registration',
+            message: 'Approve "${product.productName}" registration?',
+            confirmText: 'Approve',
+            confirmColor: AppTheme.success,
+            icon: Icons.check_circle,
+          ),
     );
 
     if (confirm != true) return;
@@ -282,107 +281,108 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          MediaQuery.of(context).viewInsets.bottom + 20,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.borderLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              20,
+              20,
+              MediaQuery.of(context).viewInsets.bottom + 20,
             ),
-            const SizedBox(height: 20),
-            Row(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.errorLight,
-                    borderRadius: BorderRadius.circular(12),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.borderLight,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                  child: const Icon(Icons.cancel, color: AppTheme.error),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.errorLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.cancel, color: AppTheme.error),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Reject Registration',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 Text(
-                  'Reject Registration',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  'Please provide a reason for rejection:',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Please provide a reason for rejection:',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Enter rejection reason...',
-                filled: true,
-                fillColor: AppTheme.backgroundLight,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.error,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Reject',
-                      style: TextStyle(color: Colors.white),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Enter rejection reason...',
+                    filled: true,
+                    fillColor: AppTheme.backgroundLight,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.error,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Reject',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
 
     if (confirmed != true) return;
@@ -396,9 +396,10 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
       productId: product.id,
       status: ProductStatus.rejected,
       validatedBy: authService.currentUser?.uid,
-      rejectionReason: reasonController.text.isNotEmpty
-          ? reasonController.text
-          : 'Invalid documentation',
+      rejectionReason:
+          reasonController.text.isNotEmpty
+              ? reasonController.text
+              : 'Invalid documentation',
     );
 
     if (!context.mounted) return;
@@ -444,14 +445,15 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
         boxShadow: [
           BoxShadow(
-            color: _expanded
-                ? AppTheme.primary.withAlpha(20)
-                : Colors.black.withAlpha(8),
+            color:
+                _expanded
+                    ? AppTheme.primary.withAlpha(20)
+                    : Colors.black.withAlpha(8),
             blurRadius: _expanded ? 25 : 12,
             offset: const Offset(0, 4),
           ),
@@ -485,16 +487,19 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.asset(
-                        UserApplianceModel.getProductImage(widget.product.category),
+                        UserApplianceModel.getProductImage(
+                          widget.product.category,
+                        ),
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 60,
-                          height: 60,
-                          color: AppTheme.backgroundLight,
-                          child: const Icon(Icons.devices),
-                        ),
+                        errorBuilder:
+                            (_, __, ___) => Container(
+                              width: 60,
+                              height: 60,
+                              color: AppTheme.backgroundLight,
+                              child: const Icon(Icons.devices),
+                            ),
                       ),
                     ),
                   ),
@@ -527,12 +532,14 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                               DateFormat(
                                 'MMM d, yyyy',
                               ).format(widget.product.createdAt),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: AppTheme.textSecondaryLight
-                                        .withAlpha(150),
-                                    fontSize: 11,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondaryLight.withAlpha(
+                                  150,
+                                ),
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
@@ -545,7 +552,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
@@ -564,9 +571,10 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
             secondChild: _buildExpandedContent(context),
-            crossFadeState: _expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+            crossFadeState:
+                _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
             duration: const Duration(milliseconds: 200),
           ),
         ],
@@ -587,7 +595,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundLight,
+                  color: Theme.of(context).scaffoldBackgroundColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -643,22 +651,26 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      height: 180,
-                      decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.broken_image, size: 48),
-                    ),
+                    placeholder:
+                        (context, url) => Container(
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                    errorWidget:
+                        (context, url, error) => Container(
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppTheme.backgroundLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.broken_image, size: 48),
+                        ),
                   ),
                 ),
               ],
@@ -723,13 +735,17 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppTheme.textSecondaryLight),
+        Icon(
+          icon,
+          size: 16,
+          color: Theme.of(context).iconTheme.color?.withOpacity(0.7),
+        ),
         const SizedBox(width: 10),
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryLight),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
         ),
         const Spacer(),
         Text(

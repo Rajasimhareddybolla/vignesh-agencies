@@ -1,8 +1,10 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../app/theme.dart';
@@ -210,6 +212,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  void _scanBarcode() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => _BarcodeScannerModal(
+            onDetect: (capture) {
+              final List<Barcode> barcodes = capture.barcodes;
+              if (barcodes.isNotEmpty) {
+                final String? code = barcodes.first.rawValue;
+                if (code != null) {
+                  setState(() {
+                    _modelController.text = code;
+                  });
+                  Navigator.pop(context); // Close modal
+                  HapticFeedback.mediumImpact();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Scanned: $code'),
+                      backgroundColor: AppTheme.success,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,14 +326,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   prefixIcon: const Icon(Icons.qr_code),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.qr_code_scanner),
-                    onPressed: () {
-                      // TODO: Implement barcode scanner
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Barcode scanner coming soon!'),
-                        ),
-                      );
-                    },
+                    onPressed: _scanBarcode,
                   ),
                 ),
                 validator: (value) {
@@ -327,9 +353,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    border: Border.all(color: AppTheme.borderLight),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withAlpha(50),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -375,10 +403,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 child: Container(
                   height: 180,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                     border: Border.all(
-                      color: AppTheme.borderLight,
+                      color: Theme.of(context).dividerColor.withAlpha(50),
                       style:
                           _billImage == null
                               ? BorderStyle.solid
@@ -609,6 +637,133 @@ class _ImageSourceOption extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(label, style: Theme.of(context).textTheme.labelLarge),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarcodeScannerModal extends StatefulWidget {
+  final Function(BarcodeCapture) onDetect;
+
+  const _BarcodeScannerModal({required this.onDetect});
+
+  @override
+  State<_BarcodeScannerModal> createState() => _BarcodeScannerModalState();
+}
+
+class _BarcodeScannerModalState extends State<_BarcodeScannerModal> {
+  final MobileScannerController controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.7,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        children: [
+          // Handle & Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Scan Barcode',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Scanner
+          Expanded(
+            child: Stack(
+              children: [
+                MobileScanner(
+                  controller: controller,
+                  onDetect: widget.onDetect,
+                ),
+                // Overlay
+                Center(
+                  child: Container(
+                    width: 280,
+                    height: 150,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppTheme.primary, width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                // Flash Toggle
+                Positioned(
+                  bottom: 30,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ValueListenableBuilder(
+                      valueListenable: controller,
+                      builder: (context, state, child) {
+                        final isExternalFlashOn =
+                            state.torchState == TorchState.on;
+                        return IconButton(
+                          onPressed: () => controller.toggleTorch(),
+                          icon: Icon(
+                            isExternalFlashOn
+                                ? Icons.flash_on
+                                : Icons.flash_off,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.black45,
+                            padding: const EdgeInsets.all(12),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

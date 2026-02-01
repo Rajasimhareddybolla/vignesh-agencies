@@ -39,8 +39,14 @@ service firebase.storage {
       allow write: if isAuthenticated() && isValidAudioSize();
     }
     
-    // Product images (if any)
-    match /products/{productId}/{allPaths=**} {
+    // Profile images
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize();
+    }
+
+    // Product images (nested components)
+    match /products/{allPaths=**} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidImageSize();
     }

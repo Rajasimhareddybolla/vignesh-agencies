@@ -189,10 +189,13 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : Colors.white,
+            color: isSelected ? AppTheme.primary : Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppTheme.radiusFull),
             border: Border.all(
-              color: isSelected ? AppTheme.primary : AppTheme.borderLight,
+              color:
+                  isSelected
+                      ? AppTheme.primary
+                      : Theme.of(context).dividerColor.withAlpha(50),
             ),
           ),
           child: Text(
@@ -222,9 +225,11 @@ class _RequestRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
           boxShadow: AppTheme.cardShadow,
         ),
         child: Row(
@@ -293,7 +298,7 @@ class _RequestRow extends StatelessWidget {
                   Text(
                     request.issueType,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
                     ),
                   ),
                   // Media Attachments Indicator
@@ -386,7 +391,7 @@ class _RequestRow extends StatelessWidget {
                 Text(
                   DateFormat('MMM d, h:mm a').format(request.createdAt),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                     fontSize: 11,
                   ),
                 ),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:intl/intl.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
@@ -143,7 +145,8 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       if (_product!.userId != userId) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'You can only raise service requests for your own products.';
+          _errorMessage =
+              'You can only raise service requests for your own products.';
         });
         return;
       }
@@ -157,7 +160,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       print('DEBUG: Starting submission - requestId: $requestId');
       print('DEBUG: Evidence images count: ${_evidenceImages.length}');
       print('DEBUG: Audio path: $_audioPath');
-      
+
       if (_evidenceImages.isNotEmpty) {
         try {
           imageUrls = await storageService.uploadMultipleImages(
@@ -196,7 +199,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       print('DEBUG: Creating ServiceRequestModel with:');
       print('DEBUG:   evidenceImages: $imageUrls');
       print('DEBUG:   audioRecordingUrl: $audioUrl');
-      
+
       try {
         final request = ServiceRequestModel(
           id: '',
@@ -215,7 +218,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
           productName: _product?.productName,
           productModel: _product?.modelNumber,
         );
-        
+
         print('DEBUG: Request toFirestore: ${request.toFirestore()}');
 
         final docId = await firestoreService.createServiceRequest(request);
@@ -225,20 +228,23 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
           // Show appropriate message based on upload status
           String message = 'Service request submitted successfully!';
           Color bgColor = AppTheme.success;
-          
+
           if (imageUploadFailed || audioUploadFailed) {
             final failures = <String>[];
             if (imageUploadFailed) failures.add('images');
             if (audioUploadFailed) failures.add('audio');
-            message = 'Request submitted, but ${failures.join(' and ')} could not be uploaded. Please check Firebase Storage configuration.';
+            message =
+                'Request submitted, but ${failures.join(' and ')} could not be uploaded. Please check Firebase Storage configuration.';
             bgColor = Colors.orange;
           }
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(message),
               backgroundColor: bgColor,
-              duration: Duration(seconds: imageUploadFailed || audioUploadFailed ? 5 : 3),
+              duration: Duration(
+                seconds: imageUploadFailed || audioUploadFailed ? 5 : 3,
+              ),
             ),
           );
           context.pop();
@@ -369,246 +375,552 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         ),
                       ),
 
-                    const SizedBox(height: 24),
+                      // Warranty Details (Always Show)
+                      const SizedBox(height: 24),
+                      _buildWarrantyDetails(context),
 
-                    // Issue Type Dropdown
-                    Text(
-                      'What seems to be the issue?',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _selectedIssueType,
-                      decoration: const InputDecoration(
-                        hintText: 'Select an issue type',
-                        prefixIcon: Icon(Icons.report_problem_outlined),
-                      ),
-                      items: ServiceRequestModel.issueTypes.map((issue) {
-                        return DropdownMenuItem(
-                          value: issue,
-                          child: Text(issue),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() => _selectedIssueType = value);
-                      },
-                    ),
+                      const SizedBox(height: 24),
 
-                    const SizedBox(height: 24),
-
-                    // Description
-                    Text(
-                      'Tell us more about the problem',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      // Issue Type Dropdown
+                      Text(
+                        'What seems to be the issue?',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _descriptionController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        hintText:
-                            'Type your problem here... (e.g. The inverter is beeping continuously)',
-                        alignLabelWithHint: true,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please describe the issue';
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Evidence Section
-                    Text(
-                      'Add Evidence (Optional)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        // Take Photo Button
-                        Expanded(
-                          child: _EvidenceButton(
-                            icon: Icons.camera_alt,
-                            label: 'Take Photo',
-                            badge: _evidenceImages.isNotEmpty
-                                ? _evidenceImages.length.toString()
-                                : null,
-                            onTap: _pickImage,
-                          ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _selectedIssueType,
+                        decoration: const InputDecoration(
+                          hintText: 'Select an issue type',
+                          prefixIcon: Icon(Icons.report_problem_outlined),
                         ),
-                        const SizedBox(width: 16),
-                        // Record Audio Button
-                        Expanded(
-                          child: _EvidenceButton(
-                            icon: _isRecording ? Icons.stop : Icons.mic,
-                            label: _isRecording
-                                ? 'Stop Recording'
-                                : (_audioPath != null
-                                      ? 'Re-record'
-                                      : 'Record Audio'),
-                            isActive: _isRecording,
-                            badge: _audioPath != null && !_isRecording
-                                ? '✓'
-                                : null,
-                            onTap: _toggleRecording,
+                        items:
+                            ServiceRequestModel.issueTypes.map((issue) {
+                              return DropdownMenuItem(
+                                value: issue,
+                                child: Text(issue),
+                              );
+                            }).toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedIssueType = value);
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Description
+                      Text(
+                        'Tell us more about the problem',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Type your problem here... (e.g. The inverter is beeping continuously)',
+                          alignLabelWithHint: true,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please describe the issue';
+                          }
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Evidence Section
+                      Text(
+                        'Add Evidence (Optional)',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          // Take Photo Button
+                          Expanded(
+                            child: _EvidenceButton(
+                              icon: Icons.camera_alt,
+                              label: 'Take Photo',
+                              badge:
+                                  _evidenceImages.isNotEmpty
+                                      ? _evidenceImages.length.toString()
+                                      : null,
+                              onTap: _pickImage,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Record Audio Button
+                          Expanded(
+                            child: _EvidenceButton(
+                              icon: _isRecording ? Icons.stop : Icons.mic,
+                              label:
+                                  _isRecording
+                                      ? 'Stop Recording'
+                                      : (_audioPath != null
+                                          ? 'Re-record'
+                                          : 'Record Audio'),
+                              isActive: _isRecording,
+                              badge:
+                                  _audioPath != null && !_isRecording
+                                      ? '✓'
+                                      : null,
+                              onTap: _toggleRecording,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Image Previews
+                      if (_evidenceImages.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 80,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _evidenceImages.length,
+                            itemBuilder: (context, index) {
+                              return Container(
+                                width: 80,
+                                margin: const EdgeInsets.only(right: 8),
+                                child: Stack(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(
+                                        File(_evidenceImages[index].path),
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _evidenceImages.removeAt(index);
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
-                    ),
 
-                    // Image Previews
-                    if (_evidenceImages.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      // Audio Recording Indicator
+                      if (_audioPath != null && !_isRecording) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.successLight,
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusSm,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.audiotrack,
+                                color: AppTheme.success,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text('Audio recording attached'),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() => _audioPath = null);
+                                },
+                                child: const Icon(Icons.close, size: 20),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorLight,
+                            borderRadius: BorderRadius.circular(
+                              AppTheme.radiusSm,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: AppTheme.error,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: AppTheme.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
+                      const SizedBox(height: 32),
+
+                      // Submit Button
                       SizedBox(
-                        height: 80,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _evidenceImages.length,
-                          itemBuilder: (context, index) {
-                            return Container(
-                              width: 80,
-                              margin: const EdgeInsets.only(right: 8),
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _submitRequest,
+                          child:
+                              _isLoading
+                                  ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                  : const Text('Submit Complaint'),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+    );
+  }
+
+  Widget _buildWarrantyDetails(BuildContext context) {
+    final isWarrantyActive = _product!.isUnderWarranty;
+    final bgColor =
+        isWarrantyActive
+            ? AppTheme.successLight.withOpacity(0.3)
+            : AppTheme.warningLight.withOpacity(0.3);
+    final borderColor =
+        isWarrantyActive
+            ? AppTheme.success.withOpacity(0.3)
+            : AppTheme.warning.withOpacity(0.3);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: borderColor),
+        boxShadow: AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(AppTheme.radiusMd - 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isWarrantyActive
+                      ? Icons.verified_user
+                      : Icons.warning_amber_rounded,
+                  color:
+                      isWarrantyActive
+                          ? AppTheme.success
+                          : AppTheme.warningDark,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  isWarrantyActive ? 'Warranty Active' : 'Warranty Expired',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color:
+                        isWarrantyActive
+                            ? AppTheme.successDark
+                            : AppTheme.warningDark,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Spacer(),
+                if (isWarrantyActive)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                    ),
+                    child: Text(
+                      '${_product!.daysUntilExpiry} days left',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Warranty Details
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Purchase Date',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: AppTheme.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat(
+                              'MMM d, yyyy',
+                            ).format(_product!.purchaseDate),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Warranty Ends On',
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(color: AppTheme.textSecondaryLight),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat(
+                              'MMM d, yyyy',
+                            ).format(_product!.warrantyEndDate),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  isWarrantyActive
+                                      ? AppTheme.textPrimaryLight
+                                      : AppTheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                if (_product!.serialNumber != null) ...[
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Serial Number',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.textSecondaryLight,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _product!.serialNumber!,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                          color: AppTheme.textPrimaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+
+                // Warranty Card Image (Bill)
+                if (_product!.billImageUrl != null) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.receipt_long_outlined,
+                        size: 16,
+                        color: AppTheme.textSecondaryLight,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Digital Warranty Card / Bill',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder:
+                            (context) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              insetPadding: EdgeInsets.zero,
                               child: Stack(
+                                alignment: Alignment.center,
                                 children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.file(
-                                      File(_evidenceImages[index].path),
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
+                                  InteractiveViewer(
+                                    minScale: 0.5,
+                                    maxScale: 4.0,
+                                    child: CachedNetworkImage(
+                                      imageUrl: _product!.billImageUrl!,
+                                      fit: BoxFit.contain,
+                                      placeholder:
+                                          (context, url) => const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                     ),
                                   ),
                                   Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _evidenceImages.removeAt(index);
-                                        });
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 14,
-                                        ),
+                                    top: 40,
+                                    right: 20,
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 30,
                                       ),
+                                      onPressed: () => Navigator.pop(context),
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ),
+                      );
+                    },
+                    child: Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor.withAlpha(50),
+                        ),
+                        image: DecorationImage(
+                          image: CachedNetworkImageProvider(
+                            _product!.billImageUrl!,
+                          ),
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ],
-
-                    // Audio Recording Indicator
-                    if (_audioPath != null && !_isRecording) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: AppTheme.successLight,
+                          color: Colors.black.withOpacity(0.0),
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusSm,
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.audiotrack,
-                              color: AppTheme.success,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            const Expanded(
-                              child: Text('Audio recording attached'),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() => _audioPath = null);
-                              },
-                              child: const Icon(Icons.close, size: 20),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.errorLight,
-                          borderRadius: BorderRadius.circular(
-                            AppTheme.radiusSm,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: AppTheme.error,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: AppTheme.error),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.5),
                               ),
                             ),
-                          ],
+                            child: const Icon(
+                              Icons.zoom_in,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  // If no bill image is available
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 16,
+                        color: AppTheme.textSecondaryLight,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'No digital warranty card available',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
-
-                    const SizedBox(height: 32),
-
-                    // Submit Button
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submitRequest,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Text('Submit Complaint'),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+                  ),
+                ],
+              ],
             ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -635,10 +947,16 @@ class _EvidenceButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.error.withOpacity(0.1) : Colors.white,
+          color:
+              isActive
+                  ? AppTheme.error.withOpacity(0.1)
+                  : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
           border: Border.all(
-            color: isActive ? AppTheme.error : AppTheme.borderLight,
+            color:
+                isActive
+                    ? AppTheme.error
+                    : Theme.of(context).dividerColor.withAlpha(50),
           ),
         ),
         child: Column(
@@ -649,9 +967,10 @@ class _EvidenceButton extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: isActive
-                        ? AppTheme.error.withOpacity(0.1)
-                        : AppTheme.primary.withOpacity(0.1),
+                    color:
+                        isActive
+                            ? AppTheme.error.withOpacity(0.1)
+                            : AppTheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

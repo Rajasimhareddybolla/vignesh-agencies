@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       curve: Curves.easeOut,
     );
     _headerAnimationController.forward();
-    
+
     // Initialize cart with user's persisted cart data
     _initializeCart();
   }
@@ -552,8 +552,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -679,7 +679,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               (_, __, ___) => Container(
                                                 width: 56,
                                                 height: 56,
-                                                color: AppTheme.backgroundLight,
+                                                color:
+                                                    Theme.of(
+                                                      context,
+                                                    ).scaffoldBackgroundColor,
                                                 child: const Icon(
                                                   Icons.devices,
                                                 ),

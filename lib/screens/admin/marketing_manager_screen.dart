@@ -54,10 +54,20 @@ class MarketingManagerScreen extends StatelessWidget {
             separatorBuilder: (context, index) => const SizedBox(height: 16),
             itemBuilder: (context, index) {
               final banner = banners[index];
-              return Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
+              return Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).dividerColor.withAlpha(50),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(10),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -75,7 +85,8 @@ class MarketingManagerScreen extends StatelessWidget {
                             placeholder:
                                 (context, url) => Container(
                                   height: 150,
-                                  color: Colors.grey[200],
+                                  color:
+                                      Theme.of(context).scaffoldBackgroundColor,
                                   child: const Center(
                                     child: CircularProgressIndicator(),
                                   ),

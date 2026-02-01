@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../services/auth_service.dart';
 
@@ -175,8 +176,8 @@ class _LoginScreenState extends State<LoginScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppTheme.backgroundLight,
-              AppTheme.backgroundLight,
+              Theme.of(context).scaffoldBackgroundColor,
+              Theme.of(context).scaffoldBackgroundColor,
               AppTheme.primary.withAlpha(10),
             ],
           ),
@@ -414,8 +415,10 @@ class _LoginScreenState extends State<LoginScreen>
             height: 128,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(32),
-              color: Colors.white,
-              border: Border.all(color: AppTheme.borderLight),
+              color: Theme.of(context).cardColor,
+              border: Border.all(
+                color: Theme.of(context).dividerColor.withAlpha(50),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withAlpha(20),
@@ -426,10 +429,12 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),
-              child: Image.network(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuAFPuIQA5eAMCC5c8brWDu54LAH0blEDHaFQhIYQwYPmSPBGtx7HFKDb8SkfxF8VbFflF-S782oppfLJSw0okrYiIEJqZkJb8oE3UQemIIfuJVWbEWqFMVj1k6MPSLnQ8b40tnRU31Av046R4aFxmhMZ2xBKg4oJbDIptfsU8YzfT7YqNbaitvsDplIdnp0ULqB6O2ZTPR1hwbbUrt_d3nl4VyaIFgxG2LiVaySeNIlXY0O3q9hfN0N2FxAelS0MPrYkw9p0FlqQNI',
+              child: CachedNetworkImage(
+                imageUrl:
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAFPuIQA5eAMCC5c8brWDu54LAH0blEDHaFQhIYQwYPmSPBGtx7HFKDb8SkfxF8VbFflF-S782oppfLJSw0okrYiIEJqZkJb8oE3UQemIIfuJVWbEWqFMVj1k6MPSLnQ8b40tnRU31Av046R4aFxmhMZ2xBKg4oJbDIptfsU8YzfT7YqNbaitvsDplIdnp0ULqB6O2ZTPR1hwbbUrt_d3nl4VyaIFgxG2LiVaySeNIlXY0O3q9hfN0N2FxAelS0MPrYkw9p0FlqQNI',
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
+                memCacheWidth: 256,
+                errorWidget: (context, error, stackTrace) {
                   return Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -457,9 +462,9 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primary.withAlpha(10),
@@ -476,9 +481,11 @@ class _LoginScreenState extends State<LoginScreen>
             // Input field with icon
             Container(
               decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withAlpha(50),
+                ),
               ),
               child: Row(
                 children: [

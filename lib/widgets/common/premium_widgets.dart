@@ -67,9 +67,11 @@ class _PremiumCardState extends State<PremiumCard>
             child: Container(
               padding: widget.padding,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(widget.borderRadius),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withAlpha(50),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: (widget.glowColor ?? AppTheme.primary).withAlpha(
@@ -162,11 +164,12 @@ class GradientHeader extends StatelessWidget {
                           children: [
                             Text(
                               title,
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.headlineMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                             if (subtitle != null) ...[
                               const SizedBox(height: 4),
@@ -448,7 +451,7 @@ class PremiumIconButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: backgroundColor ?? Colors.white,
+          color: backgroundColor ?? Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(size / 2),
           elevation: 2,
           shadowColor: Colors.black26,
@@ -463,7 +466,9 @@ class PremiumIconButton extends StatelessWidget {
               height: size,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(size / 2),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withAlpha(50),
+                ),
               ),
               child: Icon(
                 icon,
@@ -485,25 +490,24 @@ class PremiumIconButton extends StatelessWidget {
               ),
               decoration: BoxDecoration(
                 color: AppTheme.error,
-                shape: badgeCount != null
-                    ? BoxShape.rectangle
-                    : BoxShape.circle,
-                borderRadius: badgeCount != null
-                    ? BorderRadius.circular(9)
-                    : null,
+                shape:
+                    badgeCount != null ? BoxShape.rectangle : BoxShape.circle,
+                borderRadius:
+                    badgeCount != null ? BorderRadius.circular(9) : null,
                 border: Border.all(color: Colors.white, width: 2),
               ),
-              child: badgeCount != null
-                  ? Text(
-                      '$badgeCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    )
-                  : null,
+              child:
+                  badgeCount != null
+                      ? Text(
+                        '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      )
+                      : null,
             ),
           ),
       ],

@@ -185,9 +185,9 @@ class _ProductCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(

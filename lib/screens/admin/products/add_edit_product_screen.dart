@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import '../../../app/theme.dart';
 import '../../../models/catalog_product_model.dart';
@@ -271,7 +272,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                                 width: 80,
                                 height: 80,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primary.withAlpha(20),
+                                  color: Theme.of(
+                                    context,
+                                  ).primaryColor.withAlpha(20),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -283,11 +286,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                             ..._images.map(
                               (url) => Padding(
                                 padding: const EdgeInsets.only(left: 8),
-                                child: Image.network(
-                                  url,
+                                child: CachedNetworkImage(
+                                  imageUrl: url,
+                                  memCacheWidth: 200,
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
+                                  placeholder:
+                                      (context, url) => Container(
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).scaffoldBackgroundColor,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      ),
+                                  errorWidget:
+                                      (context, url, error) =>
+                                          const Icon(Icons.error),
                                 ),
                               ),
                             ),

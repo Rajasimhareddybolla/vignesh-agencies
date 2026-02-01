@@ -324,10 +324,13 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? effectiveColor : AppTheme.backgroundLight,
+          color: isSelected ? effectiveColor : Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? effectiveColor : AppTheme.borderLight,
+            color:
+                isSelected
+                    ? effectiveColor
+                    : Theme.of(context).dividerColor.withAlpha(50),
           ),
           boxShadow:
               isSelected
@@ -343,7 +346,10 @@ class _FilterChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.textSecondaryLight,
+            color:
+                isSelected
+                    ? Colors.white
+                    : Theme.of(context).textTheme.bodyMedium?.color,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -464,160 +470,182 @@ class _OrderCard extends StatelessWidget {
     );
   }
 
-  void _showShipOrderDialog(BuildContext context, OrderModel order, FirestoreService firestoreService) {
+  void _showShipOrderDialog(
+    BuildContext context,
+    OrderModel order,
+    FirestoreService firestoreService,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.local_shipping, color: Colors.blue),
-            ),
-            const SizedBox(width: 12),
-            const Text('Ship Order'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Customer: ${order.address.name}',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Mark this order as shipped? The customer will be notified.',
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              firestoreService.updateOrderStatus(
-                order.id,
-                OrderStatus.shipped,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Order marked as shipped! Customer notified.'),
-                  backgroundColor: Colors.blue,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.local_shipping, color: Colors.blue),
                 ),
-              );
-            },
-            icon: const Icon(Icons.local_shipping, size: 18),
-            label: const Text('Confirm Shipped'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.blue,
+                const SizedBox(width: 12),
+                const Text('Ship Order'),
+              ],
             ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Customer: ${order.address.name}',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Mark this order as shipped? The customer will be notified.',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  firestoreService.updateOrderStatus(
+                    order.id,
+                    OrderStatus.shipped,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Order marked as shipped! Customer notified.',
+                      ),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.local_shipping, size: 18),
+                label: const Text('Confirm Shipped'),
+                style: FilledButton.styleFrom(backgroundColor: Colors.blue),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
-  void _showDeliverOrderDialog(BuildContext context, OrderModel order, FirestoreService firestoreService) {
+  void _showDeliverOrderDialog(
+    BuildContext context,
+    OrderModel order,
+    FirestoreService firestoreService,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.success.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.check_circle, color: AppTheme.success),
-            ),
-            const SizedBox(width: 12),
-            const Text('Deliver Order'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Customer: ${order.address.name}',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Amount: ₹${order.totalAmount.toStringAsFixed(0)} (COD)',
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.warning.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.warning.withAlpha(50)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: AppTheme.warning, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Confirm only after receiving COD payment from customer.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                    ),
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
-              ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: AppTheme.success,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text('Deliver Order'),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              firestoreService.updateOrderStatus(
-                order.id,
-                OrderStatus.delivered,
-              );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Order delivered successfully! Product registered for warranty.'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Customer: ${order.address.name}',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Amount: ₹${order.totalAmount.toStringAsFixed(0)} (COD)',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.warning.withAlpha(50)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: AppTheme.warning,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Confirm only after receiving COD payment from customer.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  firestoreService.updateOrderStatus(
+                    order.id,
+                    OrderStatus.delivered,
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Order delivered successfully! Product registered for warranty.',
+                      ),
+                      backgroundColor: AppTheme.success,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: const Text('Confirm Delivered'),
+                style: FilledButton.styleFrom(
                   backgroundColor: AppTheme.success,
                 ),
-              );
-            },
-            icon: const Icon(Icons.check_circle, size: 18),
-            label: const Text('Confirm Delivered'),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.success,
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

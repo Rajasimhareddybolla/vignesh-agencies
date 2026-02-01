@@ -259,7 +259,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
                     Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
+                        color: Theme.of(context).scaffoldBackgroundColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -424,9 +424,11 @@ class _TemplateChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(8),
@@ -540,7 +542,7 @@ class _PremiumTextField extends StatelessWidget {
             hintText: hint,
             prefixIcon: Icon(icon, color: AppTheme.textSecondaryLight),
             filled: true,
-            fillColor: AppTheme.backgroundLight,
+            fillColor: Theme.of(context).scaffoldBackgroundColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

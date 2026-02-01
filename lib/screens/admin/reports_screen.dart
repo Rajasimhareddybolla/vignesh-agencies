@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../../app/theme.dart';
 import '../../models/service_request_model.dart';
 import '../../services/firestore_service.dart';
+import 'service_request_detail_screen.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -39,9 +40,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withAlpha(50),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,9 +84,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withAlpha(50),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +132,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodySmall?.copyWith(
-                                            color: AppTheme.textSecondaryLight,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall?.color,
                                           ),
                                         ),
                                       ],
@@ -215,7 +223,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
                             return Container(
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppTheme.borderLight),
+                                border: Border.all(
+                                  color: Theme.of(
+                                    context,
+                                  ).dividerColor.withAlpha(50),
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Column(
@@ -227,7 +239,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                       vertical: 10,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppTheme.backgroundLight,
+                                      color:
+                                          Theme.of(
+                                            context,
+                                          ).scaffoldBackgroundColor,
                                       borderRadius: const BorderRadius.vertical(
                                         top: Radius.circular(8),
                                       ),
@@ -315,6 +330,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                         statusColor: _getStatusColor(
                                           request.status,
                                         ),
+                                        onTicketTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      ServiceRequestDetailScreen(
+                                                        requestId: request.id,
+                                                      ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ),
                                 ],
@@ -598,9 +625,11 @@ class _DatePickerField extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppTheme.backgroundLight,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.borderLight),
+          border: Border.all(
+            color: Theme.of(context).dividerColor.withAlpha(50),
+          ),
         ),
         child: Row(
           children: [
@@ -686,6 +715,7 @@ class _TableRow extends StatelessWidget {
   final String status;
   final String date;
   final Color statusColor;
+  final VoidCallback? onTicketTap;
 
   const _TableRow({
     required this.ticket,
@@ -693,6 +723,7 @@ class _TableRow extends StatelessWidget {
     required this.status,
     required this.date,
     required this.statusColor,
+    this.onTicketTap,
   });
 
   @override
@@ -700,21 +731,28 @@ class _TableRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: AppTheme.borderLight)),
+        border: Border(
+          top: BorderSide(color: Theme.of(context).dividerColor.withAlpha(50)),
+        ),
       ),
       child: Row(
         children: [
           SizedBox(
             width: 72,
-            child: Text(
-              ticket,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primary,
-                fontSize: 11,
+            child: InkWell(
+              onTap: onTicketTap,
+              child: Text(
+                ticket,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary,
+                  fontSize: 11,
+                  decoration:
+                      onTicketTap != null ? TextDecoration.underline : null,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 8),
