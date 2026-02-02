@@ -56,7 +56,7 @@ class AuthService {
 
   // Phone Auth - Send OTP
   // Set to true for testing (uses 123456 as OTP), false for production (real SMS)
-  static const bool testMode = false; // 👈 Change to false for production
+  static const bool testMode = true; // 👈 TEST MODE ENABLED
 
   Future<void> sendOTP({
     required String phoneNumber,

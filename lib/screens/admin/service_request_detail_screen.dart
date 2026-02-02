@@ -295,7 +295,7 @@ class _ServiceRequestDetailScreenState
                                       style: Theme.of(
                                         context,
                                       ).textTheme.bodySmall?.copyWith(
-                                        color: AppTheme.textSecondaryLight,
+                                        color: AppTheme.textSecondary(context),
                                       ),
                                     ),
                                     Text(
@@ -421,7 +421,7 @@ class _ServiceRequestDetailScreenState
                                     style: Theme.of(
                                       context,
                                     ).textTheme.bodyMedium?.copyWith(
-                                      color: AppTheme.textSecondaryLight,
+                                      color: AppTheme.textSecondary(context),
                                       fontStyle: FontStyle.italic,
                                     ),
                                   ),
@@ -538,7 +538,7 @@ class _ServiceRequestDetailScreenState
                                       context,
                                     ).textTheme.labelSmall?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.textSecondaryLight,
+                                      color: AppTheme.textSecondary(context),
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -600,7 +600,7 @@ class _ServiceRequestDetailScreenState
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -634,7 +634,7 @@ class _ServiceRequestDetailScreenState
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textSecondaryLight,
+                                  color: AppTheme.textSecondary(context),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -707,7 +707,7 @@ class _ServiceRequestDetailScreenState
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textSecondaryLight,
+                                  color: AppTheme.textSecondary(context),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -838,7 +838,7 @@ class _ServiceRequestDetailScreenState
                                                       fontSize: 12,
                                                       color:
                                                           AppTheme
-                                                              .textSecondaryLight,
+                                                              .textSecondary(context),
                                                     ),
                                                   ),
                                                 ],
@@ -1299,7 +1299,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
             ),
           ),

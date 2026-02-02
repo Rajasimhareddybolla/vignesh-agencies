@@ -53,9 +53,10 @@ dependencies:
   firebase_messaging: ^16.1.1
   flutter_local_notifications: ^19.5.0
   uuid: ^4.5.2
-  shared_preferences: ^2.5.4
+  shared_preferences: 2.5.3
   url_launcher: ^6.3.2
   mobile_scanner: ^7.1.4
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:

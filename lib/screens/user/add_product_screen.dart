@@ -12,6 +12,7 @@ import '../../models/user_appliance_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
+import '../../widgets/common/profile_completion_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -46,9 +47,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     try {
       final image = await _imagePicker.pickImage(
         source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 70,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 50,
       );
       if (image != null) {
         setState(() => _billImage = image);
@@ -141,13 +142,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
+    // Check profile completion before proceeding
+    final authService = context.read<AuthService>();
+    final isComplete = await ProfileCompletionService.checkAndPromptCompletion(
+      context,
+      authService,
+      action: 'register your appliance',
+    );
+
+    if (!isComplete || !mounted) return;
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
       final storageService = context.read<StorageService>();
 
@@ -361,9 +371,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.calendar_today,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -376,14 +386,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           ).textTheme.bodyLarge?.copyWith(
                             color:
                                 _purchaseDate != null
-                                    ? AppTheme.textPrimaryLight
-                                    : AppTheme.textSecondaryLight,
+                                    ? AppTheme.textPrimary(context)
+                                    : AppTheme.textSecondary(context),
                           ),
                         ),
                       ),
-                      const Icon(
+                      Icon(
                         Icons.calendar_month,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                     ],
                   ),
@@ -516,7 +526,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 style: Theme.of(
                                   context,
                                 ).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondaryLight,
+                                  color: AppTheme.textSecondary(context),
                                 ),
                               ),
                             ],

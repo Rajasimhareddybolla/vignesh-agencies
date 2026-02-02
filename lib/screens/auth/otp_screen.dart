@@ -242,7 +242,7 @@ class _OTPScreenState extends State<OTPScreen> {
               Text(
                 'We sent a 6-digit code to\n${widget.phoneNumber}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -350,7 +350,7 @@ class _OTPScreenState extends State<OTPScreen> {
                   Text(
                     "Didn't receive the code? ",
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                   TextButton(
@@ -362,7 +362,7 @@ class _OTPScreenState extends State<OTPScreen> {
                       style: TextStyle(
                         color:
                             _resendCountdown > 0
-                                ? AppTheme.textSecondaryLight
+                                ? AppTheme.textSecondary(context)
                                 : AppTheme.primary,
                         fontWeight: FontWeight.w600,
                       ),

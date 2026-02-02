@@ -170,7 +170,7 @@ class ReferralScreen extends StatelessWidget {
                       Text(
                         'Share this code with your friends to start earning.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -298,7 +298,7 @@ class ReferralScreen extends StatelessWidget {
                             Icon(
                               Icons.people_outline,
                               size: 48,
-                              color: AppTheme.textSecondaryLight.withOpacity(
+                              color: AppTheme.textSecondary(context).withOpacity(
                                 0.5,
                               ),
                             ),
@@ -308,7 +308,7 @@ class ReferralScreen extends StatelessWidget {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -317,7 +317,7 @@ class ReferralScreen extends StatelessWidget {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                               ),
                             ),
                           ],
@@ -419,7 +419,7 @@ class _ReferralCard extends StatelessWidget {
                 Text(
                   DateFormat('MMM dd, yyyy').format(referral.createdAt),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
               ],
@@ -443,7 +443,7 @@ class _ReferralCard extends StatelessWidget {
                   '₹ --',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
               const SizedBox(height: 4),

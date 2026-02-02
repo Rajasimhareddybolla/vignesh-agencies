@@ -273,7 +273,7 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
           Text(
             'Try adjusting your filters',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
           ),
         ],
@@ -400,16 +400,16 @@ class _OrderCard extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.person_outline,
                 size: 16,
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
               const SizedBox(width: 4),
               Text(
                 order.address.name,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
               ),
             ],

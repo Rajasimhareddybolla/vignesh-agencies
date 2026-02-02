@@ -12,6 +12,7 @@ import '../../models/service_request_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
+import '../../widgets/common/profile_completion_service.dart';
 
 class ServiceRequestScreen extends StatefulWidget {
   final String productId;
@@ -67,9 +68,9 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1920,
-        maxHeight: 1920,
-        imageQuality: 85,
+        maxWidth: 1280,
+        maxHeight: 1280,
+        imageQuality: 50,
       );
       if (image != null) {
         setState(() => _evidenceImages.add(image));
@@ -127,6 +128,16 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       setState(() => _errorMessage = 'Product not found. Please try again.');
       return;
     }
+
+    // Check profile completion before proceeding
+    final authService = context.read<AuthService>();
+    final isComplete = await ProfileCompletionService.checkAndPromptCompletion(
+      context,
+      authService,
+      action: 'submit your service request',
+    );
+
+    if (!isComplete || !mounted) return;
 
     setState(() {
       _isLoading = true;
@@ -348,7 +359,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                                           color:
                                               _product!.isUnderWarranty
                                                   ? AppTheme.success
-                                                  : AppTheme.textSecondaryLight,
+                                                  : AppTheme.textSecondary(context),
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -363,7 +374,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                                           color:
                                               _product!.isUnderWarranty
                                                   ? AppTheme.success
-                                                  : AppTheme.textSecondaryLight,
+                                                  : AppTheme.textSecondary(context),
                                         ),
                                       ),
                                     ],
@@ -438,6 +449,31 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         'Add Evidence (Optional)',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      // Soft nudge for adding evidence
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.infoLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.info.withAlpha(50)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.lightbulb_outline, color: AppTheme.info, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Adding photos or audio helps our technicians understand the issue better and speeds up resolution.',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.infoDark,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -715,7 +751,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                           Text(
                             'Purchase Date',
                             style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: AppTheme.textSecondaryLight),
+                                ?.copyWith(color: AppTheme.textSecondary(context)),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -726,7 +762,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                               context,
                             ).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.textPrimaryLight,
+                              color: AppTheme.textPrimary(context),
                             ),
                           ),
                         ],
@@ -739,7 +775,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                           Text(
                             'Warranty Ends On',
                             style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: AppTheme.textSecondaryLight),
+                                ?.copyWith(color: AppTheme.textSecondary(context)),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -752,7 +788,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                               fontWeight: FontWeight.bold,
                               color:
                                   isWarrantyActive
-                                      ? AppTheme.textPrimaryLight
+                                      ? AppTheme.textPrimary(context)
                                       : AppTheme.error,
                             ),
                           ),
@@ -770,7 +806,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       Text(
                         'Serial Number',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -781,7 +817,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         ).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.5,
-                          color: AppTheme.textPrimaryLight,
+                          color: AppTheme.textPrimary(context),
                         ),
                       ),
                     ],
@@ -798,7 +834,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       Icon(
                         Icons.receipt_long_outlined,
                         size: 16,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -904,7 +940,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       Icon(
                         Icons.warning_amber_rounded,
                         size: 16,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -1005,7 +1041,7 @@ class _EvidenceButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: isActive ? AppTheme.error : AppTheme.textPrimaryLight,
+                color: isActive ? AppTheme.error : AppTheme.textPrimary(context),
               ),
               textAlign: TextAlign.center,
             ),

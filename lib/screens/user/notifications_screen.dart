@@ -35,24 +35,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             icon: const Icon(Icons.done_all),
             tooltip: 'Mark all as read',
             onPressed: () async {
+              if (userId == null) return;
               HapticFeedback.lightImpact();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.white, size: 20),
-                      SizedBox(width: 12),
-                      Text('All notifications marked as read'),
-                    ],
-                  ),
-                  backgroundColor: AppTheme.success,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
+              try {
+                await _notificationService.markAllAsRead(userId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.white, size: 20),
+                          SizedBox(width: 12),
+                          Text('All notifications marked as read'),
+                        ],
+                      ),
+                      backgroundColor: AppTheme.success,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to mark as read: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              }
             },
           ),
         ],
@@ -130,7 +145,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           Text(
             'You have no new notifications at this time.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
           ),
         ],
@@ -246,7 +261,7 @@ class _PremiumNotificationCard extends StatelessWidget {
                           notification['body'] ?? '',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                                 height: 1.4,
                               ),
                           maxLines: 3,
@@ -281,14 +296,14 @@ class _PremiumNotificationCard extends StatelessWidget {
                             Icon(
                               Icons.schedule,
                               size: 12,
-                              color: AppTheme.textSecondaryLight.withAlpha(150),
+                              color: AppTheme.textSecondary(context).withAlpha(150),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               _formatTime(createdAt),
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
-                                    color: AppTheme.textSecondaryLight
+                                    color: AppTheme.textSecondary(context)
                                         .withAlpha(150),
                                   ),
                             ),

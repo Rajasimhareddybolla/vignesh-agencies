@@ -244,7 +244,7 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                 ? 'Try adjusting your search'
                 : 'Add your first product to the catalog',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
           ),
         ],
@@ -316,29 +316,29 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.category,
                       size: 14,
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       product.categoryId, // Should map to readable name ideally
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(
+                    Icon(
                       Icons.layers,
                       size: 14,
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                     const SizedBox(width: 4),
                     Text(
                       '${product.variations.length} Variants',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                     ),
                   ],

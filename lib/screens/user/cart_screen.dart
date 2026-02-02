@@ -44,13 +44,13 @@ class CartScreen extends StatelessWidget {
                     'Your Cart is Empty',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimaryLight,
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Looks like you haven\'t added anything yet',
-                    style: TextStyle(color: AppTheme.textSecondaryLight),
+                    style: TextStyle(color: AppTheme.textSecondary(context)),
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(
@@ -111,9 +111,9 @@ class CartScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Total Amount',
-                  style: TextStyle(color: AppTheme.textSecondaryLight),
+                  style: TextStyle(color: AppTheme.textSecondary(context)),
                 ),
                 Text(
                   '₹${cartService.totalAmount.toStringAsFixed(0)}',
@@ -181,9 +181,9 @@ class _CartItemTile extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorWidget: (_, __, ___) => const Icon(Icons.error),
                       )
-                      : const Icon(
+                      : Icon(
                         Icons.image,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
             ),
           ),
@@ -202,11 +202,10 @@ class _CartItemTile extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                if (item.variationText.isNotEmpty)
                   Text(
                     item.variationText,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondaryLight,
+                    style: TextStyle(
+                      color: AppTheme.textSecondary(context),
                       fontSize: 13,
                     ),
                   ),

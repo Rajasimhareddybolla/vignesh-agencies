@@ -6,9 +6,9 @@ import '../../app/theme.dart';
 import '../../models/user_model.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
-import '../../models/referral_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../providers/theme_provider.dart';
 import '../../widgets/common/premium_widgets.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -68,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               SliverToBoxAdapter(
                 child: StaggeredFadeIn(
                   index: 0,
-                  child: _buildStatsCard(context),
+                  child: _buildStatsCard(context, user),
                 ),
               ),
 
@@ -115,6 +115,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                       const SizedBox(height: 20),
                       StaggeredFadeIn(
                         index: 2,
+                        child: _buildMenuSection(context, 'App Settings', [
+                          _PremiumMenuItem(
+                            icon: Icons.dark_mode_outlined,
+                            title: 'Theme',
+                            subtitle: 'Light / Dark / System',
+                            iconColor: const Color(0xFF8B5CF6),
+                            onTap: () {
+                              final themeProvider =
+                                  context.read<ThemeProvider>();
+                              showDialog(
+                                context: context,
+                                builder: (context) => _ThemeSelectionDialog(
+                                  currentTheme: themeProvider.themeMode,
+                                  onThemeSelected: (mode) {
+                                    themeProvider.setThemeMode(mode);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(height: 20),
+                      StaggeredFadeIn(
+                        index: 3,
                         child: _buildMenuSection(context, 'Support', [
                           _PremiumMenuItem(
                             icon: Icons.help_outline,
@@ -133,13 +159,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                           _PremiumMenuItem(
                             icon: Icons.description_outlined,
                             title: 'Terms & Conditions',
-                            iconColor: AppTheme.textSecondaryLight,
+                            iconColor: AppTheme.textSecondary(context),
                             onTap: () => context.push('/terms'),
                           ),
                           _PremiumMenuItem(
                             icon: Icons.privacy_tip_outlined,
                             title: 'Privacy Policy',
-                            iconColor: AppTheme.textSecondaryLight,
+                            iconColor: AppTheme.textSecondary(context),
                             onTap: () => context.push('/privacy'),
                           ),
                         ]),
@@ -283,10 +309,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildStatsCard(BuildContext context) {
+  Widget _buildStatsCard(BuildContext context, UserModel? user) {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
-    final userId = authService.currentUser?.uid;
+    final userId = user?.id;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -313,12 +339,12 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha(240),
+            color: Theme.of(context).cardColor.withAlpha(240),
             borderRadius: BorderRadius.circular(23),
           ),
           child: Row(
             children: [
-              // Products count
+              // Appliances count
               StreamBuilder<List<UserApplianceModel>>(
                 stream:
                     userId != null
@@ -328,7 +354,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   final count = snapshot.data?.length ?? 0;
                   return _StatItem(
                     icon: Icons.inventory_2,
-                    label: 'Products',
+                    label: 'Appliances',
                     value: '$count',
                     color: AppTheme.primary,
                   );
@@ -342,9 +368,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppTheme.borderLight.withAlpha(0),
-                      AppTheme.borderLight,
-                      AppTheme.borderLight.withAlpha(0),
+                      AppTheme.border(context).withAlpha(0),
+                      AppTheme.border(context),
+                      AppTheme.border(context).withAlpha(0),
                     ],
                   ),
                 ),
@@ -373,25 +399,22 @@ class _ProfileScreenState extends State<ProfileScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppTheme.borderLight.withAlpha(0),
-                      AppTheme.borderLight,
-                      AppTheme.borderLight.withAlpha(0),
+                      AppTheme.border(context).withAlpha(0),
+                      AppTheme.border(context),
+                      AppTheme.border(context).withAlpha(0),
                     ],
                   ),
                 ),
               ),
-              // Referrals count
-              StreamBuilder<List<ReferralModel>>(
-                stream:
-                    userId != null
-                        ? firestoreService.getUserReferrals(userId)
-                        : Stream.value([]),
+              // Rewards (from referrals)
+              StreamBuilder<UserModel?>(
+                stream: authService.userModelStream(),
                 builder: (context, snapshot) {
-                  final count = snapshot.data?.length ?? 0;
+                  final earnings = snapshot.data?.totalEarnings ?? 0;
                   return _StatItem(
-                    icon: Icons.people,
-                    label: 'Referrals',
-                    value: '$count',
+                    icon: Icons.card_giftcard,
+                    label: 'Rewards',
+                    value: '₹${earnings.toStringAsFixed(0)}',
                     color: AppTheme.success,
                   );
                 },
@@ -428,7 +451,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 title.toUpperCase(),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -438,9 +461,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.borderLight.withAlpha(150)),
+            border: Border.all(color: AppTheme.border(context).withAlpha(150)),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.primary.withAlpha(8),
@@ -465,7 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       height: 1,
                       indent: 70,
                       endIndent: 16,
-                      color: AppTheme.borderLight.withAlpha(100),
+                      color: AppTheme.border(context).withAlpha(100),
                     ),
                 ],
               ],
@@ -523,7 +546,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Text(
                 'VIGNESH AGENCIES SERVICE HUB',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.textSecondaryLight.withAlpha(150),
+                  color: AppTheme.textSecondary(context).withAlpha(150),
                   letterSpacing: 2,
                 ),
               ),
@@ -539,7 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           Text(
             'Version 1.0.0',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondaryLight.withAlpha(120),
+              color: AppTheme.textSecondary(context).withAlpha(120),
             ),
           ),
         ],
@@ -680,7 +703,7 @@ class _StatItem extends StatelessWidget {
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryLight),
+            ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context)),
           ),
         ],
       ),
@@ -741,14 +764,14 @@ class _PremiumMenuItem extends StatelessWidget {
                     Text(
                       subtitle!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                     ),
                   ],
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondaryLight),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
           ],
         ),
       ),
@@ -785,7 +808,7 @@ class _LogoutConfirmDialog extends StatelessWidget {
             Text(
               'Are you sure you want to logout?',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -823,6 +846,105 @@ class _LogoutConfirmDialog extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeSelectionDialog extends StatelessWidget {
+  final ThemeMode currentTheme;
+  final Function(ThemeMode) onThemeSelected;
+
+  const _ThemeSelectionDialog({
+    required this.currentTheme,
+    required this.onThemeSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Select Theme',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildThemeOption(
+              context,
+              'System Default',
+              ThemeMode.system,
+              Icons.brightness_auto,
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              context,
+              'Light Mode',
+              ThemeMode.light,
+              Icons.light_mode,
+            ),
+            const SizedBox(height: 12),
+            _buildThemeOption(
+              context,
+              'Dark Mode',
+              ThemeMode.dark,
+              Icons.dark_mode,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(
+    BuildContext context,
+    String title,
+    ThemeMode mode,
+    IconData icon,
+  ) {
+    final isSelected = currentTheme == mode;
+    return InkWell(
+      onTap: () => onThemeSelected(mode),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary.withAlpha(20) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primary
+                : Theme.of(context).dividerColor.withAlpha(50),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppTheme.primary : AppTheme.textSecondary(context),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected
+                    ? AppTheme.primary
+                    : Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+            const Spacer(),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
           ],
         ),
       ),

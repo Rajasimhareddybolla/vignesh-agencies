@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen>
                             shaderCallback:
                                 (bounds) => LinearGradient(
                                   colors: [
-                                    AppTheme.textPrimaryLight,
+                                    AppTheme.textPrimary(context),
                                     AppTheme.primary,
                                   ],
                                 ).createShader(bounds),
@@ -240,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen>
                           Text(
                             'Service management made simple',
                             style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(color: AppTheme.textSecondaryLight),
+                                ?.copyWith(color: AppTheme.textSecondary(context)),
                             textAlign: TextAlign.center,
                           ),
 
@@ -276,7 +276,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textSecondaryLight,
+                                    color: AppTheme.textSecondary(context),
                                   ),
                                 ),
                               ),
@@ -296,29 +296,7 @@ class _LoginScreenState extends State<LoginScreen>
                             ],
                           ),
 
-                          const SizedBox(height: 24),
-
-                          // Admin Login
-                          TextButton.icon(
-                            onPressed: () {
-                              HapticFeedback.selectionClick();
-                              context.pushNamed('admin-login');
-                            },
-                            icon: const Icon(
-                              Icons.admin_panel_settings,
-                              size: 20,
-                            ),
-                            label: const Text('Admin Login'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppTheme.primary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 60),
+                          const SizedBox(height: 80),
 
                           // Footer
                           Row(
@@ -339,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   context,
                                 ).textTheme.labelSmall?.copyWith(
                                   letterSpacing: 2,
-                                  color: AppTheme.textSecondaryLight.withAlpha(
+                                  color: AppTheme.textSecondary(context).withAlpha(
                                     150,
                                   ),
                                 ),
@@ -354,6 +332,23 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                             ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Admin Login - subtle footer link
+                          GestureDetector(
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              context.pushNamed('admin-login');
+                            },
+                            child: Text(
+                              'Admin Portal',
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondary(context).withAlpha(120),
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
                           ),
 
                           const SizedBox(height: 24),

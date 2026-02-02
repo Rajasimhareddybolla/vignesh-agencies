@@ -640,7 +640,7 @@ class _AdminAvatar extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDestructive ? AppTheme.error : AppTheme.textPrimaryLight,
+            color: isDestructive ? AppTheme.error : AppTheme.textPrimary(context),
           ),
           const SizedBox(width: 12),
           Text(
@@ -750,7 +750,7 @@ class _PremiumStatCardState extends State<_PremiumStatCard>
                       ),
                       Icon(
                         Icons.arrow_forward,
-                        color: AppTheme.textSecondaryLight.withAlpha(100),
+                        color: AppTheme.textSecondary(context).withAlpha(100),
                         size: 18,
                       ),
                     ],
@@ -923,7 +923,7 @@ class _PremiumActivityCard extends StatelessWidget {
               Text(
                 _getTimeAgo(activity['timestamp'] as DateTime?),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondaryLight.withAlpha(150),
+                  color: AppTheme.textSecondary(context).withAlpha(150),
                   fontSize: 11,
                 ),
               ),

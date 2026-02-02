@@ -8,6 +8,8 @@ import '../../models/service_request_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/warranty_notification_service.dart';
 
 import '../../widgets/common/premium_widgets.dart';
 import '../../widgets/user/marketing_slider.dart';
@@ -68,117 +70,137 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       body: RefreshIndicator(
         onRefresh: () async {
           HapticFeedback.mediumImpact();
-          await Future.delayed(const Duration(seconds: 1));
+          // Properly refresh data by invalidating streams
+          final authService = context.read<AuthService>();
+          final firestoreService = context.read<FirestoreService>();
+          final userId = authService.currentUser?.uid;
+          if (userId != null) {
+            // Force refresh user stats
+            await firestoreService.refreshUserStats(userId);
+          }
+          setState(() {}); // Trigger rebuild to refresh streams
+          await Future.delayed(const Duration(milliseconds: 300));
         },
         color: AppTheme.primary,
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(
-            parent: BouncingScrollPhysics(),
-          ),
-          slivers: [
-            // Premium Animated Header
-            SliverToBoxAdapter(
-              child: FadeTransition(
-                opacity: _headerAnimation,
-                child: SlideTransition(
-                  position: Tween<Offset>(
-                    begin: const Offset(0, -0.2),
-                    end: Offset.zero,
-                  ).animate(_headerAnimation),
-                  child: _buildPremiumHeader(
-                    context,
-                    authService,
-                    firestoreService,
+        child: StreamBuilder<UserModel?>(
+          stream: authService.userModelStream(),
+          builder: (context, userSnapshot) {
+            final effectiveUserId =
+                userSnapshot.data?.id ?? authService.currentUser?.uid;
+
+            return StreamBuilder<List<UserApplianceModel>>(
+              stream:
+                  effectiveUserId != null
+                      ? firestoreService.getUserProducts(effectiveUserId)
+                      : Stream.value([]),
+              builder: (context, productsSnapshot) {
+                final products = productsSnapshot.data ?? [];
+                final hasProducts = products.isNotEmpty;
+                final isLoading = productsSnapshot.connectionState == ConnectionState.waiting;
+
+                // Schedule warranty expiry notifications when products are loaded
+                if (products.isNotEmpty && productsSnapshot.connectionState == ConnectionState.active) {
+                  WarrantyNotificationService.checkAndScheduleNotifications(products);
+                }
+
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
                   ),
-                ),
-              ),
-            ),
-
-            // Marketing Slider
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: MarketingSlider(),
-              ),
-            ),
-
-            // Quick Actions with staggered animation
-            SliverToBoxAdapter(child: _buildQuickActions(context)),
-
-            // My Appliances Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'My Appliances',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => context.pushNamed('all-appliances'),
-                      icon: const Icon(Icons.grid_view, size: 18),
-                      label: const Text('View All'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Appliances List with staggered fade-in
-            StreamBuilder<UserModel?>(
-              stream: authService.userModelStream(),
-              builder: (context, userSnapshot) {
-                final effectiveUserId =
-                    userSnapshot.data?.id ?? authService.currentUser?.uid;
-
-                return StreamBuilder<List<UserApplianceModel>>(
-                  stream:
-                      effectiveUserId != null
-                          ? firestoreService.getUserProducts(effectiveUserId)
-                          : Stream.value([]),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return SliverToBoxAdapter(child: _buildShimmerLoading());
-                    }
-
-                    final products = snapshot.data ?? [];
-
-                    if (products.isEmpty) {
-                      return SliverToBoxAdapter(
-                        child: _buildEmptyState(context),
-                      );
-                    }
-
-                    return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => StaggeredFadeIn(
-                            index: index,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildPremiumApplianceCard(
-                                context,
-                                products[index],
-                              ),
-                            ),
+                  slivers: [
+                    // Premium Animated Header
+                    SliverToBoxAdapter(
+                      child: FadeTransition(
+                        opacity: _headerAnimation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, -0.2),
+                            end: Offset.zero,
+                          ).animate(_headerAnimation),
+                          child: _buildPremiumHeader(
+                            context,
+                            authService,
+                            firestoreService,
                           ),
-                          childCount: products.length,
                         ),
                       ),
-                    );
-                  },
+                    ),
+
+                    // Marketing Slider
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: MarketingSlider(),
+                      ),
+                    ),
+
+                    // Welcome Section for New Users
+                    if (!hasProducts && !isLoading)
+                      SliverToBoxAdapter(
+                        child: _buildWelcomeSection(context),
+                      ),
+
+                    // Quick Actions with staggered animation (dynamic based on product count)
+                    SliverToBoxAdapter(
+                      child: _buildQuickActions(context, hasProducts),
+                    ),
+
+                    // My Appliances Header (only show if has products)
+                    if (hasProducts)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'My Appliances',
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => context.pushNamed('all-appliances'),
+                                icon: const Icon(Icons.grid_view, size: 18),
+                                label: const Text('View All'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppTheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    // Appliances List or Empty State
+                    if (isLoading)
+                      SliverToBoxAdapter(child: _buildShimmerLoading())
+                    else if (!hasProducts)
+                      SliverToBoxAdapter(child: _buildEmptyState(context))
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) => StaggeredFadeIn(
+                              index: index,
+                              child: Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildPremiumApplianceCard(
+                                  context,
+                                  products[index],
+                                ),
+                              ),
+                            ),
+                            childCount: products.length,
+                          ),
+                        ),
+                      ),
+                  ],
                 );
               },
-            ),
-          ],
+            );
+          },
         ),
       ),
 
@@ -318,15 +340,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         iconColor: Colors.white,
                       ),
                       const SizedBox(width: 8),
-                      // Notifications Button
-                      PremiumIconButton(
-                        icon: Icons.notifications_outlined,
-                        onPressed: () => context.push('/notifications'),
-                        backgroundColor: Colors.white.withAlpha(40),
-                        iconColor: Colors.white,
-                        // TODO: Connect to notification stream
-                        showBadge: false,
-                        // badgeCount: 0,
+                      // Notifications Button with dynamic badge
+                      StreamBuilder<int>(
+                        stream: user != null
+                            ? NotificationService().getUnreadCount(user.id)
+                            : Stream.value(0),
+                        builder: (context, notifSnapshot) {
+                          final unreadCount = notifSnapshot.data ?? 0;
+                          return PremiumIconButton(
+                            icon: Icons.notifications_outlined,
+                            onPressed: () => context.push('/notifications'),
+                            backgroundColor: Colors.white.withAlpha(40),
+                            iconColor: Colors.white,
+                            showBadge: unreadCount > 0,
+                            badgeCount: unreadCount,
+                          );
+                        },
                       ),
                       const SizedBox(width: 8),
                       // Cart Button
@@ -368,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               context,
                               Icons.inventory_2,
                               '$count',
-                              'Products',
+                              'Appliances',
                             );
                           },
                         ),
@@ -399,11 +428,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           height: 30,
                           color: Colors.white.withAlpha(50),
                         ),
-                        _buildHeaderStat(
-                          context,
-                          Icons.star,
-                          '₹${(user?.totalEarnings ?? 0).toStringAsFixed(0)}',
-                          'Earnings',
+                        GestureDetector(
+                          onTap: () => _showRewardsExplanation(context),
+                          child: _buildHeaderStat(
+                            context,
+                            Icons.card_giftcard,
+                            '₹${(user?.totalEarnings ?? 0).toStringAsFixed(0)}',
+                            'Rewards',
+                          ),
                         ),
                       ],
                     ),
@@ -413,6 +445,221 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _showRewardsExplanation(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.border(context),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.card_giftcard,
+                color: AppTheme.primary,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Earn Rewards with Referrals!',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Share your referral code with friends and family. When they register their first appliance, you earn ₹100 in rewards!',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.success.withAlpha(15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.success.withAlpha(30)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: AppTheme.success, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Rewards can be redeemed as discounts on services',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.pushNamed('referral');
+                },
+                icon: const Icon(Icons.share),
+                label: const Text('Start Referring'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Maybe Later'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRedeemReferralDialog(BuildContext context) {
+    final controller = TextEditingController();
+    bool isLoading = false;
+
+    HapticFeedback.lightImpact();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withAlpha(20),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.redeem, color: Colors.purple),
+                ),
+                const SizedBox(width: 12),
+                const Text('Redeem Code'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enter a referral code from a friend to unlock special rewards!',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  decoration: InputDecoration(
+                    labelText: 'Referral Code',
+                    hintText: 'e.g. VG-1234',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(Icons.confirmation_number),
+                  ),
+                  textCapitalization: TextCapitalization.characters,
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final code = controller.text.trim();
+                        if (code.isEmpty) return;
+
+                        setState(() => isLoading = true);
+                        try {
+                          await context.read<AuthService>().redeemReferral(code);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.check_circle, color: Colors.white),
+                                    SizedBox(width: 12),
+                                    Text('Referral code redeemed successfully!'),
+                                  ],
+                                ),
+                                backgroundColor: AppTheme.success,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                                backgroundColor: AppTheme.error,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (context.mounted) {
+                            setState(() => isLoading = false);
+                          }
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Redeem'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -456,7 +703,163 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return 'Good Evening 🌙';
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  /// Welcome section for new users - explains both services and store
+  Widget _buildWelcomeSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primary.withAlpha(15),
+              AppTheme.primaryLight.withAlpha(10),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.primary.withAlpha(30)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(30),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.waving_hand,
+                    color: AppTheme.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome to Vignesh Agencies!',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Your one-stop solution for appliances',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Two feature cards side by side
+            Row(
+              children: [
+                Expanded(
+                  child: _WelcomeFeatureCard(
+                    icon: Icons.shopping_bag_outlined,
+                    title: 'Shop Products',
+                    description: 'Browse & buy quality appliances',
+                    color: AppTheme.success,
+                    onTap: () => context.pushNamed('product-catalog'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _WelcomeFeatureCard(
+                    icon: Icons.build_outlined,
+                    title: 'Get Services',
+                    description: 'Register products for warranty & support',
+                    color: AppTheme.primary,
+                    onTap: () => context.pushNamed('add-product'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Quick tip
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.infoDark.withAlpha(15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.infoDark.withAlpha(30)),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.lightbulb_outline,
+                    color: AppTheme.infoDark,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tip: Register your appliances to get warranty tracking & quick service support!',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.infoDark,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Referral code hint
+            GestureDetector(
+              onTap: () => _showRedeemReferralDialog(context),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withAlpha(15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.purple.withAlpha(30)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.redeem,
+                      color: Colors.purple,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Have a referral code? Tap here to redeem rewards!',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.purple,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.purple,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context, bool hasProducts) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -495,45 +898,89 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: StaggeredFadeIn(
-                  index: 0,
-                  child: _PremiumQuickActionCard(
-                    title: 'Request\nService',
-                    icon: Icons.home_repair_service,
-                    isPrimary: true,
-                    onTap: () => _showProductPicker(context),
+          // Dynamic Quick Actions based on whether user has products
+          if (hasProducts)
+            // User has products - show service-focused actions
+            Row(
+              children: [
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 0,
+                    child: _PremiumQuickActionCard(
+                      title: 'Request\nService',
+                      icon: Icons.build,
+                      isPrimary: true,
+                      onTap: () => _showProductPicker(context),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StaggeredFadeIn(
-                  index: 1,
-                  child: _PremiumQuickActionCard(
-                    title: 'Product\nCatalog',
-                    icon: Icons.grid_view_rounded,
-                    isPrimary: false,
-                    onTap: () => context.pushNamed('product-catalog'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 1,
+                    child: _PremiumQuickActionCard(
+                      title: 'Shop\nProducts',
+                      icon: Icons.shopping_bag,
+                      isPrimary: false,
+                      onTap: () => context.pushNamed('product-catalog'),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: StaggeredFadeIn(
-                  index: 2,
-                  child: _PremiumQuickActionCard(
-                    title: 'Refer a\nFriend',
-                    icon: Icons.volunteer_activism,
-                    isPrimary: false,
-                    onTap: () => context.pushNamed('referral'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 2,
+                    child: _PremiumQuickActionCard(
+                      title: 'Refer &\nEarn',
+                      icon: Icons.volunteer_activism,
+                      isPrimary: false,
+                      onTap: () => context.pushNamed('referral'),
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            // New user - show onboarding-focused actions
+            Row(
+              children: [
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 0,
+                    child: _PremiumQuickActionCard(
+                      title: 'Register\nAppliance',
+                      icon: Icons.add_circle,
+                      isPrimary: true,
+                      onTap: () => context.pushNamed('add-product'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 1,
+                    child: _PremiumQuickActionCard(
+                      title: 'Shop\nProducts',
+                      icon: Icons.shopping_bag,
+                      isPrimary: false,
+                      onTap: () => context.pushNamed('product-catalog'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: StaggeredFadeIn(
+                    index: 2,
+                    child: _PremiumQuickActionCard(
+                      title: 'Refer &\nEarn',
+                      icon: Icons.volunteer_activism,
+                      isPrimary: false,
+                      onTap: () => context.pushNamed('referral'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -565,7 +1012,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.borderLight,
+                  color: AppTheme.border(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -630,7 +1077,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ),
                                 ),
                                 const SizedBox(height: 20),
-                                const Text('No products registered yet'),
+                                const Text('No appliances registered yet'),
                                 const SizedBox(height: 16),
                                 ElevatedButton.icon(
                                   onPressed: () {
@@ -638,7 +1085,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     context.pushNamed('add-product');
                                   },
                                   icon: const Icon(Icons.add),
-                                  label: const Text('Add Product'),
+                                  label: const Text('Register Appliance'),
                                 ),
                               ],
                             ),
@@ -709,15 +1156,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                                 context,
                                               ).textTheme.bodySmall?.copyWith(
                                                 color:
-                                                    AppTheme.textSecondaryLight,
+                                                    AppTheme.textSecondary(context),
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      const Icon(
+                                      Icon(
                                         Icons.chevron_right,
-                                        color: AppTheme.textSecondaryLight,
+                                        color: AppTheme.textSecondary(context),
                                       ),
                                     ],
                                   ),
@@ -779,7 +1226,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Text(
             'Register your Vignesh Agencies products to track\nwarranty and request service',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ),
@@ -787,7 +1234,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ElevatedButton.icon(
             onPressed: () => context.pushNamed('add-product'),
             icon: const Icon(Icons.add),
-            label: const Text('Add Your First Product'),
+            label: const Text('Register Your First Appliance'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
@@ -805,8 +1252,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       glowColor: _getStatusColor(product),
       onTap: () {
         context.pushNamed(
-          'service-request',
-          pathParameters: {'productId': product.id},
+          'appliance-detail',
+          pathParameters: {'applianceId': product.id},
         );
       },
       child: Column(
@@ -837,10 +1284,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         (_, __, ___) => Container(
                           width: 74,
                           height: 74,
-                          color: AppTheme.backgroundLight,
-                          child: const Icon(
+                          color: AppTheme.background(context),
+                          child: Icon(
                             Icons.devices,
-                            color: AppTheme.textSecondaryLight,
+                            color: AppTheme.textSecondary(context),
                           ),
                         ),
                   ),
@@ -865,7 +1312,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Text(
                       'Model: ${product.modelNumber}',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -876,9 +1323,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
             ],
           ),
@@ -1098,12 +1545,12 @@ class _PremiumQuickActionCardState extends State<_PremiumQuickActionCard>
                           ],
                         )
                         : null,
-                color: widget.isPrimary ? null : Colors.white,
+                color: widget.isPrimary ? null : Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(AppTheme.radiusXl),
                 border:
                     widget.isPrimary
                         ? null
-                        : Border.all(color: AppTheme.borderLight),
+                        : Border.all(color: AppTheme.border(context)),
                 boxShadow:
                     widget.isPrimary
                         ? [
@@ -1163,7 +1610,7 @@ class _PremiumQuickActionCardState extends State<_PremiumQuickActionCard>
                           color:
                               widget.isPrimary
                                   ? Colors.white
-                                  : AppTheme.textPrimaryLight,
+                                  : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w700,
                           height: 1.2,
                         ),
@@ -1213,9 +1660,9 @@ class _ShimmerCardState extends State<_ShimmerCard>
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-            border: Border.all(color: AppTheme.borderLight),
+            border: Border.all(color: AppTheme.border(context)),
           ),
           child: Row(
             children: [
@@ -1265,6 +1712,79 @@ class _ShimmerCardState extends State<_ShimmerCard>
           ),
         );
       },
+    );
+  }
+}
+
+/// Feature card for welcome section
+class _WelcomeFeatureCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _WelcomeFeatureCard({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withAlpha(40)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withAlpha(20),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withAlpha(25),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary(context),
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

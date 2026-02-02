@@ -214,7 +214,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
             Text(
               'No pending registrations to validate',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
             ),
           ],
@@ -517,7 +517,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                         Text(
                           'Model: ${widget.product.modelNumber}',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                              ?.copyWith(color: AppTheme.textSecondary(context)),
                         ),
                         const SizedBox(height: 6),
                         Row(
@@ -525,7 +525,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                             Icon(
                               Icons.schedule,
                               size: 12,
-                              color: AppTheme.textSecondaryLight.withAlpha(150),
+                              color: AppTheme.textSecondary(context).withAlpha(150),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -535,7 +535,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondaryLight.withAlpha(
+                                color: AppTheme.textSecondary(context).withAlpha(
                                   150,
                                 ),
                                 fontSize: 11,
@@ -557,7 +557,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                       ),
                       child: Icon(
                         Icons.keyboard_arrow_down,
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                         size: 20,
                       ),
                     ),
@@ -639,7 +639,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                 Text(
                   'Bill / Warranty Document',
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -802,7 +802,7 @@ class _PremiumConfirmDialog extends StatelessWidget {
             Text(
               message,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),

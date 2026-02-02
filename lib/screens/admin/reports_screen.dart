@@ -258,7 +258,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
                                               color:
-                                                  AppTheme.textSecondaryLight,
+                                                  AppTheme.textSecondary(context),
                                             ),
                                           ),
                                         ),
@@ -271,7 +271,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
                                               color:
-                                                  AppTheme.textSecondaryLight,
+                                                  AppTheme.textSecondary(context),
                                             ),
                                           ),
                                         ),
@@ -284,7 +284,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
                                               color:
-                                                  AppTheme.textSecondaryLight,
+                                                  AppTheme.textSecondary(context),
                                             ),
                                           ),
                                         ),
@@ -297,7 +297,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
                                               color:
-                                                  AppTheme.textSecondaryLight,
+                                                  AppTheme.textSecondary(context),
                                             ),
                                           ),
                                         ),
@@ -314,7 +314,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodySmall?.copyWith(
-                                          color: AppTheme.textSecondaryLight,
+                                          color: AppTheme.textSecondary(context),
                                         ),
                                       ),
                                     )
@@ -633,10 +633,10 @@ class _DatePickerField extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.calendar_today,
               size: 18,
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
             const SizedBox(width: 8),
             Column(
@@ -645,7 +645,7 @@ class _DatePickerField extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
                 Text(
@@ -701,7 +701,7 @@ class _ReportStatItem extends StatelessWidget {
           label,
           style: Theme.of(
             context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondaryLight),
+          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context)),
           textAlign: TextAlign.center,
         ),
       ],
@@ -789,7 +789,7 @@ class _TableRow extends StatelessWidget {
             child: Text(
               date,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
                 fontSize: 11,
               ),
             ),

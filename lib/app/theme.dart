@@ -48,6 +48,59 @@ class AppTheme {
   static const Color textTertiaryDark = Color(0xFF6B7280);
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // THEME-AWARE COLOR HELPERS (Use these for dark mode support!)
+  // ═══════════════════════════════════════════════════════════════════════════
+  
+  /// Returns primary text color based on current theme
+  static Color textPrimary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? textPrimaryDark 
+        : textPrimaryLight;
+  }
+
+  /// Returns secondary text color based on current theme
+  static Color textSecondary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? textSecondaryDark 
+        : textSecondaryLight;
+  }
+
+  /// Returns tertiary text color based on current theme
+  static Color textTertiary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? textTertiaryDark 
+        : textTertiaryLight;
+  }
+
+  /// Returns surface color based on current theme
+  static Color surface(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? surfaceDark 
+        : surfaceLight;
+  }
+
+  /// Returns background color based on current theme
+  static Color background(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? backgroundDark 
+        : backgroundLight;
+  }
+
+  /// Returns border color based on current theme
+  static Color border(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? borderDark 
+        : borderLight;
+  }
+
+  /// Returns icon color based on current theme (same as textSecondary)
+  static Color iconColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark 
+        ? textSecondaryDark 
+        : textSecondaryLight;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // STATUS COLORS (Unified across all pages)
   // ═══════════════════════════════════════════════════════════════════════════
   static const Color success = Color(0xFF22C55E);

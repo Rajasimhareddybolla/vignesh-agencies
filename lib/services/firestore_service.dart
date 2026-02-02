@@ -216,6 +216,22 @@ class FirestoreService {
         });
   }
 
+  // Stream of service requests for a specific product/appliance
+  Stream<List<ServiceRequestModel>> getProductServiceRequests(String productId) {
+    return _firestore
+        .collection('service_requests')
+        .where('productId', isEqualTo: productId)
+        .snapshots()
+        .map((snapshot) {
+          final docs =
+              snapshot.docs
+                  .map((doc) => ServiceRequestModel.fromFirestore(doc))
+                  .toList();
+          docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return docs;
+        });
+  }
+
   // Create a new service request
   Future<String> createServiceRequest(ServiceRequestModel request) async {
     final docRef = await _firestore
@@ -664,6 +680,12 @@ class FirestoreService {
         );
   }
 
+  // Get Single Order by ID
+  Future<OrderModel?> getOrder(String orderId) async {
+    final doc = await _firestore.collection('orders').doc(orderId).get();
+    return doc.exists ? OrderModel.fromFirestore(doc) : null;
+  }
+
   // Get All Orders (Admin)
   Stream<List<OrderModel>> getAllOrders({OrderStatus? status}) {
     Query<Map<String, dynamic>> query = _firestore
@@ -894,5 +916,20 @@ class FirestoreService {
   Future<AgentModel?> getAgent(String agentId) async {
     final doc = await _firestore.collection('agents').doc(agentId).get();
     return doc.exists ? AgentModel.fromFirestore(doc) : null;
+  }
+
+  // Force refresh user stats by reading latest data
+  Future<void> refreshUserStats(String userId) async {
+    // Trigger a fresh read from Firestore to update any cached streams
+    // This helps ensure the UI reflects the latest data
+    await _firestore.collection('users').doc(userId).get(
+      const GetOptions(source: Source.server),
+    );
+    await _firestore.collection('products')
+        .where('userId', isEqualTo: userId)
+        .get(const GetOptions(source: Source.server));
+    await _firestore.collection('service_requests')
+        .where('userId', isEqualTo: userId)
+        .get(const GetOptions(source: Source.server));
   }
 }

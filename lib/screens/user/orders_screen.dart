@@ -46,7 +46,7 @@ class _OrdersScreenState extends State<OrdersScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppTheme.primary,
-          unselectedLabelColor: AppTheme.textSecondaryLight,
+          unselectedLabelColor: AppTheme.textSecondary(context),
           indicatorColor: AppTheme.primary,
           indicatorWeight: 3,
           indicatorSize: TabBarIndicatorSize.label,
@@ -149,13 +149,13 @@ class _OrdersList extends StatelessWidget {
                   ? 'Your ongoing orders will appear here'
                   : 'Your past orders will appear here',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
             ),
             if (isActive) ...[
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: () => context.goNamed('home'),
+                onPressed: () => context.pushNamed('product-catalog'),
                 child: const Text('Start Shopping'),
               ),
             ],
@@ -192,8 +192,7 @@ class _PremiumOrderCard extends StatelessWidget {
 
     return PremiumCard(
       onTap: () {
-        // TODO: Navigate to Order Detail Screen
-        // context.pushNamed('order-detail', pathParameters: {'id': order.id});
+        context.pushNamed('order-detail', pathParameters: {'orderId': order.id});
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,19 +237,19 @@ class _PremiumOrderCard extends StatelessWidget {
                       placeholder:
                           (context, url) => Container(
                             color: AppTheme.backgroundLight,
-                            child: const Icon(
+                            child: Icon(
                               Icons.image,
                               size: 20,
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                       errorWidget:
                           (context, url, error) => Container(
                             color: AppTheme.backgroundLight,
-                            child: const Icon(
+                            child: Icon(
                               Icons.broken_image,
                               size: 20,
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                     ),
@@ -272,7 +271,7 @@ class _PremiumOrderCard extends StatelessWidget {
                   Text(
                     DateFormat('MMM d, yyyy').format(order.orderedAt),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 2),

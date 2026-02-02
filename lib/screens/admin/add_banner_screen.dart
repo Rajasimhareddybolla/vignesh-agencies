@@ -117,19 +117,19 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
                                   ),
                                 ],
                               )
-                              : const Column(
+                              : Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
                                     Icons.add_photo_alternate_outlined,
                                     size: 32,
-                                    color: AppTheme.textSecondaryLight,
+                                    color: AppTheme.textSecondary(context),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   Text(
                                     'Tap to upload banner image',
                                     style: TextStyle(
-                                      color: AppTheme.textSecondaryLight,
+                                      color: AppTheme.textSecondary(context),
                                     ),
                                   ),
                                 ],
@@ -192,11 +192,11 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
                     label: _priority.toInt().toString(),
                     onChanged: (val) => setState(() => _priority = val),
                   ),
-                  const Text(
+                  Text(
                     'Higher priority banners appear first in the slider.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -274,10 +274,10 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Live Preview',
                 style: TextStyle(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                   fontWeight: FontWeight.w600,
                   fontSize: 12,
                   letterSpacing: 1,

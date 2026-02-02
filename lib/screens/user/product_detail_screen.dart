@@ -141,7 +141,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       height: 1.1,
-                      color: AppTheme.textPrimaryLight,
+                      color: AppTheme.textPrimary(context),
                     ),
                   ),
 
@@ -180,7 +180,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             '₹${_originalPrice!.toStringAsFixed(0)}',
                             style: TextStyle(
                               decoration: TextDecoration.lineThrough,
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                               fontSize: 16,
                             ),
                           ),
@@ -233,8 +233,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _product!.description,
-                    style: const TextStyle(
-                      color: AppTheme.textSecondaryLight,
+                    style: TextStyle(
+                      color: AppTheme.textSecondary(context),
                       height: 1.5,
                     ),
                   ),
@@ -275,8 +275,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       flex: 2,
                                       child: Text(
                                         e.key,
-                                        style: const TextStyle(
-                                          color: AppTheme.textSecondaryLight,
+                                        style: TextStyle(
+                                          color: AppTheme.textSecondary(context),
                                         ),
                                       ),
                                     ),

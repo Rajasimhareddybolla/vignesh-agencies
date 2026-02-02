@@ -229,7 +229,7 @@ class _ContactOption extends StatelessWidget {
           color: Colors.grey[100],
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: AppTheme.textPrimaryLight),
+        child: Icon(icon, color: AppTheme.textPrimary(context)),
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       subtitle: Text(subtitle),

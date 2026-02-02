@@ -66,7 +66,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         source: ImageSource.gallery,
         maxWidth: 512,
         maxHeight: 512,
-        imageQuality: 75,
+        imageQuality: 50,
       );
 
       if (pickedFile != null) {
@@ -327,7 +327,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Text(
                 'Phone number is linked to your account and cannot be changed.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
               ),
             ],

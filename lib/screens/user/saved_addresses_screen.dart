@@ -242,13 +242,13 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                       Icon(
                         Icons.location_off_outlined,
                         size: 64,
-                        color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                        color: AppTheme.textSecondary(context).withOpacity(0.5),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No addresses saved',
                         style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(color: AppTheme.textSecondaryLight),
+                            ?.copyWith(color: AppTheme.textSecondary(context)),
                       ),
                     ],
                   ),
@@ -323,9 +323,9 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                                   await doc.reference.delete();
                                 }
                               },
-                              child: const Icon(
+                              child: Icon(
                                 Icons.more_vert,
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                               ),
                             ),
                           ],
@@ -344,10 +344,10 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.phone_outlined,
                               size: 14,
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -355,7 +355,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondaryLight,
+                                color: AppTheme.textSecondary(context),
                               ),
                             ),
                           ],

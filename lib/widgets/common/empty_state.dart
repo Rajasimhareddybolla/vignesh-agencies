@@ -92,7 +92,7 @@ class EmptyState extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondaryLight,
+              color: AppTheme.textSecondary(context),
             ),
             textAlign: TextAlign.center,
           ),

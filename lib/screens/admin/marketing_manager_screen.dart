@@ -33,7 +33,7 @@ class MarketingManagerScreen extends StatelessWidget {
                   Icon(
                     Icons.campaign_outlined,
                     size: 64,
-                    color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                    color: AppTheme.textSecondary(context).withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   const Text('No active promotions'),

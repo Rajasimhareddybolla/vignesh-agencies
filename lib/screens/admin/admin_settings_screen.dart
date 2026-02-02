@@ -152,7 +152,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                             icon: Icons.info_outline,
                             title: 'About',
                             subtitle: 'App info and version',
-                            iconColor: AppTheme.textSecondaryLight,
+                            iconColor: AppTheme.textSecondary(context),
                             onTap: () {
                               showAboutDialog(
                                 context: context,
@@ -207,81 +207,86 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
               ),
             ),
           ),
-          // Content
-          Column(
-            children: [
-              // Avatar
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Colors.white, Colors.white70],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(40),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+          // Content - Centered
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Avatar
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, Colors.white70],
                     ),
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: const Color(0xFF1a1a2e),
-                  backgroundImage:
-                      user?.photoUrl != null
-                          ? NetworkImage(user!.photoUrl!)
-                          : null,
-                  child:
-                      user?.photoUrl == null
-                          ? const Icon(
-                            Icons.admin_panel_settings,
-                            color: Colors.white,
-                            size: 36,
-                          )
-                          : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                user?.displayName ?? 'Admin',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primary.withAlpha(40),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.verified,
-                      color: AppTheme.primaryLight,
-                      size: 14,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Administrator',
-                      style: TextStyle(
-                        color: AppTheme.primaryLight,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(40),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 40,
+                    backgroundColor: const Color(0xFF1a1a2e),
+                    backgroundImage:
+                        user?.photoUrl != null
+                            ? NetworkImage(user!.photoUrl!)
+                            : null,
+                    child:
+                        user?.photoUrl == null
+                            ? const Icon(
+                              Icons.admin_panel_settings,
+                              color: Colors.white,
+                              size: 36,
+                            )
+                            : null,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  user?.displayName ?? 'Admin',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(40),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.verified,
+                        color: AppTheme.primaryLight,
+                        size: 14,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Administrator',
+                        style: TextStyle(
+                          color: AppTheme.primaryLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -313,7 +318,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                 title.toUpperCase(),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -405,7 +410,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
               Text(
                 'VIGNESH AGENCIES ADMIN',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.textSecondaryLight.withAlpha(150),
+                  color: AppTheme.textSecondary(context).withAlpha(150),
                   letterSpacing: 2,
                 ),
               ),
@@ -421,7 +426,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
           Text(
             'Version 1.0.0',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppTheme.textSecondaryLight.withAlpha(120),
+              color: AppTheme.textSecondary(context).withAlpha(120),
             ),
           ),
         ],
@@ -490,7 +495,7 @@ class _PremiumMenuItem extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondaryLight),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
           ],
         ),
       ),
@@ -527,7 +532,7 @@ class _LogoutConfirmDialog extends StatelessWidget {
             Text(
               'Are you sure you want to logout?',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
               textAlign: TextAlign.center,
             ),
@@ -652,7 +657,7 @@ class _ThemeSelectionDialog extends StatelessWidget {
             Icon(
               icon,
               color:
-                  isSelected ? AppTheme.primary : AppTheme.textSecondaryLight,
+                  isSelected ? AppTheme.primary : AppTheme.textSecondary(context),
             ),
             const SizedBox(width: 12),
             Text(

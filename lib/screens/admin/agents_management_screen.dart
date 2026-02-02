@@ -31,7 +31,7 @@ class AgentsManagementScreen extends StatelessWidget {
                   Icon(
                     Icons.engineering_outlined,
                     size: 80,
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -42,7 +42,7 @@ class AgentsManagementScreen extends StatelessWidget {
                   Text(
                     'Add your first service agent',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                 ],
@@ -109,10 +109,10 @@ class _AgentCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.phone,
                   size: 14,
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
                 const SizedBox(width: 4),
                 Text(agent.phone),
@@ -122,10 +122,10 @@ class _AgentCard extends StatelessWidget {
               const SizedBox(height: 2),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.work,
                     size: 14,
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                   const SizedBox(width: 4),
                   Text(agent.specialization!),
@@ -136,9 +136,9 @@ class _AgentCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 'Last assigned: ${DateFormat('MMM d, yyyy').format(agent.lastAssignedAt!)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
               ),
             ],

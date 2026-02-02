@@ -7,6 +7,7 @@ import '../../models/order_model.dart'; // For AddressModel
 import '../../services/cart_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/order_service.dart';
+import '../../widgets/common/profile_completion_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -104,8 +105,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  void _showOrderConfirmation() {
+  void _showOrderConfirmation() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Check profile completion before proceeding
+    final authService = context.read<AuthService>();
+    final isComplete = await ProfileCompletionService.checkAndPromptCompletion(
+      context,
+      authService,
+      action: 'place your order',
+    );
+
+    if (!isComplete || !mounted) return;
 
     final cart = context.read<CartService>();
 
@@ -596,6 +607,45 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          // Delivery Estimate
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.infoLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.local_shipping_outlined, color: AppTheme.info, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Estimated Delivery',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: AppTheme.infoDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '3-5 business days',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.infoDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

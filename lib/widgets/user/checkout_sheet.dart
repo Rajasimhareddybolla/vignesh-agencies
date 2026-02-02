@@ -164,10 +164,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                   'Order ID: ${orderId.substring(orderId.length - 6).toUpperCase()}',
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   'Your order has been placed successfully.\nYou can track it in the Requests tab.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textSecondaryLight),
+                  style: TextStyle(color: AppTheme.textSecondary(context)),
                 ),
               ],
             ),
@@ -276,9 +276,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                                   Text(
                                     widget.selectedVariation!.attributes.values
                                         .join(', '),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: AppTheme.textSecondaryLight,
+                                      color: AppTheme.textSecondary(context),
                                     ),
                                   ),
                                 Text(

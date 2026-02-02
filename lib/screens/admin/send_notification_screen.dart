@@ -482,14 +482,14 @@ class _TypeButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : AppTheme.textSecondaryLight,
+                color: isSelected ? Colors.white : AppTheme.textSecondary(context),
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color:
-                      isSelected ? Colors.white : AppTheme.textSecondaryLight,
+                      isSelected ? Colors.white : AppTheme.textSecondary(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -528,7 +528,7 @@ class _PremiumTextField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: AppTheme.textSecondaryLight,
+            color: AppTheme.textSecondary(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -540,7 +540,7 @@ class _PremiumTextField extends StatelessWidget {
           validator: validator,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: AppTheme.textSecondaryLight),
+            prefixIcon: Icon(icon, color: AppTheme.textSecondary(context)),
             filled: true,
             fillColor: Theme.of(context).scaffoldBackgroundColor,
             border: OutlineInputBorder(

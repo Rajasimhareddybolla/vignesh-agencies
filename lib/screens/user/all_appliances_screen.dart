@@ -66,14 +66,14 @@ class AllAppliancesScreen extends StatelessWidget {
                       Text(
                         'Please check your connection',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton.icon(
                         onPressed: () => context.pushNamed('add-product'),
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Product'),
+                        label: const Text('Register Appliance'),
                       ),
                     ],
                   ),
@@ -110,14 +110,14 @@ class AllAppliancesScreen extends StatelessWidget {
                         'Register your Vignesh Agencies products to\nmanage warranties and service requests',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: () => context.pushNamed('add-product'),
                         icon: const Icon(Icons.add),
-                        label: const Text('Add Product'),
+                        label: const Text('Register Appliance'),
                       ),
                     ],
                   ),
@@ -234,7 +234,7 @@ class _ProductCard extends StatelessWidget {
                       Text(
                         'Model: ${product.modelNumber}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                     ],
@@ -259,7 +259,7 @@ class _ProductCard extends StatelessWidget {
                       Text(
                         'Purchase Date',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -282,7 +282,7 @@ class _ProductCard extends StatelessWidget {
                         Text(
                           'Warranty Status',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                              ?.copyWith(color: AppTheme.textSecondary(context)),
                         ),
                         const SizedBox(height: 4),
                         Row(
@@ -362,12 +362,12 @@ class _ProductCard extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () {
                   context.pushNamed(
-                    'service-request',
-                    pathParameters: {'productId': product.id},
+                    'appliance-detail',
+                    pathParameters: {'applianceId': product.id},
                   );
                 },
-                icon: const Icon(Icons.build_outlined, size: 18),
-                label: const Text('Request Service'),
+                icon: const Icon(Icons.visibility_outlined, size: 18),
+                label: const Text('View Details'),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),

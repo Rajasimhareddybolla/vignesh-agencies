@@ -18,9 +18,11 @@ import '../screens/user/referral_screen.dart';
 import '../screens/user/requests_list_screen.dart';
 import '../screens/user/user_service_request_detail_screen.dart';
 import '../screens/user/orders_screen.dart';
+import '../screens/user/order_detail_screen.dart';
 import '../screens/user/profile_screen.dart';
 import '../screens/user/edit_profile_screen.dart';
 import '../screens/user/all_appliances_screen.dart';
+import '../screens/user/appliance_detail_screen.dart';
 import '../screens/user/product_detail_screen.dart';
 import '../screens/admin/command_center_screen.dart';
 import '../screens/admin/service_requests_screen.dart';
@@ -193,6 +195,14 @@ class AppRouter {
         builder: (context, state) => const AllAppliancesScreen(),
       ),
       GoRoute(
+        path: '/appliance-detail/:applianceId',
+        name: 'appliance-detail',
+        builder: (context, state) {
+          final applianceId = state.pathParameters['applianceId'] ?? '';
+          return ApplianceDetailScreen(applianceId: applianceId);
+        },
+      ),
+      GoRoute(
         path: '/product-detail/:productId',
         name: 'product-detail',
         builder: (context, state) {
@@ -207,6 +217,14 @@ class AppRouter {
         builder: (context, state) {
           final requestId = state.pathParameters['requestId'] ?? '';
           return UserServiceRequestDetailScreen(requestId: requestId);
+        },
+      ),
+      GoRoute(
+        path: '/order-detail/:orderId',
+        name: 'order-detail',
+        builder: (context, state) {
+          final orderId = state.pathParameters['orderId'] ?? '';
+          return OrderDetailScreen(orderId: orderId);
         },
       ),
 
@@ -358,14 +376,14 @@ class UserShellScreen extends StatelessWidget {
               label: 'Home',
             ),
             NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'Requests',
+              icon: Icon(Icons.build_outlined),
+              selectedIcon: Icon(Icons.build),
+              label: 'Services',
             ),
             NavigationDestination(
-              icon: Icon(Icons.receipt_long_outlined),
-              selectedIcon: Icon(Icons.receipt_long),
-              label: 'My Orders',
+              icon: Icon(Icons.shopping_bag_outlined),
+              selectedIcon: Icon(Icons.shopping_bag),
+              label: 'Orders',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline),
@@ -457,7 +475,7 @@ class AdminShellScreen extends StatelessWidget {
                 NavigationRailDestination(
                   icon: Icon(Icons.build_outlined),
                   selectedIcon: Icon(Icons.build),
-                  label: Text('Requests'),
+                  label: Text('Services'),
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.verified_outlined),
@@ -498,7 +516,7 @@ class AdminShellScreen extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.build_outlined),
             selectedIcon: Icon(Icons.build),
-            label: 'Requests',
+            label: 'Services',
           ),
           NavigationDestination(
             icon: Icon(Icons.verified_outlined),

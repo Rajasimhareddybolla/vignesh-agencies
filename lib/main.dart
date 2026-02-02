@@ -9,6 +9,7 @@ import 'services/storage_service.dart';
 import 'firebase_options.dart';
 
 import 'services/push_notification_service.dart'; // Add import
+import 'services/warranty_notification_service.dart'; // Warranty notifications
 import 'services/cart_service.dart';
 import 'services/order_service.dart';
 import 'providers/theme_provider.dart';
@@ -24,6 +25,9 @@ void main() async {
   // We don't await this strictly to avoid blocking UI, or we can.
   // Often better to fire and forget or await if critical.
   await pushService.initialize();
+
+  // Initialize Warranty Notification Service (for local scheduled notifications)
+  await WarrantyNotificationService.initialize();
 
   runApp(const VigneshAgenciesApp());
 }

@@ -70,7 +70,7 @@ class _RequestsListScreenState extends State<RequestsListScreen>
                     TabBar(
                       controller: _tabController,
                       labelColor: AppTheme.primary,
-                      unselectedLabelColor: AppTheme.textSecondaryLight,
+                      unselectedLabelColor: AppTheme.textSecondary(context),
                       indicatorColor: AppTheme.primary,
                       indicatorWeight: 3,
                       indicatorSize: TabBarIndicatorSize.label,
@@ -193,7 +193,7 @@ class _RequestsListScreenState extends State<RequestsListScreen>
                 Text(
                   'Track your service requests',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
               ],
@@ -265,7 +265,7 @@ class _RequestsList extends StatelessWidget {
               Text(
                 'Your Vignesh Agencies service requests will appear here',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
               ),
             ],
@@ -330,7 +330,7 @@ class _PremiumRequestCard extends StatelessWidget {
                   Text(
                     DateFormat('MMM dd').format(request.createdAt),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                 ],
@@ -376,15 +376,15 @@ class _PremiumRequestCard extends StatelessWidget {
                     Text(
                       request.issueType,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: AppTheme.textSecondaryLight,
+                color: AppTheme.textSecondary(context),
               ),
             ],
           ),

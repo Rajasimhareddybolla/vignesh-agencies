@@ -42,13 +42,13 @@ class AllReferralsScreen extends StatelessWidget {
                   Icon(
                     Icons.people_outline,
                     size: 64,
-                    color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                    color: AppTheme.textSecondary(context).withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No referrals yet',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.textSecondaryLight,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                 ],
@@ -145,7 +145,7 @@ class _ReferralCard extends StatelessWidget {
                     'MMM dd, yyyy • hh:mm a',
                   ).format(referral.createdAt),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
               ],
@@ -166,7 +166,7 @@ class _ReferralCard extends StatelessWidget {
                 Text(
                   'Pending',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
                 ),
 

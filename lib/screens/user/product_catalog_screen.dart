@@ -7,6 +7,7 @@ import '../../app/theme.dart';
 import '../../models/catalog_product_model.dart';
 import '../../models/user_appliance_model.dart';
 import '../../services/firestore_service.dart';
+import '../../services/cart_service.dart';
 import '../../widgets/common/premium_widgets.dart';
 
 class ProductCatalogScreen extends StatefulWidget {
@@ -43,11 +44,15 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
       appBar: AppBar(
         title: const Text('Store'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cart feature coming soon!')),
+          Consumer<CartService>(
+            builder: (context, cart, _) {
+              return Badge(
+                isLabelVisible: cart.itemCount > 0,
+                label: Text('${cart.itemCount}'),
+                child: IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  onPressed: () => context.push('/cart'),
+                ),
               );
             },
           ),
@@ -125,13 +130,13 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                         Icon(
                           Icons.search_off,
                           size: 60,
-                          color: AppTheme.textSecondaryLight.withAlpha(100),
+                          color: AppTheme.textSecondary(context).withAlpha(100),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No products found',
                           style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                              ?.copyWith(color: AppTheme.textSecondary(context)),
                         ),
                       ],
                     ),
@@ -201,7 +206,7 @@ class _CategoryChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.textSecondaryLight,
+            color: isSelected ? Colors.white : AppTheme.textSecondary(context),
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -264,9 +269,9 @@ class _CatalogProductCard extends StatelessWidget {
                       errorWidget:
                           (context, url, error) => Container(
                             color: Theme.of(context).scaffoldBackgroundColor,
-                            child: const Icon(
+                            child: Icon(
                               Icons.image_not_supported,
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                             ),
                           ),
                     ),
@@ -344,17 +349,17 @@ class _CatalogProductCard extends StatelessWidget {
                             if (product.offerPrice != null)
                               Text(
                                 '₹${product.basePrice.toStringAsFixed(0)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 10,
                                   decoration: TextDecoration.lineThrough,
-                                  color: AppTheme.textSecondaryLight,
+                                  color: AppTheme.textSecondary(context),
                                 ),
                               ),
                             Text(
                               '₹${(product.offerPrice ?? product.basePrice).toStringAsFixed(0)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.textPrimaryLight,
+                                color: AppTheme.textPrimary(context),
                                 fontSize: 16,
                               ),
                             ),

@@ -120,7 +120,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
               Text(
                 'Sign in to access the admin panel',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -283,7 +283,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                       child: Text(
                         'This is a restricted area. Unauthorized access is prohibited.',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                       ),
                     ),

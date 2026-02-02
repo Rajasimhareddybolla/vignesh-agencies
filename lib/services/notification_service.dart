@@ -171,9 +171,48 @@ class NotificationService {
 
   /// Get unread count
   Stream<int> getUnreadCount(String userId) {
-    return getUserNotifications(userId).map((list) {
-      return list.where((n) => n['read'] != true).length;
-    });
+    return getUserNotifications(userId)
+        .map((list) {
+          return list.where((n) => n['read'] != true).length;
+        })
+        .handleError((error) {
+          print('NotificationService: getUnreadCount error for $userId: $error');
+          return 0;
+        });
+  }
+
+  /// Mark all notifications as read
+  Future<void> markAllAsRead(String userId) async {
+    // 1. Mark all personal notifications as read
+    final personalNotifs = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('notifications')
+        .where('read', isEqualTo: false)
+        .get();
+
+    final batch = _firestore.batch();
+    for (final doc in personalNotifs.docs) {
+      batch.update(doc.reference, {'read': true});
+    }
+
+    // 2. Get all global notifications and mark them as read
+    final globalNotifs = await _firestore
+        .collection('promo_notifications')
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    // Create read receipts for global notifications
+    for (final doc in globalNotifs.docs) {
+      final readReceiptRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('read_notifications')
+          .doc(doc.id);
+      batch.set(readReceiptRef, {'readAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+    }
+
+    await batch.commit();
   }
 
   /// Delete a promotional notification
@@ -199,25 +238,52 @@ class NotificationService {
 
     void update() {
       if (hasA && hasB && hasC) {
-        controller.add(combiner(lastA as A, lastB as B, lastC as C));
+        try {
+          controller.add(combiner(lastA as A, lastB as B, lastC as C));
+        } catch (e) {
+          // Log error but don't crash the stream
+          print('NotificationService: Error combining streams: $e');
+        }
       }
     }
 
-    final subA = streamA.listen((a) {
-      lastA = a;
-      hasA = true;
-      update();
-    });
-    final subB = streamB.listen((b) {
-      lastB = b;
-      hasB = true;
-      update();
-    });
-    final subC = streamC.listen((c) {
-      lastC = c;
-      hasC = true;
-      update();
-    });
+    final subA = streamA.listen(
+      (a) {
+        lastA = a;
+        hasA = true;
+        update();
+      },
+      onError: (e) {
+        print('NotificationService: Stream A error: $e');
+        // Mark as received with null to allow other streams to proceed
+        hasA = true;
+        update();
+      },
+    );
+    final subB = streamB.listen(
+      (b) {
+        lastB = b;
+        hasB = true;
+        update();
+      },
+      onError: (e) {
+        print('NotificationService: Stream B error: $e');
+        hasB = true;
+        update();
+      },
+    );
+    final subC = streamC.listen(
+      (c) {
+        lastC = c;
+        hasC = true;
+        update();
+      },
+      onError: (e) {
+        print('NotificationService: Stream C error: $e');
+        hasC = true;
+        update();
+      },
+    );
 
     controller.onCancel = () {
       subA.cancel();

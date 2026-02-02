@@ -99,13 +99,13 @@ class _AdminServiceRequestsScreenState
                         Icon(
                           Icons.inbox_outlined,
                           size: 64,
-                          color: AppTheme.textSecondaryLight.withOpacity(0.5),
+                          color: AppTheme.textSecondary(context).withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No requests found',
                           style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppTheme.textSecondaryLight),
+                              ?.copyWith(color: AppTheme.textSecondary(context)),
                         ),
                       ],
                     ),
@@ -201,7 +201,7 @@ class _FilterChip extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: isSelected ? Colors.white : AppTheme.textSecondaryLight,
+              color: isSelected ? Colors.white : AppTheme.textSecondary(context),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -399,7 +399,7 @@ class _RequestRow extends StatelessWidget {
             ),
 
             const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondaryLight),
+            Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
           ],
         ),
       ),

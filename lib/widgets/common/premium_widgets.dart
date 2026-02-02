@@ -472,7 +472,7 @@ class PremiumIconButton extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                color: iconColor ?? AppTheme.textPrimaryLight,
+                color: iconColor ?? AppTheme.textPrimary(context),
                 size: size * 0.5,
               ),
             ),

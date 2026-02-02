@@ -74,7 +74,7 @@ class _UserServiceRequestDetailScreenState
                     Text(
                       'Description',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondaryLight,
+                            color: AppTheme.textSecondary(context),
                           ),
                     ),
                     const SizedBox(height: 4),
@@ -119,7 +119,7 @@ class _UserServiceRequestDetailScreenState
                       Text(
                         'No audio recording attached.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                               fontStyle: FontStyle.italic,
                             ),
                       ),
@@ -182,7 +182,7 @@ class _UserServiceRequestDetailScreenState
                       Text(
                         'No evidence images available.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondaryLight,
+                              color: AppTheme.textSecondary(context),
                               fontStyle: FontStyle.italic,
                             ),
                       ),
@@ -262,7 +262,7 @@ class _UserServiceRequestDetailScreenState
                 Text(
                   request.ticketNumber,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                         fontWeight: FontWeight.w500,
                       ),
                 ),
@@ -326,7 +326,7 @@ class _UserServiceRequestDetailScreenState
             child: Text(
               'Your request is being reviewed. A technician will be assigned soon.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
             ),
           ),
@@ -365,7 +365,7 @@ class _UserServiceRequestDetailScreenState
           Text(
             'Assignment details will be updated shortly.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondaryLight,
+                  color: AppTheme.textSecondary(context),
                   fontStyle: FontStyle.italic,
                 ),
           ),
@@ -407,7 +407,7 @@ class _UserServiceRequestDetailScreenState
             Text(
               'The technician has marked this service as resolved. Please confirm if the issue has been fixed.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
             ),
             const SizedBox(height: 16),
@@ -472,7 +472,7 @@ class _UserServiceRequestDetailScreenState
                   Text(
                     'Thank you for confirming. This request is now closed.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondaryLight,
+                          color: AppTheme.textSecondary(context),
                         ),
                   ),
                 ],
@@ -519,7 +519,7 @@ class _UserServiceRequestDetailScreenState
                 Text(
                   _getStatusDescription(request.status),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondaryLight,
+                        color: AppTheme.textSecondary(context),
                       ),
                 ),
               ],
@@ -862,7 +862,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondaryLight,
+                    color: AppTheme.textSecondary(context),
                   ),
             ),
           ),
