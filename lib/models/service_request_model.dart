@@ -103,6 +103,7 @@ class ServiceRequestModel {
   final DateTime createdAt;
   final DateTime? assignedAt;
   final DateTime? resolvedAt;
+  final String? adminVoiceNoteUrl;
 
   // Customer details (denormalized for quick access)
   final String? customerName;
@@ -137,17 +138,11 @@ class ServiceRequestModel {
     this.customerAddress,
     this.productName,
     this.productModel,
+    this.adminVoiceNoteUrl,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-
-    print('DEBUG MODEL: Raw Firestore data for ${doc.id}:');
-    print('DEBUG MODEL:   evidenceImages raw: ${data['evidenceImages']}');
-    print(
-      'DEBUG MODEL:   evidenceImages type: ${data['evidenceImages']?.runtimeType}',
-    );
-    print('DEBUG MODEL:   audioRecordingUrl raw: ${data['audioRecordingUrl']}');
 
     // Safety check for evidenceImages
     List<String> images = [];
@@ -155,8 +150,6 @@ class ServiceRequestModel {
       images =
           (data['evidenceImages'] as List).map((e) => e.toString()).toList();
     }
-
-    print('DEBUG MODEL:   Parsed images: $images');
 
     return ServiceRequestModel(
       id: doc.id,
@@ -196,6 +189,7 @@ class ServiceRequestModel {
       customerAddress: data['customerAddress']?.toString(),
       productName: data['productName']?.toString(),
       productModel: data['productModel']?.toString(),
+      adminVoiceNoteUrl: data['adminVoiceNoteUrl']?.toString(),
     );
   }
 
@@ -223,6 +217,7 @@ class ServiceRequestModel {
       'customerAddress': customerAddress,
       'productName': productName,
       'productModel': productModel,
+      'adminVoiceNoteUrl': adminVoiceNoteUrl,
     };
   }
 
@@ -245,6 +240,7 @@ class ServiceRequestModel {
     String? customerAddress,
     String? productName,
     String? productModel,
+    String? adminVoiceNoteUrl,
   }) {
     return ServiceRequestModel(
       id: id,
@@ -270,6 +266,7 @@ class ServiceRequestModel {
       customerAddress: customerAddress ?? this.customerAddress,
       productName: productName ?? this.productName,
       productModel: productModel ?? this.productModel,
+      adminVoiceNoteUrl: adminVoiceNoteUrl ?? this.adminVoiceNoteUrl,
     );
   }
 

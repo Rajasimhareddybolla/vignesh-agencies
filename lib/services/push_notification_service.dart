@@ -30,7 +30,9 @@ class PushNotificationService {
     );
 
     // Subscribe to global promo notifications topic
-    await _firebaseMessaging.subscribeToTopic('promo_notifications');
+    if (!kIsWeb) {
+      await _firebaseMessaging.subscribeToTopic('promo_notifications');
+    }
 
     // 2. Set foreground presentation options (iOS)
     await _firebaseMessaging.setForegroundNotificationPresentationOptions(
@@ -80,7 +82,11 @@ class PushNotificationService {
         ?.createNotificationChannel(channel);
 
     // 5. Register Background Handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+    }
 
     // 6. Listen for Foreground Messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -129,7 +135,12 @@ class PushNotificationService {
     });
 
     // Get the token for debugging/sending test messages
-    final token = await _firebaseMessaging.getToken();
-    debugPrint('FCM Token: $token');
+    // Note: On web, getToken() might require a vapidKey
+    try {
+      final token = await _firebaseMessaging.getToken();
+      debugPrint('FCM Token: $token');
+    } catch (e) {
+      debugPrint('Error getting FCM token: $e');
+    }
   }
 }

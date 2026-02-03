@@ -44,7 +44,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     SnackBar(
                       content: const Row(
                         children: [
-                          Icon(Icons.check_circle, color: Colors.white, size: 20),
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                           SizedBox(width: 12),
                           Text('All notifications marked as read'),
                         ],
@@ -72,42 +76,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: userId == null
-          ? _buildEmptyState(context)
-          : StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _notificationService.getUserNotifications(userId),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+      body:
+          userId == null
+              ? _buildEmptyState(context)
+              : StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _notificationService.getUserNotifications(userId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                final notifications = snapshot.data ?? [];
+                  final notifications = snapshot.data ?? [];
 
-                if (notifications.isEmpty) {
-                  return _buildEmptyState(context);
-                }
+                  if (notifications.isEmpty) {
+                    return _buildEmptyState(context);
+                  }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: notifications.length,
-                  itemBuilder: (context, index) {
-                    final notification = notifications[index];
-                    return _PremiumNotificationCard(
-                      notification: notification,
-                      onTap: () async {
-                        // Mark as read
-                        if (notification['read'] != true) {
-                          await _notificationService.markAsRead(
-                            userId,
-                            notification['id'],
-                          );
-                        }
-                      },
-                    );
-                  },
-                );
-              },
-            ),
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: notifications.length,
+                    itemBuilder: (context, index) {
+                      final notification = notifications[index];
+                      return _PremiumNotificationCard(
+                        notification: notification,
+                        onTap: () async {
+                          // Mark as read
+                          if (notification['read'] != true) {
+                            await _notificationService.markAsRead(
+                              userId,
+                              notification['id'],
+                            );
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
     );
   }
 
@@ -179,12 +184,14 @@ class _PremiumNotificationCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: isRead ? Colors.white : AppTheme.primary.withAlpha(8),
+          color:
+              isRead
+                  ? Theme.of(context).cardColor
+                  : AppTheme.primary.withAlpha(8),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isRead
-                ? AppTheme.borderLight
-                : AppTheme.primary.withAlpha(50),
+            color:
+                isRead ? AppTheme.borderLight : AppTheme.primary.withAlpha(50),
           ),
           boxShadow: [
             BoxShadow(
@@ -237,12 +244,14 @@ class _PremiumNotificationCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 notification['title'] ?? 'Notification',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(
-                                      fontWeight: isRead
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleSmall?.copyWith(
+                                  fontWeight:
+                                      isRead
                                           ? FontWeight.w500
                                           : FontWeight.w700,
-                                    ),
+                                ),
                               ),
                             ),
                             if (!isRead)
@@ -259,11 +268,12 @@ class _PremiumNotificationCard extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           notification['body'] ?? '',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppTheme.textSecondary(context),
-                                height: 1.4,
-                              ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                            height: 1.4,
+                          ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -296,16 +306,20 @@ class _PremiumNotificationCard extends StatelessWidget {
                             Icon(
                               Icons.schedule,
                               size: 12,
-                              color: AppTheme.textSecondary(context).withAlpha(150),
+                              color: AppTheme.textSecondary(
+                                context,
+                              ).withAlpha(150),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               _formatTime(createdAt),
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: AppTheme.textSecondary(context)
-                                        .withAlpha(150),
-                                  ),
+                              style: Theme.of(
+                                context,
+                              ).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.textSecondary(
+                                  context,
+                                ).withAlpha(150),
+                              ),
                             ),
                           ],
                         ),
@@ -352,17 +366,21 @@ class _PremiumNotificationCard extends StatelessWidget {
         height: 120,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
-          height: 80,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_getTypeColor(type), _getTypeColor(type).withAlpha(180)],
+        errorBuilder:
+            (_, __, ___) => Container(
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _getTypeColor(type),
+                    _getTypeColor(type).withAlpha(180),
+                  ],
+                ),
+              ),
+              child: Center(
+                child: Icon(_getTypeIcon(type), color: Colors.white, size: 32),
+              ),
             ),
-          ),
-          child: Center(
-            child: Icon(_getTypeIcon(type), color: Colors.white, size: 32),
-          ),
-        ),
       ),
     );
   }

@@ -96,11 +96,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               builder: (context, productsSnapshot) {
                 final products = productsSnapshot.data ?? [];
                 final hasProducts = products.isNotEmpty;
-                final isLoading = productsSnapshot.connectionState == ConnectionState.waiting;
+                final isLoading =
+                    productsSnapshot.connectionState == ConnectionState.waiting;
 
                 // Schedule warranty expiry notifications when products are loaded
-                if (products.isNotEmpty && productsSnapshot.connectionState == ConnectionState.active) {
-                  WarrantyNotificationService.checkAndScheduleNotifications(products);
+                if (products.isNotEmpty &&
+                    productsSnapshot.connectionState ==
+                        ConnectionState.active) {
+                  WarrantyNotificationService.checkAndScheduleNotifications(
+                    products,
+                  );
                 }
 
                 return CustomScrollView(
@@ -119,8 +124,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           ).animate(_headerAnimation),
                           child: _buildPremiumHeader(
                             context,
-                            authService,
-                            firestoreService,
+                            userSnapshot.data,
+                            products,
                           ),
                         ),
                       ),
@@ -136,9 +141,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
                     // Welcome Section for New Users
                     if (!hasProducts && !isLoading)
-                      SliverToBoxAdapter(
-                        child: _buildWelcomeSection(context),
-                      ),
+                      SliverToBoxAdapter(child: _buildWelcomeSection(context)),
 
                     // Quick Actions with staggered animation (dynamic based on product count)
                     SliverToBoxAdapter(
@@ -155,12 +158,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             children: [
                               Text(
                                 'My Appliances',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w700),
                               ),
                               TextButton.icon(
-                                onPressed: () => context.pushNamed('all-appliances'),
+                                onPressed:
+                                    () => context.pushNamed('all-appliances'),
                                 icon: const Icon(Icons.grid_view, size: 18),
                                 label: const Text('View All'),
                                 style: TextButton.styleFrom(
@@ -211,9 +214,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildPremiumHeader(
     BuildContext context,
-    AuthService authService,
-    FirestoreService firestoreService,
+    UserModel? user,
+    List<UserApplianceModel> products,
   ) {
+    final displayName = user?.displayName ?? 'User';
+    final greeting = _getGreeting();
+    final firestoreService = context.read<FirestoreService>();
+
     return Container(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -249,200 +256,183 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ),
             ),
           ),
-          // Content
-          StreamBuilder<UserModel?>(
-            stream: authService.userModelStream(),
-            builder: (context, snapshot) {
-              final user = snapshot.data;
-              final displayName = user?.displayName ?? 'User';
-              final greeting = _getGreeting();
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          // Content - No longer using StreamBuilder here since we receive data from parent
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            context.go('/profile');
-                          },
-                          child: Row(
-                            children: [
-                              // User Avatar
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withAlpha(40),
-                                  border: Border.all(
-                                    color: Colors.white.withAlpha(80),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    displayName.isNotEmpty
-                                        ? displayName[0].toUpperCase()
-                                        : 'U',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        context.go('/profile');
+                      },
+                      child: Row(
+                        children: [
+                          // User Avatar
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white.withAlpha(40),
+                              border: Border.all(
+                                color: Colors.white.withAlpha(80),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      greeting,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodySmall?.copyWith(
-                                        color: Colors.white.withAlpha(200),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      displayName,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  greeting,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: Colors.white.withAlpha(200),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  displayName,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      // Settings Button
-                      PremiumIconButton(
-                        icon: Icons.settings_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Settings Button
+                  PremiumIconButton(
+                    icon: Icons.settings_outlined,
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      context.go('/profile');
+                    },
+                    backgroundColor: Colors.white.withAlpha(40),
+                    iconColor: Colors.white,
+                  ),
+                  const SizedBox(width: 8),
+                  // Notifications Button with dynamic badge
+                  StreamBuilder<int>(
+                    stream:
+                        user != null
+                            ? NotificationService().getUnreadCount(user.id)
+                            : Stream.value(0),
+                    builder: (context, notifSnapshot) {
+                      final unreadCount = notifSnapshot.data ?? 0;
+                      return PremiumIconButton(
+                        icon: Icons.notifications_outlined,
+                        onPressed: () => context.push('/notifications'),
+                        backgroundColor: Colors.white.withAlpha(40),
+                        iconColor: Colors.white,
+                        showBadge: unreadCount > 0,
+                        badgeCount: unreadCount,
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  // Cart Button
+                  Consumer<CartService>(
+                    builder: (context, cart, _) {
+                      return PremiumIconButton(
+                        icon: Icons.shopping_cart_outlined,
                         onPressed: () {
                           HapticFeedback.lightImpact();
-                          context.go('/profile');
+                          context.push('/cart');
                         },
                         backgroundColor: Colors.white.withAlpha(40),
                         iconColor: Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      // Notifications Button with dynamic badge
-                      StreamBuilder<int>(
-                        stream: user != null
-                            ? NotificationService().getUnreadCount(user.id)
-                            : Stream.value(0),
-                        builder: (context, notifSnapshot) {
-                          final unreadCount = notifSnapshot.data ?? 0;
-                          return PremiumIconButton(
-                            icon: Icons.notifications_outlined,
-                            onPressed: () => context.push('/notifications'),
-                            backgroundColor: Colors.white.withAlpha(40),
-                            iconColor: Colors.white,
-                            showBadge: unreadCount > 0,
-                            badgeCount: unreadCount,
-                          );
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      // Cart Button
-                      Consumer<CartService>(
-                        builder: (context, cart, _) {
-                          return PremiumIconButton(
-                            icon: Icons.shopping_cart_outlined,
-                            onPressed: () {
-                              HapticFeedback.lightImpact();
-                              context.push('/cart');
-                            },
-                            backgroundColor: Colors.white.withAlpha(40),
-                            iconColor: Colors.white,
-                            showBadge: cart.itemCount > 0,
-                            badgeCount: cart.itemCount,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  // Stats row
-                  GlassContainer(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        StreamBuilder<List<UserApplianceModel>>(
-                          stream:
-                              user != null
-                                  ? firestoreService.getUserProducts(user.id)
-                                  : Stream.value([]),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data?.length ?? 0;
-                            return _buildHeaderStat(
-                              context,
-                              Icons.inventory_2,
-                              '$count',
-                              'Appliances',
-                            );
-                          },
-                        ),
-                        Container(
-                          width: 1,
-                          height: 30,
-                          color: Colors.white.withAlpha(50),
-                        ),
-                        StreamBuilder<List<ServiceRequestModel>>(
-                          stream:
-                              user != null
-                                  ? firestoreService.getUserServiceRequests(
-                                    user.id,
-                                  )
-                                  : Stream.value([]),
-                          builder: (context, snapshot) {
-                            final count = snapshot.data?.length ?? 0;
-                            return _buildHeaderStat(
-                              context,
-                              Icons.build,
-                              '$count',
-                              'Requests',
-                            );
-                          },
-                        ),
-                        Container(
-                          width: 1,
-                          height: 30,
-                          color: Colors.white.withAlpha(50),
-                        ),
-                        GestureDetector(
-                          onTap: () => _showRewardsExplanation(context),
-                          child: _buildHeaderStat(
-                            context,
-                            Icons.card_giftcard,
-                            '₹${(user?.totalEarnings ?? 0).toStringAsFixed(0)}',
-                            'Rewards',
-                          ),
-                        ),
-                      ],
-                    ),
+                        showBadge: cart.itemCount > 0,
+                        badgeCount: cart.itemCount,
+                      );
+                    },
                   ),
                 ],
-              );
-            },
+              ),
+              const SizedBox(height: 20),
+              // Stats row - Uses passed data directly instead of StreamBuilder
+              GlassContainer(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // Appliances count - uses passed products list
+                    _buildHeaderStat(
+                      context,
+                      Icons.inventory_2,
+                      '${products.length}',
+                      'Appliances',
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: Colors.white.withAlpha(50),
+                    ),
+                    // Service requests - still needs a stream but we cache it
+                    StreamBuilder<List<ServiceRequestModel>>(
+                      stream:
+                          user != null
+                              ? firestoreService.getUserServiceRequests(user.id)
+                              : Stream.value([]),
+                      builder: (context, snapshot) {
+                        final count = snapshot.data?.length ?? 0;
+                        return _buildHeaderStat(
+                          context,
+                          Icons.build,
+                          '$count',
+                          'Requests',
+                        );
+                      },
+                    ),
+                    Container(
+                      width: 1,
+                      height: 30,
+                      color: Colors.white.withAlpha(50),
+                    ),
+                    GestureDetector(
+                      onTap: () => _showRewardsExplanation(context),
+                      child: _buildHeaderStat(
+                        context,
+                        Icons.card_giftcard,
+                        '₹${(user?.totalEarnings ?? 0).toStringAsFixed(0)}',
+                        'Rewards',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -454,95 +444,104 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppTheme.border(context),
-                borderRadius: BorderRadius.circular(2),
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
             ),
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withAlpha(20),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.card_giftcard,
-                color: AppTheme.primary,
-                size: 40,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Earn Rewards with Referrals!',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Share your referral code with friends and family. When they register their first appliance, you earn ₹100 in rewards!',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary(context),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.success.withAlpha(15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.success.withAlpha(30)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: AppTheme.success, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Rewards can be redeemed as discounts on services',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.success,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.border(context),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(20),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.card_giftcard,
+                    color: AppTheme.primary,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Earn Rewards with Referrals!',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Share your referral code with friends and family. When they register their first appliance, you earn ₹100 in rewards!',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withAlpha(15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.success.withAlpha(30)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: AppTheme.success,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Rewards can be redeemed as discounts on services',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.success,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.pushNamed('referral');
+                    },
+                    icon: const Icon(Icons.share),
+                    label: const Text('Start Referring'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Maybe Later'),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  context.pushNamed('referral');
-                },
-                icon: const Icon(Icons.share),
-                label: const Text('Start Referring'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Maybe Later'),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -553,114 +552,127 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     HapticFeedback.lightImpact();
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.purple.withAlpha(20),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.redeem, color: Colors.purple),
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(width: 12),
-                const Text('Redeem Code'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Enter a referral code from a friend to unlock special rewards!',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  decoration: InputDecoration(
-                    labelText: 'Referral Code',
-                    hintText: 'e.g. VG-1234',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                title: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withAlpha(20),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.redeem, color: Colors.purple),
                     ),
-                    prefixIcon: const Icon(Icons.confirmation_number),
-                  ),
-                  textCapitalization: TextCapitalization.characters,
+                    const SizedBox(width: 12),
+                    const Text('Redeem Code'),
+                  ],
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isLoading ? null : () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        final code = controller.text.trim();
-                        if (code.isEmpty) return;
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enter a referral code from a friend to unlock special rewards!',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary(context),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: controller,
+                      decoration: InputDecoration(
+                        labelText: 'Referral Code',
+                        hintText: 'e.g. VG-1234',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.confirmation_number),
+                      ),
+                      textCapitalization: TextCapitalization.characters,
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed:
+                        isLoading
+                            ? null
+                            : () async {
+                              final code = controller.text.trim();
+                              if (code.isEmpty) return;
 
-                        setState(() => isLoading = true);
-                        try {
-                          await context.read<AuthService>().redeemReferral(code);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Row(
-                                  children: [
-                                    Icon(Icons.check_circle, color: Colors.white),
-                                    SizedBox(width: 12),
-                                    Text('Referral code redeemed successfully!'),
-                                  ],
-                                ),
-                                backgroundColor: AppTheme.success,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceAll('Exception: ', ''),
-                                ),
-                                backgroundColor: AppTheme.error,
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (context.mounted) {
-                            setState(() => isLoading = false);
-                          }
-                        }
-                      },
-                child: isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Redeem'),
-              ),
-            ],
-          );
-        },
-      ),
+                              setState(() => isLoading = true);
+                              try {
+                                await context
+                                    .read<AuthService>()
+                                    .redeemReferral(code);
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text(
+                                            'Referral code redeemed successfully!',
+                                          ),
+                                        ],
+                                      ),
+                                      backgroundColor: AppTheme.success,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.toString().replaceAll(
+                                          'Exception: ',
+                                          '',
+                                        ),
+                                      ),
+                                      backgroundColor: AppTheme.error,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setState(() => isLoading = false);
+                                }
+                              }
+                            },
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Text('Redeem'),
+                  ),
+                ],
+              );
+            },
+          ),
     );
   }
 
@@ -745,7 +757,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text(
                         'Welcome to Vignesh Agencies!',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary,
                         ),
@@ -829,11 +843,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.redeem,
-                      color: Colors.purple,
-                      size: 20,
-                    ),
+                    const Icon(Icons.redeem, color: Colors.purple, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
@@ -907,10 +917,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: StaggeredFadeIn(
                     index: 0,
                     child: _PremiumQuickActionCard(
-                      title: 'Request\nService',
-                      icon: Icons.build,
+                      title: 'Shop\nProducts',
+                      icon: Icons.shopping_bag,
                       isPrimary: true,
-                      onTap: () => _showProductPicker(context),
+                      onTap: () => context.pushNamed('product-catalog'),
                     ),
                   ),
                 ),
@@ -919,10 +929,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: StaggeredFadeIn(
                     index: 1,
                     child: _PremiumQuickActionCard(
-                      title: 'Shop\nProducts',
-                      icon: Icons.shopping_bag,
+                      title: 'Request\nService',
+                      icon: Icons.build,
                       isPrimary: false,
-                      onTap: () => context.pushNamed('product-catalog'),
+                      onTap: () => _showProductPicker(context),
                     ),
                   ),
                 ),
@@ -948,10 +958,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: StaggeredFadeIn(
                     index: 0,
                     child: _PremiumQuickActionCard(
-                      title: 'Register\nAppliance',
-                      icon: Icons.add_circle,
+                      title: 'Shop\nProducts',
+                      icon: Icons.shopping_bag,
                       isPrimary: true,
-                      onTap: () => context.pushNamed('add-product'),
+                      onTap: () => context.pushNamed('product-catalog'),
                     ),
                   ),
                 ),
@@ -960,10 +970,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   child: StaggeredFadeIn(
                     index: 1,
                     child: _PremiumQuickActionCard(
-                      title: 'Shop\nProducts',
-                      icon: Icons.shopping_bag,
+                      title: 'Register\nAppliance',
+                      icon: Icons.add_circle,
                       isPrimary: false,
-                      onTap: () => context.pushNamed('product-catalog'),
+                      onTap: () => context.pushNamed('add-product'),
                     ),
                   ),
                 ),
@@ -1155,8 +1165,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                               style: Theme.of(
                                                 context,
                                               ).textTheme.bodySmall?.copyWith(
-                                                color:
-                                                    AppTheme.textSecondary(context),
+                                                color: AppTheme.textSecondary(
+                                                  context,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -1323,10 +1334,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
               ),
 
-              Icon(
-                Icons.chevron_right,
-                color: AppTheme.textSecondary(context),
-              ),
+              Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
             ],
           ),
           if (product.status == ProductStatus.rejected &&

@@ -68,9 +68,9 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
     try {
       final image = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        maxWidth: 1280,
-        maxHeight: 1280,
-        imageQuality: 50,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 45, // Optimized for faster uploads
       );
       if (image != null) {
         setState(() => _evidenceImages.add(image));
@@ -359,7 +359,9 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                                           color:
                                               _product!.isUnderWarranty
                                                   ? AppTheme.success
-                                                  : AppTheme.textSecondary(context),
+                                                  : AppTheme.textSecondary(
+                                                    context,
+                                                  ),
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -374,7 +376,9 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                                           color:
                                               _product!.isUnderWarranty
                                                   ? AppTheme.success
-                                                  : AppTheme.textSecondary(context),
+                                                  : AppTheme.textSecondary(
+                                                    context,
+                                                  ),
                                         ),
                                       ),
                                     ],
@@ -457,16 +461,24 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.infoLight,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.info.withAlpha(50)),
+                          border: Border.all(
+                            color: AppTheme.info.withAlpha(50),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.lightbulb_outline, color: AppTheme.info, size: 20),
+                            Icon(
+                              Icons.lightbulb_outline,
+                              color: AppTheme.info,
+                              size: 20,
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'Adding photos or audio helps our technicians understand the issue better and speeds up resolution.',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
                                   color: AppTheme.infoDark,
                                   height: 1.4,
                                 ),
@@ -750,8 +762,11 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         children: [
                           Text(
                             'Purchase Date',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: AppTheme.textSecondary(context)),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.textSecondary(context),
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -774,8 +789,11 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                         children: [
                           Text(
                             'Warranty Ends On',
-                            style: Theme.of(context).textTheme.labelSmall
-                                ?.copyWith(color: AppTheme.textSecondary(context)),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelSmall?.copyWith(
+                              color: AppTheme.textSecondary(context),
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -1041,7 +1059,8 @@ class _EvidenceButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: isActive ? AppTheme.error : AppTheme.textPrimary(context),
+                color:
+                    isActive ? AppTheme.error : AppTheme.textPrimary(context),
               ),
               textAlign: TextAlign.center,
             ),

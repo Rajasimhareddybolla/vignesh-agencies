@@ -47,9 +47,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
     try {
       final image = await _imagePicker.pickImage(
         source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 50,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 40, // Lower quality for faster uploads
       );
       if (image != null) {
         setState(() => _billImage = image);

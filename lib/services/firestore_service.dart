@@ -217,7 +217,9 @@ class FirestoreService {
   }
 
   // Stream of service requests for a specific product/appliance
-  Stream<List<ServiceRequestModel>> getProductServiceRequests(String productId) {
+  Stream<List<ServiceRequestModel>> getProductServiceRequests(
+    String productId,
+  ) {
     return _firestore
         .collection('service_requests')
         .where('productId', isEqualTo: productId)
@@ -249,6 +251,7 @@ class FirestoreService {
     String? technicianPhone,
     String? technicianAddress,
     String? resolutionNotes,
+    String? adminVoiceNoteUrl,
   }) async {
     final updates = <String, dynamic>{'status': status.firestoreValue};
 
@@ -259,6 +262,8 @@ class FirestoreService {
     if (technicianAddress != null)
       updates['technicianAddress'] = technicianAddress;
     if (resolutionNotes != null) updates['resolutionNotes'] = resolutionNotes;
+    if (adminVoiceNoteUrl != null)
+      updates['adminVoiceNoteUrl'] = adminVoiceNoteUrl;
 
     if (status == ServiceRequestStatus.assigned) {
       updates['assignedAt'] = Timestamp.now();
@@ -498,7 +503,13 @@ class FirestoreService {
             .count()
             .get();
 
-    final totalUsers = await _firestore.collection('users').count().get();
+    // Count UNIQUE users only (exclude proxy/linked accounts)
+    final uniqueUsers =
+        await _firestore
+            .collection('users')
+            .where('isProxy', isNotEqualTo: true)
+            .count()
+            .get();
 
     final usersWithPayouts =
         await _firestore
@@ -511,11 +522,24 @@ class FirestoreService {
       totalPendingPayouts += (doc.data()['pendingPayout'] ?? 0).toDouble();
     }
 
+    // Count total and resolved service requests
+    final totalRequests =
+        await _firestore.collection('service_requests').count().get();
+
+    final resolvedRequests =
+        await _firestore
+            .collection('service_requests')
+            .where('status', whereIn: ['resolved', 'completed'])
+            .count()
+            .get();
+
     return {
       'pendingRequests': pendingRequests.count ?? 0,
       'pendingRegistrations': pendingRegistrations.count ?? 0,
-      'totalUsers': totalUsers.count ?? 0,
+      'totalUsers': uniqueUsers.count ?? 0,
       'pendingPayouts': totalPendingPayouts,
+      'totalRequests': totalRequests.count ?? 0,
+      'resolvedRequests': resolvedRequests.count ?? 0,
     };
   }
 
@@ -852,16 +876,17 @@ class FirestoreService {
 
   // Get all active agents
   Stream<List<AgentModel>> getActiveAgents() {
-    return _firestore
-        .collection('agents')
-        .where('isActive', isEqualTo: true)
-        .orderBy('name')
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs
+    // Note: Using client-side filter to avoid composite index requirement
+    return _firestore.collection('agents').snapshots().map((snapshot) {
+      final agents =
+          snapshot.docs
               .map((doc) => AgentModel.fromFirestore(doc))
+              .where((agent) => agent.isActive)
               .toList();
-        });
+      // Sort by name client-side
+      agents.sort((a, b) => a.name.compareTo(b.name));
+      return agents;
+    });
   }
 
   // Get all agents (admin)
@@ -922,13 +947,16 @@ class FirestoreService {
   Future<void> refreshUserStats(String userId) async {
     // Trigger a fresh read from Firestore to update any cached streams
     // This helps ensure the UI reflects the latest data
-    await _firestore.collection('users').doc(userId).get(
-      const GetOptions(source: Source.server),
-    );
-    await _firestore.collection('products')
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .get(const GetOptions(source: Source.server));
+    await _firestore
+        .collection('products')
         .where('userId', isEqualTo: userId)
         .get(const GetOptions(source: Source.server));
-    await _firestore.collection('service_requests')
+    await _firestore
+        .collection('service_requests')
         .where('userId', isEqualTo: userId)
         .get(const GetOptions(source: Source.server));
   }

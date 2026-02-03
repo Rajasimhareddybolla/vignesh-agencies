@@ -235,12 +235,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (mounted) {
         cartService.clearCart();
 
+        // Capture parent context for navigation inside dialog
+        final parentContext = context;
+
         // Show success and navigate to orders
         showDialog(
           context: context,
           barrierDismissible: false,
           builder:
-              (context) => AlertDialog(
+              (dialogContext) => AlertDialog(
                 title: const Icon(
                   Icons.check_circle,
                   color: AppTheme.success,
@@ -267,10 +270,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      context.go('/orders'); // Navigate to orders list
+                      Navigator.pop(dialogContext); // Close dialog
+                      parentContext.pushNamed(
+                        'order-detail',
+                        pathParameters: {'orderId': orderId},
+                      ); // Navigate to specific order
                     },
-                    child: const Text('View Orders'),
+                    child: const Text('View Order'),
                   ),
                 ],
               ),
@@ -618,7 +624,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.local_shipping_outlined, color: AppTheme.info, size: 20),
+                const Icon(
+                  Icons.local_shipping_outlined,
+                  color: AppTheme.info,
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

@@ -54,7 +54,7 @@ class _MarketingSliderState extends State<MarketingSlider> {
             CarouselSlider(
               options: CarouselOptions(
                 height: 180.0,
-                autoPlay: true,
+                autoPlay: banners.length > 1,
                 autoPlayInterval: const Duration(seconds: 5),
                 enlargeCenterPage: true,
                 viewportFraction: 0.92,
@@ -158,9 +158,10 @@ class _MarketingSliderState extends State<MarketingSlider> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
@@ -181,19 +182,21 @@ class _MarketingSliderState extends State<MarketingSlider> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   banner.title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 const Text(
                   'Your trusted service partner',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),

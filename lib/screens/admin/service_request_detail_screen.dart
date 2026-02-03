@@ -10,6 +10,14 @@ import '../../models/service_request_model.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/agent_model.dart';
 import '../../services/firestore_service.dart';
+import '../../services/storage_service.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ServiceRequestDetailScreen extends StatefulWidget {
   final String requestId;
@@ -29,7 +37,20 @@ class _ServiceRequestDetailScreenState
   final _technicianPhoneController = TextEditingController();
   final _technicianAddressController = TextEditingController();
   final _notesController = TextEditingController();
+
+  // Admin Voice Note
+  late final AudioRecorder _audioRecorder;
+  bool _isRecording = false;
+  String? _adminVoiceNotePath;
+  String? _adminVoiceNoteUrl; // URL from Firestore/Storage if already saved
+
   bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioRecorder = AudioRecorder();
+  }
 
   @override
   void dispose() {
@@ -37,6 +58,7 @@ class _ServiceRequestDetailScreenState
     _technicianPhoneController.dispose();
     _technicianAddressController.dispose();
     _notesController.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -46,6 +68,7 @@ class _ServiceRequestDetailScreenState
       _technicianController.text = request.technicianName ?? '';
       _technicianPhoneController.text = request.technicianPhone ?? '';
       _technicianAddressController.text = request.technicianAddress ?? '';
+      _adminVoiceNoteUrl = request.adminVoiceNoteUrl;
       _isInitialized = true;
     }
   }
@@ -61,6 +84,26 @@ class _ServiceRequestDetailScreenState
 
   Future<void> _updateStatus(ServiceRequestStatus newStatus) async {
     final firestoreService = context.read<FirestoreService>();
+    final storageService = context.read<StorageService>();
+
+    // Upload admin voice note if new one recorded
+    if (_adminVoiceNotePath != null && _adminVoiceNoteUrl == null) {
+      try {
+        _adminVoiceNoteUrl = await storageService.uploadAdminVoiceNote(
+          requestId: widget.requestId,
+          filePath: _adminVoiceNotePath!,
+        );
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to upload voice note: $e'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      }
+    }
 
     await firestoreService.updateServiceRequestStatus(
       requestId: widget.requestId,
@@ -80,6 +123,7 @@ class _ServiceRequestDetailScreenState
               : null,
       resolutionNotes:
           _notesController.text.isNotEmpty ? _notesController.text : null,
+      adminVoiceNoteUrl: _adminVoiceNoteUrl,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -95,8 +139,83 @@ class _ServiceRequestDetailScreenState
       if (_selectedAgent != null) {
         await firestoreService.updateAgentLastAssigned(_selectedAgent!.id);
       }
-      await _sendWhatsAppMessage();
+      // Ask user if they want to share via WhatsApp
+      _showShareDialog();
     }
+  }
+
+  // Voice Recording Methods
+  Future<void> _startRecording() async {
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        final directory = await getTemporaryDirectory();
+        final path =
+            '${directory.path}/admin_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+        await _audioRecorder.start(const RecordConfig(), path: path);
+        setState(() {
+          _isRecording = true;
+          _adminVoiceNotePath = null; // Reset previous
+          _adminVoiceNoteUrl = null; // Reset previous URL if re-recording
+        });
+      }
+    } catch (e) {
+      print('Error starting recording: $e');
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    try {
+      final path = await _audioRecorder.stop();
+      setState(() {
+        _isRecording = false;
+        _adminVoiceNotePath = path;
+      });
+    } catch (e) {
+      print('Error stopping recording: $e');
+    }
+  }
+
+  void _deleteAdminRecording() {
+    setState(() {
+      _adminVoiceNotePath = null;
+      _adminVoiceNoteUrl = null;
+    });
+  }
+
+  void _showShareDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Share Assignment Details'),
+            content: const Text(
+              'Do you want to share the request details with the technician via WhatsApp?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('No'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _handleShareAction();
+                },
+                child: const Text('Share via WhatsApp'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _handleShareAction() async {
+    // await _generateAndSharePdf(); // This method is not provided in the snippet, assuming it exists elsewhere or will be added.
+    // After sharing PDF, we can also prompt to open chat if needed,
+    // but usually user will just share PDF to WhatsApp contact.
+    // We can also offer "Open WhatsApp Chat" as a separate button in the status SnackBar or UI.
+    // Let's call the message sender too for the text part.
+    await _sendWhatsAppMessage();
   }
 
   Future<void> _sendWhatsAppMessage() async {
@@ -168,6 +287,13 @@ class _ServiceRequestDetailScreenState
       for (var img in request.evidenceImages) {
         msg.writeln(img);
       }
+      msg.writeln('');
+    }
+
+    if (request.adminVoiceNoteUrl != null || _adminVoiceNoteUrl != null) {
+      msg.writeln('*Admin Instruction (Voice Note):*');
+      msg.writeln(request.adminVoiceNoteUrl ?? _adminVoiceNoteUrl);
+      msg.writeln('');
     }
 
     final String message = msg.toString();
@@ -202,6 +328,137 @@ class _ServiceRequestDetailScreenState
         ),
       );
     }
+  }
+
+  Future<void> _generateAndSharePdf() async {
+    final firestoreService = context.read<FirestoreService>();
+    final request = await firestoreService.getServiceRequest(widget.requestId);
+    if (request == null) return;
+
+    // Fetch product if available
+    UserApplianceModel? product;
+    if (request.productId.isNotEmpty) {
+      try {
+        product = await firestoreService.getProduct(request.productId);
+      } catch (e) {
+        print('Error fetching product for PDF: $e');
+      }
+    }
+
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Service Request Details',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  pw.Text(
+                    request.ticketNumber,
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 20),
+
+            // Status and Priority
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Status: ${request.status.displayName}'),
+                pw.Text(
+                  'Priority: ${request.priority.displayName.toUpperCase()}',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color:
+                        request.priority == ServicePriority.urgent
+                            ? PdfColors.red
+                            : PdfColors.black,
+                  ),
+                ),
+              ],
+            ),
+            pw.Divider(),
+
+            // Customer Info
+            pw.Header(level: 1, text: 'Customer Details'),
+            pw.Text('Name: ${request.customerName ?? "N/A"}'),
+            pw.Text('Phone: ${request.customerPhone ?? "N/A"}'),
+            pw.Text('Address: ${request.customerAddress ?? "N/A"}'),
+            pw.SizedBox(height: 10),
+
+            // Product Info
+            pw.Header(level: 1, text: 'Product Details'),
+            pw.Text('Product: ${request.productName ?? "N/A"}'),
+            pw.Text('Model: ${request.productModel ?? "N/A"}'),
+            if (product != null) ...[
+              pw.Text(
+                'Warranty Status: ${product.isUnderWarranty ? "Active" : "Expired"}',
+              ),
+              pw.Text(
+                'Warranty Ends: ${DateFormat("dd MMM yyyy").format(product.warrantyEndDate)}',
+              ),
+            ],
+            pw.SizedBox(height: 10),
+
+            // Issue Info
+            pw.Header(level: 1, text: 'Issue Description'),
+            pw.Text('Type: ${request.issueType}'),
+            pw.Text(
+              'Reported: ${DateFormat("dd MMM yyyy, h:mm a").format(request.createdAt)}',
+            ),
+            pw.Paragraph(text: request.description),
+
+            // Admin Instructions
+            if (_adminVoiceNoteUrl != null ||
+                (request.adminVoiceNoteUrl != null &&
+                    request.adminVoiceNoteUrl!.isNotEmpty)) ...[
+              pw.SizedBox(height: 10),
+              pw.Header(level: 1, text: 'Admin Instructions'),
+              pw.Text(
+                'Voice Note Attached to Job Card. Please check WhatsApp for link.',
+              ),
+            ],
+
+            // Footer
+            pw.SizedBox(height: 30),
+            pw.Divider(),
+            pw.Text(
+              'Vignesh Agencies Service Team',
+              style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
+            ),
+          ];
+        },
+      ),
+    );
+
+    // Save and Share
+    final bytes = await doc.save();
+    final directory = await getTemporaryDirectory();
+    final file = File(
+      '${directory.path}/service_request_${request.ticketNumber}.pdf',
+    );
+    await file.writeAsBytes(bytes);
+
+    // Share using Share Plus
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Service Request ${request.ticketNumber} Details');
   }
 
   @override
@@ -837,8 +1094,9 @@ class _ServiceRequestDetailScreenState
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       color:
-                                                          AppTheme
-                                                              .textSecondary(context),
+                                                          AppTheme.textSecondary(
+                                                            context,
+                                                          ),
                                                     ),
                                                   ),
                                                 ],
@@ -884,6 +1142,141 @@ class _ServiceRequestDetailScreenState
                                 prefixIcon: Icon(Icons.location_on),
                               ),
                               maxLines: 2,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Admin Voice Note Recorder
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppTheme.border(context),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Voice Note for Technician',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.textSecondary(context),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (_isRecording)
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.mic,
+                                          color: Colors.red,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        const Text(
+                                          'Recording...',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                        const Spacer(),
+                                        IconButton(
+                                          icon: const Icon(Icons.stop_circle),
+                                          color: Colors.red,
+                                          onPressed: _stopRecording,
+                                        ),
+                                      ],
+                                    )
+                                  else if (_adminVoiceNotePath != null ||
+                                      (_adminVoiceNoteUrl != null &&
+                                          _adminVoiceNoteUrl!.isNotEmpty))
+                                    Column(
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.mic_none),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              _adminVoiceNotePath != null
+                                                  ? 'New Recording Ready'
+                                                  : 'Voice Note Attached',
+                                            ),
+                                            const Spacer(),
+                                            if (_adminVoiceNotePath != null)
+                                              IconButton(
+                                                icon: const Icon(Icons.delete),
+                                                onPressed:
+                                                    _deleteAdminRecording,
+                                              ),
+                                          ],
+                                        ),
+                                        if (_adminVoiceNotePath != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 8.0,
+                                            ),
+                                            child: Text(
+                                              'Will be sent with assignment',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: AppTheme.success,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            ),
+                                          ),
+                                        if (_adminVoiceNoteUrl != null &&
+                                            _adminVoiceNotePath == null)
+                                          _AudioPlayerWidget(
+                                            audioUrl: _adminVoiceNoteUrl!,
+                                          ),
+                                      ],
+                                    )
+                                  else
+                                    InkWell(
+                                      onTap: _startRecording,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.primary.withOpacity(
+                                            0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: AppTheme.primary.withOpacity(
+                                              0.3,
+                                            ),
+                                            style: BorderStyle.solid,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.mic,
+                                              color: AppTheme.primary,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Tap to Record Instructions',
+                                              style: TextStyle(
+                                                color: AppTheme.primary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -1057,6 +1450,137 @@ class _ServiceRequestDetailScreenState
       case ServiceRequestStatus.cancelled:
         return Icons.cancel;
     }
+  }
+
+  Future<void> _generateAndSharePdf() async {
+    final firestoreService = context.read<FirestoreService>();
+    final request = await firestoreService.getServiceRequest(widget.requestId);
+    if (request == null) return;
+
+    // Fetch product if available
+    UserApplianceModel? product;
+    if (request.productId.isNotEmpty) {
+      try {
+        product = await firestoreService.getProduct(request.productId);
+      } catch (e) {
+        print('Error fetching product for PDF: $e');
+      }
+    }
+
+    final doc = pw.Document();
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Service Request Details',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  pw.Text(
+                    request.ticketNumber,
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 20),
+
+            // Status and Priority
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('Status: ${request.status.displayName}'),
+                pw.Text(
+                  'Priority: ${request.priority.displayName.toUpperCase()}',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color:
+                        request.priority == ServicePriority.urgent
+                            ? PdfColors.red
+                            : PdfColors.black,
+                  ),
+                ),
+              ],
+            ),
+            pw.Divider(),
+
+            // Customer Info
+            pw.Header(level: 1, text: 'Customer Details'),
+            pw.Text('Name: ${request.customerName ?? "N/A"}'),
+            pw.Text('Phone: ${request.customerPhone ?? "N/A"}'),
+            pw.Text('Address: ${request.customerAddress ?? "N/A"}'),
+            pw.SizedBox(height: 10),
+
+            // Product Info
+            pw.Header(level: 1, text: 'Product Details'),
+            pw.Text('Product: ${request.productName ?? "N/A"}'),
+            pw.Text('Model: ${request.productModel ?? "N/A"}'),
+            if (product != null) ...[
+              pw.Text(
+                'Warranty Status: ${product.isUnderWarranty ? "Active" : "Expired"}',
+              ),
+              pw.Text(
+                'Warranty Ends: ${DateFormat("dd MMM yyyy").format(product.warrantyEndDate)}',
+              ),
+            ],
+            pw.SizedBox(height: 10),
+
+            // Issue Info
+            pw.Header(level: 1, text: 'Issue Description'),
+            pw.Text('Type: ${request.issueType}'),
+            pw.Text(
+              'Reported: ${DateFormat("dd MMM yyyy, h:mm a").format(request.createdAt)}',
+            ),
+            pw.Paragraph(text: request.description),
+
+            // Admin Instructions
+            if (_adminVoiceNoteUrl != null ||
+                (request.adminVoiceNoteUrl != null &&
+                    request.adminVoiceNoteUrl!.isNotEmpty)) ...[
+              pw.SizedBox(height: 10),
+              pw.Header(level: 1, text: 'Admin Instructions'),
+              pw.Text(
+                'Voice Note Attached to Job Card. Please check WhatsApp for link.',
+              ),
+            ],
+
+            // Footer
+            pw.SizedBox(height: 30),
+            pw.Divider(),
+            pw.Text(
+              'Vignesh Agencies Service Team',
+              style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10),
+            ),
+          ];
+        },
+      ),
+    );
+
+    // Save and Share
+    final bytes = await doc.save();
+    final directory = await getTemporaryDirectory();
+    final file = File(
+      '${directory.path}/service_request_${request.ticketNumber}.pdf',
+    );
+    await file.writeAsBytes(bytes);
+
+    // Share using Share Plus
+    await Share.shareXFiles([
+      XFile(file.path),
+    ], text: 'Service Request ${request.ticketNumber} Details');
   }
 
   void _showFullScreenImage(BuildContext context, String imageUrl) {
@@ -1239,9 +1763,9 @@ class _SectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: AppTheme.cardShadow,
       ),
       child: Column(

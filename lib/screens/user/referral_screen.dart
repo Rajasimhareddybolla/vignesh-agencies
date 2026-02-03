@@ -152,9 +152,9 @@ class ReferralScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppTheme.surface(context),
                     borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                    border: Border.all(color: AppTheme.borderLight),
+                    border: Border.all(color: AppTheme.border(context)),
                     boxShadow: AppTheme.cardShadow,
                   ),
                   child: Column(
@@ -182,11 +182,11 @@ class ReferralScreen extends StatelessWidget {
                           vertical: 16,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.backgroundLight,
+                          color: AppTheme.background(context),
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusMd,
                           ),
-                          border: Border.all(color: AppTheme.borderLight),
+                          border: Border.all(color: AppTheme.border(context)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -287,20 +287,20 @@ class ReferralScreen extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.surface(context),
                           borderRadius: BorderRadius.circular(
                             AppTheme.radiusMd,
                           ),
-                          border: Border.all(color: AppTheme.borderLight),
+                          border: Border.all(color: AppTheme.border(context)),
                         ),
                         child: Column(
                           children: [
                             Icon(
                               Icons.people_outline,
                               size: 48,
-                              color: AppTheme.textSecondary(context).withOpacity(
-                                0.5,
-                              ),
+                              color: AppTheme.textSecondary(
+                                context,
+                              ).withOpacity(0.5),
                             ),
                             const SizedBox(height: 16),
                             Text(
@@ -377,9 +377,9 @@ class _ReferralCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Row(
         children: [

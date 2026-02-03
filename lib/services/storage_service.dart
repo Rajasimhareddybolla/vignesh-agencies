@@ -180,6 +180,45 @@ class StorageService {
     }
   }
 
+  // Upload admin voice note (Admin to Agent)
+  Future<String?> uploadAdminVoiceNote({
+    required String requestId,
+    required String filePath,
+  }) async {
+    try {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Source audio file does not exist: $filePath');
+      }
+
+      final fileName =
+          'admin_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      // Store in admin_audio/{requestId}/{fileName}
+      final ref = _storage.ref().child('admin_audio/$requestId/$fileName');
+
+      final uploadTask = await ref.putFile(
+        File(filePath),
+        SettableMetadata(
+          contentType: 'audio/mp4',
+          customMetadata: {
+            'uploadedBy': 'ADMIN',
+            'requestId': requestId,
+            'uploadedAt': DateTime.now().toIso8601String(),
+            'type': 'admin_instruction',
+          },
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      print('Error uploading admin voice note: $e');
+      if (e is FirebaseException) {
+        print('Firebase Exception: ${e.code} - ${e.message}');
+      }
+      rethrow;
+    }
+  }
+
   // Upload multiple evidence images
   Future<List<String>> uploadMultipleImages({
     required String userId,

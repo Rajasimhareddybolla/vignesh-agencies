@@ -151,7 +151,7 @@ class _RequestsListScreenState extends State<RequestsListScreen>
         20,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(8),
@@ -221,11 +221,11 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: Colors.white, child: tabBar);
+    return Material(color: AppTheme.surface(context), child: tabBar);
   }
 
   @override
-  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) => false;
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) => true;
 }
 
 class _RequestsList extends StatelessWidget {
@@ -382,10 +382,7 @@ class _PremiumRequestCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: AppTheme.textSecondary(context),
-              ),
+              Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
             ],
           ),
 
@@ -395,7 +392,7 @@ class _PremiumRequestCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+                color: AppTheme.background(context),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(

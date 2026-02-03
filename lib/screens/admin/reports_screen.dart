@@ -166,6 +166,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           future: firestoreService.getDashboardStats(),
                           builder: (context, snapshot) {
                             final stats = snapshot.data ?? {};
+                            final totalRequests =
+                                (stats['totalRequests'] as num?)?.toInt() ?? 0;
+                            final resolvedRequests =
+                                (stats['resolvedRequests'] as num?)?.toInt() ??
+                                0;
+                            final pendingRequests =
+                                (stats['pendingRequests'] as num?)?.toInt() ??
+                                0;
 
                             return Column(
                               children: [
@@ -174,8 +182,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     Expanded(
                                       child: _ReportStatItem(
                                         label: 'Total Requests',
-                                        value:
-                                            '${(stats['pendingRequests'] ?? 0) + 12}',
+                                        value: '$totalRequests',
                                         icon: Icons.build_circle,
                                         color: AppTheme.primary,
                                       ),
@@ -183,7 +190,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     Expanded(
                                       child: _ReportStatItem(
                                         label: 'Resolved',
-                                        value: '10',
+                                        value: '$resolvedRequests',
                                         icon: Icons.check_circle,
                                         color: AppTheme.success,
                                       ),
@@ -191,8 +198,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                     Expanded(
                                       child: _ReportStatItem(
                                         label: 'Pending',
-                                        value:
-                                            '${stats['pendingRequests'] ?? 0}',
+                                        value: '$pendingRequests',
                                         icon: Icons.hourglass_empty,
                                         color: AppTheme.warning,
                                       ),
@@ -257,8 +263,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                               context,
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
-                                              color:
-                                                  AppTheme.textSecondary(context),
+                                              color: AppTheme.textSecondary(
+                                                context,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -270,8 +277,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                               context,
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
-                                              color:
-                                                  AppTheme.textSecondary(context),
+                                              color: AppTheme.textSecondary(
+                                                context,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -283,8 +291,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                               context,
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
-                                              color:
-                                                  AppTheme.textSecondary(context),
+                                              color: AppTheme.textSecondary(
+                                                context,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -296,8 +305,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                               context,
                                             ).textTheme.labelSmall?.copyWith(
                                               fontWeight: FontWeight.w600,
-                                              color:
-                                                  AppTheme.textSecondary(context),
+                                              color: AppTheme.textSecondary(
+                                                context,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -314,7 +324,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                         style: Theme.of(
                                           context,
                                         ).textTheme.bodySmall?.copyWith(
-                                          color: AppTheme.textSecondary(context),
+                                          color: AppTheme.textSecondary(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                     )
@@ -534,11 +546,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(
-                  'Total Requests: ${(stats['pendingRequests'] ?? 0) + 12}',
-                ), // Demo math
+                pw.Text('Total Requests: ${stats['totalRequests'] ?? 0}'),
                 pw.Text('Pending: ${stats['pendingRequests'] ?? 0}'),
-                pw.Text('Resolved: 10'),
+                pw.Text('Resolved: ${stats['resolvedRequests'] ?? 0}'),
               ],
             ),
             pw.SizedBox(height: 20),
@@ -699,9 +709,9 @@ class _ReportStatItem extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: AppTheme.textSecondary(context)),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppTheme.textSecondary(context),
+          ),
           textAlign: TextAlign.center,
         ),
       ],

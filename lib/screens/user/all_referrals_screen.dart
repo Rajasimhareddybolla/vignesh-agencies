@@ -24,9 +24,12 @@ class AllReferralsScreen extends StatelessWidget {
         title: const Text('All Referrals'),
       ),
       body: StreamBuilder<List<ReferralModel>>(
-        stream: authService.currentUser != null
-            ? firestoreService.getUserReferrals(authService.currentUser!.uid)
-            : Stream.value([]),
+        stream:
+            authService.currentUser != null
+                ? firestoreService.getUserReferrals(
+                  authService.currentUser!.uid,
+                )
+                : Stream.value([]),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -103,9 +106,9 @@ class _ReferralCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.border(context)),
         boxShadow: AppTheme.cardShadow,
       ),
       child: Row(

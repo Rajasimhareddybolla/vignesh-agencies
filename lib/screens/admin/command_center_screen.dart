@@ -424,6 +424,16 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
           ),
           const SizedBox(width: 12),
           _PremiumQuickAction(
+            icon: Icons.shopping_cart,
+            label: 'Order\nManager',
+            color: Colors.orange,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.goNamed('admin-orders');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
             icon: Icons.verified_user,
             label: 'Warranty\nValidation',
             color: AppTheme.primary,
@@ -484,18 +494,8 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
           ),
           const SizedBox(width: 12),
           _PremiumQuickAction(
-            icon: Icons.shopping_cart,
-            label: 'Order\nManager',
-            color: Colors.orange,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              context.goNamed('admin-orders');
-            },
-          ),
-          const SizedBox(width: 12),
-          _PremiumQuickAction(
             icon: Icons.engineering,
-            label: 'Agent\\nManagement',
+            label: 'Agent\nManagement',
             color: const Color(0xFF10B981),
             onTap: () {
               HapticFeedback.lightImpact();
@@ -590,8 +590,8 @@ class _AdminAvatar extends StatelessWidget {
             context.push('/edit-profile');
             break;
           case 'settings':
-            // Navigate to profile which has settings
-            context.push('/profile');
+            // Navigate to admin settings
+            context.goNamed('admin-settings');
             break;
           case 'logout':
             await authService.signOut();
@@ -640,7 +640,8 @@ class _AdminAvatar extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isDestructive ? AppTheme.error : AppTheme.textPrimary(context),
+            color:
+                isDestructive ? AppTheme.error : AppTheme.textPrimary(context),
           ),
           const SizedBox(width: 12),
           Text(

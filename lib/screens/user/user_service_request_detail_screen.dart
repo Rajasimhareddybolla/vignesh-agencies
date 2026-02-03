@@ -44,9 +44,7 @@ class _UserServiceRequestDetailScreenState
 
           final request = snapshot.data;
           if (request == null) {
-            return const Center(
-              child: Text('Request not found'),
-            );
+            return const Center(child: Text('Request not found'));
           }
 
           return SingleChildScrollView(
@@ -67,15 +65,16 @@ class _UserServiceRequestDetailScreenState
                     _DetailRow(label: 'Issue Type', value: request.issueType),
                     _DetailRow(
                       label: 'Reported On',
-                      value: DateFormat('MMM d, yyyy • h:mm a')
-                          .format(request.createdAt),
+                      value: DateFormat(
+                        'MMM d, yyyy • h:mm a',
+                      ).format(request.createdAt),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Description',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textSecondary(context),
-                          ),
+                        color: AppTheme.textSecondary(context),
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -93,9 +92,13 @@ class _UserServiceRequestDetailScreenState
                   icon: Icons.inventory_2_outlined,
                   children: [
                     _DetailRow(
-                        label: 'Product', value: request.productName ?? 'N/A'),
+                      label: 'Product',
+                      value: request.productName ?? 'N/A',
+                    ),
                     _DetailRow(
-                        label: 'Model', value: request.productModel ?? 'N/A'),
+                      label: 'Model',
+                      value: request.productModel ?? 'N/A',
+                    ),
                   ],
                 ),
 
@@ -119,9 +122,9 @@ class _UserServiceRequestDetailScreenState
                       Text(
                         'No audio recording attached.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary(context),
-                              fontStyle: FontStyle.italic,
-                            ),
+                          color: AppTheme.textSecondary(context),
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ],
                   ),
@@ -143,10 +146,11 @@ class _UserServiceRequestDetailScreenState
                             return Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: GestureDetector(
-                                onTap: () => _showFullScreenImage(
-                                  context,
-                                  request.evidenceImages[index],
-                                ),
+                                onTap:
+                                    () => _showFullScreenImage(
+                                      context,
+                                      request.evidenceImages[index],
+                                    ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: CachedNetworkImage(
@@ -154,17 +158,18 @@ class _UserServiceRequestDetailScreenState
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      color: Colors.grey[200],
-                                      child: const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(Icons.error),
-                                    ),
+                                    placeholder:
+                                        (context, url) => Container(
+                                          color: Colors.grey[200],
+                                          child: const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        ),
+                                    errorWidget:
+                                        (context, url, error) => Container(
+                                          color: Colors.grey[200],
+                                          child: const Icon(Icons.error),
+                                        ),
                                   ),
                                 ),
                               ),
@@ -182,9 +187,9 @@ class _UserServiceRequestDetailScreenState
                       Text(
                         'No evidence images available.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textSecondary(context),
-                              fontStyle: FontStyle.italic,
-                            ),
+                          color: AppTheme.textSecondary(context),
+                          fontStyle: FontStyle.italic,
+                        ),
                       ),
                     ],
                   ),
@@ -195,9 +200,7 @@ class _UserServiceRequestDetailScreenState
                 _SectionCard(
                   title: 'Service Assignment',
                   icon: Icons.assignment_ind_outlined,
-                  children: [
-                    _buildAssignmentInfo(context, request),
-                  ],
+                  children: [_buildAssignmentInfo(context, request)],
                 ),
 
                 const SizedBox(height: 16),
@@ -249,10 +252,7 @@ class _UserServiceRequestDetailScreenState
               color: _getStatusColor(request.status),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              _getStatusIcon(request.status),
-              color: Colors.white,
-            ),
+            child: Icon(_getStatusIcon(request.status), color: Colors.white),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -262,17 +262,17 @@ class _UserServiceRequestDetailScreenState
                 Text(
                   request.ticketNumber,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary(context),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    color: AppTheme.textSecondary(context),
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   request.status.displayName,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: _getStatusColor(request.status),
-                      ),
+                    fontWeight: FontWeight.w700,
+                    color: _getStatusColor(request.status),
+                  ),
                 ),
               ],
             ),
@@ -305,7 +305,9 @@ class _UserServiceRequestDetailScreenState
   }
 
   Widget _buildAssignmentInfo(
-      BuildContext context, ServiceRequestModel request) {
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     if (request.status == ServiceRequestStatus.pending) {
       return Row(
         children: [
@@ -326,8 +328,8 @@ class _UserServiceRequestDetailScreenState
             child: Text(
               'Your request is being reviewed. A technician will be assigned soon.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
+                color: AppTheme.textSecondary(context),
+              ),
             ),
           ),
         ],
@@ -343,21 +345,20 @@ class _UserServiceRequestDetailScreenState
             value: request.assignedProvider!,
           ),
         if (request.technicianName != null)
-          _DetailRow(
-            label: 'Technician',
-            value: request.technicianName!,
-          ),
+          _DetailRow(label: 'Technician', value: request.technicianName!),
         if (request.assignedAt != null)
           _DetailRow(
             label: 'Assigned On',
-            value:
-                DateFormat('MMM d, yyyy • h:mm a').format(request.assignedAt!),
+            value: DateFormat(
+              'MMM d, yyyy • h:mm a',
+            ).format(request.assignedAt!),
           ),
         if (request.resolvedAt != null)
           _DetailRow(
             label: 'Resolved On',
-            value:
-                DateFormat('MMM d, yyyy • h:mm a').format(request.resolvedAt!),
+            value: DateFormat(
+              'MMM d, yyyy • h:mm a',
+            ).format(request.resolvedAt!),
           ),
         if (request.assignedProvider == null &&
             request.technicianName == null &&
@@ -365,16 +366,18 @@ class _UserServiceRequestDetailScreenState
           Text(
             'Assignment details will be updated shortly.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary(context),
-                  fontStyle: FontStyle.italic,
-                ),
+              color: AppTheme.textSecondary(context),
+              fontStyle: FontStyle.italic,
+            ),
           ),
       ],
     );
   }
 
   Widget _buildActionSection(
-      BuildContext context, ServiceRequestModel request) {
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     // Only show the "Mark as Completed" button when status is resolved
     if (request.status == ServiceRequestStatus.resolved) {
       return Container(
@@ -389,17 +392,14 @@ class _UserServiceRequestDetailScreenState
           children: [
             Row(
               children: [
-                const Icon(
-                  Icons.check_circle_outline,
-                  color: AppTheme.success,
-                ),
+                const Icon(Icons.check_circle_outline, color: AppTheme.success),
                 const SizedBox(width: 8),
                 Text(
                   'Service Completed',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.success,
-                      ),
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.success,
+                  ),
                 ),
               ],
             ),
@@ -407,8 +407,8 @@ class _UserServiceRequestDetailScreenState
             Text(
               'The technician has marked this service as resolved. Please confirm if the issue has been fixed.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
+                color: AppTheme.textSecondary(context),
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -452,10 +452,7 @@ class _UserServiceRequestDetailScreenState
                 color: AppTheme.success,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.verified,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.verified, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -465,15 +462,15 @@ class _UserServiceRequestDetailScreenState
                   Text(
                     'Service Completed',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.success,
-                        ),
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.success,
+                    ),
                   ),
                   Text(
                     'Thank you for confirming. This request is now closed.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textSecondary(context),
-                        ),
+                      color: AppTheme.textSecondary(context),
+                    ),
                   ),
                 ],
               ),
@@ -489,8 +486,9 @@ class _UserServiceRequestDetailScreenState
       decoration: BoxDecoration(
         color: _getStatusColor(request.status).withOpacity(0.1),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border:
-            Border.all(color: _getStatusColor(request.status).withOpacity(0.3)),
+        border: Border.all(
+          color: _getStatusColor(request.status).withOpacity(0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -512,15 +510,15 @@ class _UserServiceRequestDetailScreenState
               children: [
                 Text(
                   _getStatusMessage(request.status),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   _getStatusDescription(request.status),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary(context),
-                      ),
+                    color: AppTheme.textSecondary(context),
+                  ),
                 ),
               ],
             ),
@@ -531,76 +529,83 @@ class _UserServiceRequestDetailScreenState
   }
 
   void _showCompletionDialog(
-      BuildContext context, ServiceRequestModel request) {
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirm Completion'),
-        content: const Text(
-          'Are you satisfied with the service provided? This will close the request.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await context.read<FirestoreService>().updateServiceRequestStatus(
-                    requestId: request.id,
-                    status: ServiceRequestStatus.completed,
-                  );
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Thank you for your feedback!'),
-                    backgroundColor: AppTheme.success,
-                  ),
-                );
-              }
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.success,
+      builder:
+          (dialogContext) => AlertDialog(
+            title: const Text('Confirm Completion'),
+            content: const Text(
+              'Are you satisfied with the service provided? This will close the request.',
             ),
-            child: const Text('Yes, Complete'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Navigator.pop(dialogContext);
+                  await context
+                      .read<FirestoreService>()
+                      .updateServiceRequestStatus(
+                        requestId: request.id,
+                        status: ServiceRequestStatus.completed,
+                      );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Thank you for your feedback!'),
+                        backgroundColor: AppTheme.success,
+                      ),
+                    );
+                  }
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                ),
+                child: const Text('Yes, Complete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
   void _showFullScreenImage(BuildContext context, String imageUrl) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            InteractiveViewer(
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                fit: BoxFit.contain,
-                placeholder: (context, url) => const Center(
-                  child: CircularProgressIndicator(),
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Stack(
+              alignment: Alignment.topRight,
+              children: [
+                InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder:
+                        (context, url) =>
+                            const Center(child: CircularProgressIndicator()),
+                    errorWidget:
+                        (context, url, error) => const Icon(
+                          Icons.error,
+                          color: Colors.white,
+                          size: 50,
+                        ),
+                  ),
                 ),
-                errorWidget: (context, url, error) => const Icon(
-                  Icons.error,
-                  color: Colors.white,
-                  size: 50,
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => context.pop(),
                 ),
-              ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -746,15 +751,16 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
         Row(
           children: [
             IconButton(
-              onPressed: _isInit
-                  ? () async {
-                      if (_isPlaying) {
-                        await _audioPlayer.pause();
-                      } else {
-                        await _audioPlayer.play(UrlSource(widget.audioUrl));
+              onPressed:
+                  _isInit
+                      ? () async {
+                        if (_isPlaying) {
+                          await _audioPlayer.pause();
+                        } else {
+                          await _audioPlayer.play(UrlSource(widget.audioUrl));
+                        }
                       }
-                    }
-                  : null,
+                      : null,
               icon: Icon(
                 _isPlaying
                     ? Icons.pause_circle_filled
@@ -767,9 +773,10 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
               child: Slider(
                 min: 0,
                 max: _duration.inSeconds.toDouble(),
-                value: _position.inSeconds
-                    .toDouble()
-                    .clamp(0, _duration.inSeconds.toDouble()),
+                value: _position.inSeconds.toDouble().clamp(
+                  0,
+                  _duration.inSeconds.toDouble(),
+                ),
                 onChanged: (value) async {
                   final position = Duration(seconds: value.toInt());
                   await _audioPlayer.seek(position);
@@ -816,9 +823,9 @@ class _SectionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surface(context),
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderLight),
+        border: Border.all(color: AppTheme.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -829,9 +836,9 @@ class _SectionCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -862,15 +869,12 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
+                color: AppTheme.textSecondary(context),
+              ),
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            child: Text(value, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

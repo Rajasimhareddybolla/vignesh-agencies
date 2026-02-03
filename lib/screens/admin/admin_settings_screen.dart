@@ -84,12 +84,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                             subtitle: 'Configure admin alerts',
                             iconColor: AppTheme.warning,
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Notification settings coming soon',
-                                  ),
-                                ),
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (context) => _NotificationSettingsDialog(),
                               );
                             },
                           ),
@@ -657,7 +655,9 @@ class _ThemeSelectionDialog extends StatelessWidget {
             Icon(
               icon,
               color:
-                  isSelected ? AppTheme.primary : AppTheme.textSecondary(context),
+                  isSelected
+                      ? AppTheme.primary
+                      : AppTheme.textSecondary(context),
             ),
             const SizedBox(width: 12),
             Text(
@@ -675,6 +675,139 @@ class _ThemeSelectionDialog extends StatelessWidget {
               const Icon(Icons.check_circle, color: AppTheme.primary, size: 20),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Dialog for admin notification settings
+class _NotificationSettingsDialog extends StatefulWidget {
+  @override
+  State<_NotificationSettingsDialog> createState() =>
+      _NotificationSettingsDialogState();
+}
+
+class _NotificationSettingsDialogState
+    extends State<_NotificationSettingsDialog> {
+  bool _serviceRequests = true;
+  bool _newRegistrations = true;
+  bool _orders = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.warning.withAlpha(30),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.notifications, color: AppTheme.warning),
+          ),
+          const SizedBox(width: 12),
+          const Text('Notification Settings'),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildNotificationToggle(
+            context,
+            'Service Requests',
+            'Get notified for new service requests',
+            Icons.build,
+            _serviceRequests,
+            (value) => setState(() => _serviceRequests = value),
+          ),
+          const SizedBox(height: 12),
+          _buildNotificationToggle(
+            context,
+            'New Registrations',
+            'Get notified for new product registrations',
+            Icons.app_registration,
+            _newRegistrations,
+            (value) => setState(() => _newRegistrations = value),
+          ),
+          const SizedBox(height: 12),
+          _buildNotificationToggle(
+            context,
+            'Orders',
+            'Get notified for new orders',
+            Icons.shopping_cart,
+            _orders,
+            (value) => setState(() => _orders = value),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            // Save settings (could store in SharedPreferences or Firestore)
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Notification settings saved'),
+                backgroundColor: AppTheme.success,
+              ),
+            );
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotificationToggle(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    bool value,
+    ValueChanged<bool> onChanged,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: AppTheme.primary,
+          ),
+        ],
       ),
     );
   }

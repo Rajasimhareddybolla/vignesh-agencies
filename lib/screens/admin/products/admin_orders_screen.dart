@@ -398,6 +398,7 @@ class _OrderCard extends StatelessWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
+          // Customer Info
           Row(
             children: [
               Icon(
@@ -406,13 +407,61 @@ class _OrderCard extends StatelessWidget {
                 color: AppTheme.textSecondary(context),
               ),
               const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  order.address.name,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Phone
+          Row(
+            children: [
+              Icon(
+                Icons.phone_outlined,
+                size: 16,
+                color: AppTheme.textSecondary(context),
+              ),
+              const SizedBox(width: 4),
               Text(
-                order.address.name,
+                order.address.phone,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppTheme.textSecondary(context),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          // Full Address
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.location_on_outlined,
+                  size: 16,
+                  color: AppTheme.textSecondary(context),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${order.address.street}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
 
           const SizedBox(height: 16),

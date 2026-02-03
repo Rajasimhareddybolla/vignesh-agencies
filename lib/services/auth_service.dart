@@ -6,7 +6,7 @@ import '../models/referral_model.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  
+
   // Cache for admin status to avoid repeated Firestore calls
   bool? _cachedIsAdmin;
   String? _cachedAdminUserId;
@@ -56,7 +56,7 @@ class AuthService {
 
   // Phone Auth - Send OTP
   // Set to true for testing (uses 123456 as OTP), false for production (real SMS)
-  static const bool testMode = true; // 👈 TEST MODE ENABLED
+  static const bool testMode = false; // 👈 TEST MODE DISABLED
 
   Future<void> sendOTP({
     required String phoneNumber,
@@ -458,20 +458,20 @@ class AuthService {
   Future<bool> isCurrentUserAdmin() async {
     final user = currentUser;
     if (user == null) return false;
-    
+
     // Return cached value if available and for the same user
     if (_cachedIsAdmin != null && _cachedAdminUserId == user.uid) {
       return _cachedIsAdmin!;
     }
-    
+
     // Fetch and cache admin status
     final userModel = await getUserModel();
     _cachedIsAdmin = userModel?.isAdmin ?? false;
     _cachedAdminUserId = user.uid;
-    
+
     return _cachedIsAdmin!;
   }
-  
+
   // Clear admin cache (call when user data might have changed)
   void clearAdminCache() {
     _cachedIsAdmin = null;

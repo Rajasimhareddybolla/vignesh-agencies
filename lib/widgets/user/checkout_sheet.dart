@@ -196,9 +196,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: AppTheme.surface(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: EdgeInsets.fromLTRB(
         20,
@@ -219,7 +219,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppTheme.borderLight,
+                color: AppTheme.border(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -244,7 +244,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
+                        color: AppTheme.background(context),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
