@@ -66,6 +66,9 @@ class CartService extends ChangeNotifier {
     ProductVariation? variation,
     int quantity = 1,
   }) {
+    // Check stock availability before adding
+    final maxStock = _getMaxStock(product, variation);
+    
     // Check if item already exists
     final index = _items.indexWhere(
       (item) =>
@@ -73,18 +76,55 @@ class CartService extends ChangeNotifier {
     );
 
     if (index >= 0) {
-      _items[index].quantity += quantity;
+      // Check if adding more would exceed stock
+      final newQuantity = _items[index].quantity + quantity;
+      if (product.trackInventory && newQuantity > maxStock) {
+        // Limit to max available stock
+        _items[index].quantity = maxStock;
+      } else {
+        _items[index].quantity += quantity;
+      }
     } else {
-      _items.add(
-        CartItemModel(
-          product: product,
-          variation: variation,
-          quantity: quantity,
-        ),
-      );
+      // Limit initial quantity to stock if tracking
+      final limitedQty = product.trackInventory && quantity > maxStock 
+          ? maxStock 
+          : quantity;
+      
+      if (limitedQty > 0) {
+        _items.add(
+          CartItemModel(
+            product: product,
+            variation: variation,
+            quantity: limitedQty,
+          ),
+        );
+      }
     }
     notifyListeners();
     _persistCart();
+  }
+
+  /// Gets the maximum stock available for a product/variation
+  int _getMaxStock(CatalogProductModel product, ProductVariation? variation) {
+    if (variation != null) {
+      return variation.stockQuantity;
+    }
+    return product.stockQuantity;
+  }
+
+  /// Checks if a product is in stock
+  bool isProductInStock(CatalogProductModel product, ProductVariation? variation) {
+    if (!product.trackInventory) return true;
+    if (variation != null) {
+      return variation.isInStock;
+    }
+    return product.isInStock;
+  }
+
+  /// Gets available stock for a cart item
+  int getAvailableStock(CartItemModel item) {
+    if (!item.product.trackInventory) return 999; // No limit
+    return _getMaxStock(item.product, item.variation);
   }
 
   void removeFromCart(CartItemModel item) {
@@ -98,7 +138,13 @@ class CartService extends ChangeNotifier {
       removeFromCart(item);
       return;
     }
-    item.quantity = newQuantity;
+    
+    // Respect stock limits
+    final maxStock = getAvailableStock(item);
+    item.quantity = item.product.trackInventory && newQuantity > maxStock 
+        ? maxStock 
+        : newQuantity;
+    
     notifyListeners();
     _persistCart();
   }
@@ -148,6 +194,10 @@ class CartService extends ChangeNotifier {
         'createdAt': item.product.createdAt.millisecondsSinceEpoch,
         'updatedAt': item.product.updatedAt.millisecondsSinceEpoch,
         'offerPrice': item.product.offerPrice,
+        'stockQuantity': item.product.stockQuantity,
+        'lowStockThreshold': item.product.lowStockThreshold,
+        'trackInventory': item.product.trackInventory,
+        'estimatedDeliveryDays': item.product.estimatedDeliveryDays,
         'variations': item.product.variations.map((v) => {
           'id': v.id,
           'attributes': v.attributes,
@@ -155,7 +205,7 @@ class CartService extends ChangeNotifier {
           'offerPrice': v.offerPrice,
           'warrantyMonths': v.warrantyMonths,
           'sku': v.sku,
-          'stockStatus': v.stockStatus,
+          'stockQuantity': v.stockQuantity,
         }).toList(),
       },
       'variation': item.variation != null ? {
@@ -165,7 +215,7 @@ class CartService extends ChangeNotifier {
         'offerPrice': item.variation!.offerPrice,
         'warrantyMonths': item.variation!.warrantyMonths,
         'sku': item.variation!.sku,
-        'stockStatus': item.variation!.stockStatus,
+        'stockQuantity': item.variation!.stockQuantity,
       } : null,
       'quantity': item.quantity,
     };
@@ -186,7 +236,7 @@ class CartService extends ChangeNotifier {
                   offerPrice: (v['offerPrice'] as num?)?.toDouble(),
                   warrantyMonths: v['warrantyMonths'] as int?,
                   sku: v['sku'] as String?,
-                  stockStatus: v['stockStatus'] ?? 'in_stock',
+                  stockQuantity: v['stockQuantity'] as int? ?? 0,
                 ))
             .toList();
       }
@@ -208,6 +258,10 @@ class CartService extends ChangeNotifier {
         createdAt: DateTime.fromMillisecondsSinceEpoch(productJson['createdAt'] ?? 0),
         updatedAt: DateTime.fromMillisecondsSinceEpoch(productJson['updatedAt'] ?? 0),
         offerPrice: (productJson['offerPrice'] as num?)?.toDouble(),
+        stockQuantity: productJson['stockQuantity'] as int? ?? 0,
+        lowStockThreshold: productJson['lowStockThreshold'] as int? ?? 5,
+        trackInventory: productJson['trackInventory'] as bool? ?? false,
+        estimatedDeliveryDays: productJson['estimatedDeliveryDays'] as int? ?? 3,
         variations: variations,
       );
       
@@ -221,7 +275,7 @@ class CartService extends ChangeNotifier {
           offerPrice: (varJson['offerPrice'] as num?)?.toDouble(),
           warrantyMonths: varJson['warrantyMonths'] as int?,
           sku: varJson['sku'] as String?,
-          stockStatus: varJson['stockStatus'] ?? 'in_stock',
+          stockQuantity: varJson['stockQuantity'] as int? ?? 0,
         );
       }
       

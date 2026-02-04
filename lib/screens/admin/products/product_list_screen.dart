@@ -343,6 +343,11 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                     ),
                   ],
                 ),
+                // Stock Status Row
+                if (product.trackInventory) ...[
+                  const SizedBox(height: 6),
+                  _StockStatusBadge(product: product),
+                ],
               ],
             ),
           ),
@@ -376,6 +381,48 @@ class _StatusChip extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _StockStatusBadge extends StatelessWidget {
+  final CatalogProductModel product;
+
+  const _StockStatusBadge({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    Color color;
+    String text;
+
+    if (product.isOutOfStock) {
+      icon = Icons.error_outline;
+      color = AppTheme.error;
+      text = 'Out of Stock';
+    } else if (product.isLowStock) {
+      icon = Icons.warning_amber;
+      color = AppTheme.warning;
+      text = 'Low: ${product.stockQuantity} left';
+    } else {
+      icon = Icons.inventory_2;
+      color = AppTheme.success;
+      text = 'Stock: ${product.stockQuantity}';
+    }
+
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

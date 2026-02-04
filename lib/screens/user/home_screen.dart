@@ -148,6 +148,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: _buildQuickActions(context, hasProducts),
                     ),
 
+                    // Phase 3: Warranty Alerts Banner
+                    if (hasProducts && !isLoading)
+                      SliverToBoxAdapter(
+                        child: _buildWarrantyAlertsBanner(context, products),
+                      ),
+
                     // My Appliances Header (only show if has products)
                     if (hasProducts)
                       SliverToBoxAdapter(
@@ -996,6 +1002,131 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // Phase 3: Warranty Alerts Banner
+  Widget _buildWarrantyAlertsBanner(BuildContext context, List<UserApplianceModel> products) {
+    final alerts = WarrantyNotificationService.getWarrantyAlerts(products);
+    
+    if (alerts.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Get the most urgent alert
+    final urgentAlert = alerts.first;
+    final hasMultiple = alerts.length > 1;
+
+    Color alertColor;
+    IconData alertIcon;
+    
+    switch (urgentAlert.alertType) {
+      case WarrantyAlertType.expired:
+        alertColor = AppTheme.error;
+        alertIcon = Icons.warning_amber;
+        break;
+      case WarrantyAlertType.critical:
+        alertColor = AppTheme.error;
+        alertIcon = Icons.notification_important;
+        break;
+      case WarrantyAlertType.warning:
+        alertColor = AppTheme.warning;
+        alertIcon = Icons.schedule;
+        break;
+      case WarrantyAlertType.info:
+        alertColor = AppTheme.info;
+        alertIcon = Icons.info_outline;
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: InkWell(
+        onTap: () {
+          // Navigate to appliance detail
+          context.pushNamed(
+            'appliance-detail',
+            pathParameters: {'productId': urgentAlert.appliance.id},
+          );
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                alertColor.withAlpha(20),
+                alertColor.withAlpha(10),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: alertColor.withAlpha(50)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: alertColor.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(alertIcon, color: alertColor, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      urgentAlert.alertType == WarrantyAlertType.expired
+                          ? 'Warranty Expired'
+                          : 'Warranty Alert',
+                      style: TextStyle(
+                        color: alertColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      urgentAlert.appliance.productName,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      urgentAlert.message,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary(context),
+                      ),
+                    ),
+                    if (hasMultiple)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '+${alerts.length - 1} more appliance${alerts.length > 2 ? 's' : ''} with alerts',
+                          style: TextStyle(
+                            color: alertColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: alertColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showProductPicker(BuildContext context) {
     final authService = context.read<AuthService>();
     final firestoreService = context.read<FirestoreService>();
@@ -1610,17 +1741,22 @@ class _PremiumQuickActionCardState extends State<_PremiumQuickActionCard>
                           size: 24,
                         ),
                       ),
+                      const Spacer(),
+                      // Text with proper sizing
                       Text(
                         widget.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.visible,
                         style: Theme.of(
                           context,
-                        ).textTheme.titleMedium?.copyWith(
+                        ).textTheme.titleSmall?.copyWith(
                           color:
                               widget.isPrimary
                                   ? Colors.white
                                   : AppTheme.textPrimary(context),
                           fontWeight: FontWeight.w700,
-                          height: 1.2,
+                          height: 1.3,
+                          fontSize: 14,
                         ),
                       ),
                     ],

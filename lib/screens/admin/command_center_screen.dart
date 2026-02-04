@@ -194,6 +194,14 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
               ),
             ),
 
+            // Low Stock Alerts
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: _LowStockAlertsCard(),
+              ),
+            ),
+
             // Quick Actions
             SliverToBoxAdapter(
               child: Padding(
@@ -959,5 +967,166 @@ class _PremiumActivityCard extends StatelessWidget {
     if (difference.inMinutes < 60) return '${difference.inMinutes}m ago';
     if (difference.inHours < 24) return '${difference.inHours}h ago';
     return DateFormat('MMM d').format(dateTime);
+  }
+}
+
+/// Widget to display low stock alerts on the admin dashboard
+class _LowStockAlertsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final firestoreService = context.read<FirestoreService>();
+    
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _getLowStockData(firestoreService),
+      builder: (context, snapshot) {
+        final outOfStock = snapshot.data?[0]['count'] ?? 0;
+        final lowStock = snapshot.data?[1]['count'] ?? 0;
+        
+        // Don't show card if no stock issues
+        if (outOfStock == 0 && lowStock == 0) {
+          return const SizedBox.shrink();
+        }
+        
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                outOfStock > 0 
+                    ? AppTheme.error.withValues(alpha: 0.1)
+                    : AppTheme.warning.withValues(alpha: 0.1),
+                Theme.of(context).cardColor,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: outOfStock > 0 
+                  ? AppTheme.error.withValues(alpha: 0.3)
+                  : AppTheme.warning.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => context.pushNamed('admin-products'),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          outOfStock > 0 
+                              ? Icons.error_outline 
+                              : Icons.warning_amber,
+                          color: outOfStock > 0 
+                              ? AppTheme.error 
+                              : AppTheme.warning,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Stock Alerts',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: AppTheme.textSecondary(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (outOfStock > 0) ...[
+                          _StockAlertChip(
+                            label: '$outOfStock Out of Stock',
+                            color: AppTheme.error,
+                            icon: Icons.cancel,
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (lowStock > 0)
+                          _StockAlertChip(
+                            label: '$lowStock Low Stock',
+                            color: AppTheme.warning,
+                            icon: Icons.inventory_2_outlined,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      outOfStock > 0 
+                          ? 'Some products are unavailable for purchase'
+                          : 'Restock soon to avoid stockouts',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  Future<List<Map<String, dynamic>>> _getLowStockData(
+    FirestoreService firestoreService,
+  ) async {
+    final outOfStock = await firestoreService.getOutOfStockCount();
+    final lowStock = await firestoreService.getLowStockCount();
+    return [
+      {'count': outOfStock},
+      {'count': lowStock},
+    ];
+  }
+}
+
+class _StockAlertChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  const _StockAlertChip({
+    required this.label,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

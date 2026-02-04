@@ -84,6 +84,41 @@ extension ServicePriorityExtension on ServicePriority {
   }
 }
 
+/// Represents a status update in the service request timeline
+class ServiceStatusUpdate {
+  final String status;
+  final String message;
+  final DateTime timestamp;
+  final String? updatedBy; // 'system', 'admin', 'technician'
+
+  ServiceStatusUpdate({
+    required this.status,
+    required this.message,
+    required this.timestamp,
+    this.updatedBy,
+  });
+
+  factory ServiceStatusUpdate.fromMap(Map<String, dynamic> map) {
+    return ServiceStatusUpdate(
+      status: map['status']?.toString() ?? '',
+      message: map['message']?.toString() ?? '',
+      timestamp: (map['timestamp'] is Timestamp)
+          ? (map['timestamp'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedBy: map['updatedBy']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'status': status,
+      'message': message,
+      'timestamp': Timestamp.fromDate(timestamp),
+      'updatedBy': updatedBy,
+    };
+  }
+}
+
 class ServiceRequestModel {
   final String id;
   final String userId;
@@ -114,6 +149,19 @@ class ServiceRequestModel {
   final String? productName;
   final String? productModel;
 
+  // Phase 3: Enhanced tracking fields
+  final DateTime? estimatedCompletionDate;
+  final DateTime? technicianArrivalTime;
+  final DateTime? serviceStartedAt;
+  final DateTime? completedAt;
+  final List<ServiceStatusUpdate> statusUpdates;
+  
+  // Phase 3: Feedback fields
+  final int? rating; // 1-5 stars
+  final String? feedbackComment;
+  final DateTime? feedbackSubmittedAt;
+  final bool feedbackRequested;
+
   ServiceRequestModel({
     required this.id,
     required this.userId,
@@ -139,6 +187,16 @@ class ServiceRequestModel {
     this.productName,
     this.productModel,
     this.adminVoiceNoteUrl,
+    // Phase 3 fields
+    this.estimatedCompletionDate,
+    this.technicianArrivalTime,
+    this.serviceStartedAt,
+    this.completedAt,
+    this.statusUpdates = const [],
+    this.rating,
+    this.feedbackComment,
+    this.feedbackSubmittedAt,
+    this.feedbackRequested = false,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -190,6 +248,35 @@ class ServiceRequestModel {
       productName: data['productName']?.toString(),
       productModel: data['productModel']?.toString(),
       adminVoiceNoteUrl: data['adminVoiceNoteUrl']?.toString(),
+      // Phase 3 fields
+      estimatedCompletionDate:
+          (data['estimatedCompletionDate'] is Timestamp)
+              ? (data['estimatedCompletionDate'] as Timestamp).toDate()
+              : null,
+      technicianArrivalTime:
+          (data['technicianArrivalTime'] is Timestamp)
+              ? (data['technicianArrivalTime'] as Timestamp).toDate()
+              : null,
+      serviceStartedAt:
+          (data['serviceStartedAt'] is Timestamp)
+              ? (data['serviceStartedAt'] as Timestamp).toDate()
+              : null,
+      completedAt:
+          (data['completedAt'] is Timestamp)
+              ? (data['completedAt'] as Timestamp).toDate()
+              : null,
+      statusUpdates: (data['statusUpdates'] is List)
+          ? (data['statusUpdates'] as List)
+              .map((e) => ServiceStatusUpdate.fromMap(e as Map<String, dynamic>))
+              .toList()
+          : [],
+      rating: data['rating'] as int?,
+      feedbackComment: data['feedbackComment']?.toString(),
+      feedbackSubmittedAt:
+          (data['feedbackSubmittedAt'] is Timestamp)
+              ? (data['feedbackSubmittedAt'] as Timestamp).toDate()
+              : null,
+      feedbackRequested: data['feedbackRequested'] ?? false,
     );
   }
 
@@ -218,6 +305,21 @@ class ServiceRequestModel {
       'productName': productName,
       'productModel': productModel,
       'adminVoiceNoteUrl': adminVoiceNoteUrl,
+      // Phase 3 fields
+      'estimatedCompletionDate': estimatedCompletionDate != null 
+          ? Timestamp.fromDate(estimatedCompletionDate!) : null,
+      'technicianArrivalTime': technicianArrivalTime != null 
+          ? Timestamp.fromDate(technicianArrivalTime!) : null,
+      'serviceStartedAt': serviceStartedAt != null 
+          ? Timestamp.fromDate(serviceStartedAt!) : null,
+      'completedAt': completedAt != null 
+          ? Timestamp.fromDate(completedAt!) : null,
+      'statusUpdates': statusUpdates.map((e) => e.toMap()).toList(),
+      'rating': rating,
+      'feedbackComment': feedbackComment,
+      'feedbackSubmittedAt': feedbackSubmittedAt != null 
+          ? Timestamp.fromDate(feedbackSubmittedAt!) : null,
+      'feedbackRequested': feedbackRequested,
     };
   }
 
@@ -241,6 +343,16 @@ class ServiceRequestModel {
     String? productName,
     String? productModel,
     String? adminVoiceNoteUrl,
+    // Phase 3 fields
+    DateTime? estimatedCompletionDate,
+    DateTime? technicianArrivalTime,
+    DateTime? serviceStartedAt,
+    DateTime? completedAt,
+    List<ServiceStatusUpdate>? statusUpdates,
+    int? rating,
+    String? feedbackComment,
+    DateTime? feedbackSubmittedAt,
+    bool? feedbackRequested,
   }) {
     return ServiceRequestModel(
       id: id,
@@ -267,6 +379,16 @@ class ServiceRequestModel {
       productName: productName ?? this.productName,
       productModel: productModel ?? this.productModel,
       adminVoiceNoteUrl: adminVoiceNoteUrl ?? this.adminVoiceNoteUrl,
+      // Phase 3 fields
+      estimatedCompletionDate: estimatedCompletionDate ?? this.estimatedCompletionDate,
+      technicianArrivalTime: technicianArrivalTime ?? this.technicianArrivalTime,
+      serviceStartedAt: serviceStartedAt ?? this.serviceStartedAt,
+      completedAt: completedAt ?? this.completedAt,
+      statusUpdates: statusUpdates ?? this.statusUpdates,
+      rating: rating ?? this.rating,
+      feedbackComment: feedbackComment ?? this.feedbackComment,
+      feedbackSubmittedAt: feedbackSubmittedAt ?? this.feedbackSubmittedAt,
+      feedbackRequested: feedbackRequested ?? this.feedbackRequested,
     );
   }
 
@@ -296,4 +418,10 @@ class ServiceRequestModel {
     'Authorized Service Partner',
     'Third Party Technician',
   ];
+  
+  // Helper to check if feedback is pending
+  bool get isFeedbackPending => 
+      status == ServiceRequestStatus.completed && 
+      rating == null && 
+      feedbackRequested;
 }

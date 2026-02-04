@@ -18,6 +18,12 @@ class CatalogProductModel {
   final List<ProductVariation> variations;
   final DateTime createdAt;
   final DateTime updatedAt;
+  
+  // Stock Management Fields
+  final int stockQuantity;          // Total available stock
+  final int lowStockThreshold;      // Alert threshold
+  final bool trackInventory;        // Whether to track stock for this product
+  final int estimatedDeliveryDays;  // Delivery estimation
 
   CatalogProductModel({
     required this.id,
@@ -37,7 +43,38 @@ class CatalogProductModel {
     required this.variations,
     required this.createdAt,
     required this.updatedAt,
+    this.stockQuantity = 0,
+    this.lowStockThreshold = 5,
+    this.trackInventory = true,
+    this.estimatedDeliveryDays = 5,
   });
+
+  // Computed stock properties
+  bool get isInStock => !trackInventory || stockQuantity > 0;
+  bool get isLowStock => trackInventory && stockQuantity > 0 && stockQuantity <= lowStockThreshold;
+  bool get isOutOfStock => trackInventory && stockQuantity <= 0;
+  
+  // Get stock status label
+  String get stockStatusLabel {
+    if (!trackInventory) return 'Available';
+    if (stockQuantity <= 0) return 'Out of Stock';
+    if (stockQuantity <= lowStockThreshold) return 'Only $stockQuantity left';
+    return 'In Stock';
+  }
+  
+  // Get estimated delivery date
+  DateTime get estimatedDeliveryDate {
+    DateTime delivery = DateTime.now();
+    int daysAdded = 0;
+    while (daysAdded < estimatedDeliveryDays) {
+      delivery = delivery.add(const Duration(days: 1));
+      // Skip weekends (Saturday = 6, Sunday = 7)
+      if (delivery.weekday != DateTime.saturday && delivery.weekday != DateTime.sunday) {
+        daysAdded++;
+      }
+    }
+    return delivery;
+  }
 
   factory CatalogProductModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -62,6 +99,11 @@ class CatalogProductModel {
           [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      // Stock fields
+      stockQuantity: data['stockQuantity'] ?? 0,
+      lowStockThreshold: data['lowStockThreshold'] ?? 5,
+      trackInventory: data['trackInventory'] ?? true,
+      estimatedDeliveryDays: data['estimatedDeliveryDays'] ?? 5,
     );
   }
 
@@ -83,6 +125,11 @@ class CatalogProductModel {
       'variations': variations.map((v) => v.toMap()).toList(),
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
+      // Stock fields
+      'stockQuantity': stockQuantity,
+      'lowStockThreshold': lowStockThreshold,
+      'trackInventory': trackInventory,
+      'estimatedDeliveryDays': estimatedDeliveryDays,
     };
   }
 
@@ -103,6 +150,10 @@ class CatalogProductModel {
     int? warrantyMonths,
     List<ProductVariation>? variations,
     DateTime? updatedAt,
+    int? stockQuantity,
+    int? lowStockThreshold,
+    bool? trackInventory,
+    int? estimatedDeliveryDays,
   }) {
     return CatalogProductModel(
       id: id ?? this.id,
@@ -122,6 +173,10 @@ class CatalogProductModel {
       variations: variations ?? this.variations,
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
+      stockQuantity: stockQuantity ?? this.stockQuantity,
+      lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      trackInventory: trackInventory ?? this.trackInventory,
+      estimatedDeliveryDays: estimatedDeliveryDays ?? this.estimatedDeliveryDays,
     );
   }
 }
@@ -133,7 +188,7 @@ class ProductVariation {
   final double? offerPrice;
   final int? warrantyMonths; // Overrides base warranty if set
   final String? sku;
-  final String stockStatus; // 'in_stock', 'out_of_stock', 'pre_order'
+  final int stockQuantity;   // Stock for this specific variation
 
   ProductVariation({
     required this.id,
@@ -142,8 +197,12 @@ class ProductVariation {
     this.offerPrice,
     this.warrantyMonths,
     this.sku,
-    this.stockStatus = 'in_stock',
+    this.stockQuantity = 0,
   });
+
+  // Computed properties for variation
+  bool get isInStock => stockQuantity > 0;
+  bool get isOutOfStock => stockQuantity <= 0;
 
   factory ProductVariation.fromMap(Map<String, dynamic> map) {
     return ProductVariation(
@@ -153,7 +212,7 @@ class ProductVariation {
       offerPrice: map['offerPrice']?.toDouble(),
       warrantyMonths: map['warrantyMonths'],
       sku: map['sku'],
-      stockStatus: map['stockStatus'] ?? 'in_stock',
+      stockQuantity: map['stockQuantity'] ?? 0,
     );
   }
 
@@ -165,7 +224,27 @@ class ProductVariation {
       'offerPrice': offerPrice,
       'warrantyMonths': warrantyMonths,
       'sku': sku,
-      'stockStatus': stockStatus,
+      'stockQuantity': stockQuantity,
     };
+  }
+
+  ProductVariation copyWith({
+    String? id,
+    Map<String, String>? attributes,
+    double? price,
+    double? offerPrice,
+    int? warrantyMonths,
+    String? sku,
+    int? stockQuantity,
+  }) {
+    return ProductVariation(
+      id: id ?? this.id,
+      attributes: attributes ?? this.attributes,
+      price: price ?? this.price,
+      offerPrice: offerPrice ?? this.offerPrice,
+      warrantyMonths: warrantyMonths ?? this.warrantyMonths,
+      sku: sku ?? this.sku,
+      stockQuantity: stockQuantity ?? this.stockQuantity,
+    );
   }
 }

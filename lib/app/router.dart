@@ -540,11 +540,20 @@ class AdminShellScreen extends StatelessWidget {
 
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
+    final isWideScreen = MediaQuery.of(context).size.width >= 800;
+    
     if (location == '/admin') return 0;
     if (location.startsWith('/admin/requests')) return 1;
     if (location.startsWith('/admin/warranty')) return 2;
     if (location.startsWith('/admin/payouts')) return 3;
-    if (location.startsWith('/admin/reports')) return 4;
+    
+    // On wide screens, Reports is index 4; on mobile, Settings is index 4
+    if (isWideScreen) {
+      if (location.startsWith('/admin/reports')) return 4;
+    } else {
+      if (location.startsWith('/admin/settings')) return 4;
+    }
+    
     return 0;
   }
 

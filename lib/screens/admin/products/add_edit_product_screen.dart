@@ -31,12 +31,16 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _basePriceController = TextEditingController();
   final _offerPriceController = TextEditingController();
   final _warrantyController = TextEditingController();
+  final _stockQuantityController = TextEditingController();
+  final _lowStockThresholdController = TextEditingController();
+  final _estimatedDeliveryDaysController = TextEditingController();
 
   // State
   String? _selectedCategory;
   List<String> _images = []; // URLs
   List<XFile> _newImages = []; // Local files
   bool _isActive = true;
+  bool _trackInventory = true;
   List<ProductVariation> _variations = [];
   Map<String, String> _specifications = {};
   List<String> _highlights = [];
@@ -51,6 +55,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _initEditMode();
     } else {
       _brandController.text = 'V-Guard'; // Default
+      _stockQuantityController.text = '0';
+      _lowStockThresholdController.text = '5';
+      _estimatedDeliveryDaysController.text = '3';
     }
   }
 
@@ -62,9 +69,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _basePriceController.text = p.basePrice.toString();
     _offerPriceController.text = p.offerPrice?.toString() ?? '';
     _warrantyController.text = p.warrantyMonths.toString();
+    _stockQuantityController.text = p.stockQuantity.toString();
+    _lowStockThresholdController.text = p.lowStockThreshold.toString();
+    _estimatedDeliveryDaysController.text = p.estimatedDeliveryDays.toString();
     _selectedCategory = p.categoryId;
     _images = List.from(p.images);
     _isActive = p.isActive;
+    _trackInventory = p.trackInventory;
     _variations = List.from(p.variations);
     _specifications = Map.from(p.specifications);
     _highlights = List.from(p.highlights);
@@ -78,6 +89,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _basePriceController.dispose();
     _offerPriceController.dispose();
     _warrantyController.dispose();
+    _stockQuantityController.dispose();
+    _lowStockThresholdController.dispose();
+    _estimatedDeliveryDaysController.dispose();
     super.dispose();
   }
 
@@ -142,6 +156,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         basePrice: double.parse(_basePriceController.text),
         offerPrice: double.tryParse(_offerPriceController.text),
         warrantyMonths: int.tryParse(_warrantyController.text) ?? 12,
+        stockQuantity: int.tryParse(_stockQuantityController.text) ?? 0,
+        lowStockThreshold: int.tryParse(_lowStockThresholdController.text) ?? 5,
+        trackInventory: _trackInventory,
+        estimatedDeliveryDays: int.tryParse(_estimatedDeliveryDaysController.text) ?? 3,
         variations: _variations,
         specifications: _specifications,
         highlights: _highlights,
@@ -259,6 +277,73 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           labelText: 'Warranty (Months)',
                         ),
                       ),
+
+                      const SizedBox(height: 24),
+                      _buildSectionHeader('Stock Management'),
+                      SwitchListTile(
+                        title: const Text('Track Inventory'),
+                        subtitle: const Text(
+                          'Enable to manage stock quantity',
+                        ),
+                        value: _trackInventory,
+                        onChanged: (v) => setState(() => _trackInventory = v),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      if (_trackInventory) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _stockQuantityController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                decoration: InputDecoration(
+                                  labelText: 'Stock Quantity',
+                                  suffixIcon: _buildStockStatusIcon(),
+                                ),
+                                validator: (v) {
+                                  if (!_trackInventory) return null;
+                                  if (v == null || v.isEmpty) return 'Required';
+                                  final qty = int.tryParse(v);
+                                  if (qty == null || qty < 0) return 'Invalid';
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _lowStockThresholdController,
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                decoration: const InputDecoration(
+                                  labelText: 'Low Stock Alert',
+                                  hintText: 'e.g., 5',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _estimatedDeliveryDaysController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          decoration: const InputDecoration(
+                            labelText: 'Estimated Delivery Days',
+                            hintText: 'e.g., 3',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildStockStatusBanner(),
+                      ],
 
                       const SizedBox(height: 24),
                       _buildSectionHeader('Images'),
@@ -489,6 +574,63 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               ),
             ],
           ),
+    );
+  }
+
+  Widget? _buildStockStatusIcon() {
+    final qty = int.tryParse(_stockQuantityController.text) ?? 0;
+    final threshold = int.tryParse(_lowStockThresholdController.text) ?? 5;
+    
+    if (qty <= 0) {
+      return const Icon(Icons.error, color: AppTheme.error);
+    } else if (qty <= threshold) {
+      return const Icon(Icons.warning_amber, color: AppTheme.warning);
+    } else {
+      return const Icon(Icons.check_circle, color: AppTheme.success);
+    }
+  }
+
+  Widget _buildStockStatusBanner() {
+    final qty = int.tryParse(_stockQuantityController.text) ?? 0;
+    final threshold = int.tryParse(_lowStockThresholdController.text) ?? 5;
+    
+    IconData icon;
+    Color color;
+    String message;
+    
+    if (qty <= 0) {
+      icon = Icons.error_outline;
+      color = AppTheme.error;
+      message = 'Product is out of stock and cannot be purchased';
+    } else if (qty <= threshold) {
+      icon = Icons.warning_amber;
+      color = AppTheme.warning;
+      message = 'Low stock - only $qty units remaining';
+    } else {
+      icon = Icons.inventory_2;
+      color = AppTheme.success;
+      message = '$qty units in stock';
+    }
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: color, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

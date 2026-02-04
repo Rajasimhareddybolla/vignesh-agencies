@@ -75,6 +75,21 @@ class OrderModel {
   final DateTime orderedAt;
   final DateTime? deliveredAt;
   final String? trackingNumber;
+  
+  // Concurrency control
+  final int version;
+  
+  // Cancellation fields
+  final String? cancellationReason;
+  final DateTime? cancelledAt;
+  final String? cancelledBy;  // 'user' or 'admin'
+  
+  // Admin notes
+  final String? adminNotes;
+  
+  // Assignment
+  final String? assignedTo;
+  final DateTime? assignedAt;
 
   OrderModel({
     required this.id,
@@ -87,7 +102,26 @@ class OrderModel {
     required this.orderedAt,
     this.deliveredAt,
     this.trackingNumber,
+    this.version = 1,
+    this.cancellationReason,
+    this.cancelledAt,
+    this.cancelledBy,
+    this.adminNotes,
+    this.assignedTo,
+    this.assignedAt,
   });
+  
+  // Cancellation reasons list
+  static const List<String> cancellationReasons = [
+    'Found better price elsewhere',
+    'Changed my mind',
+    'Ordered by mistake',
+    'Delivery time too long',
+    'Payment issues',
+    'Want to change address',
+    'Product not needed anymore',
+    'Other',
+  ];
 
   factory OrderModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -106,6 +140,13 @@ class OrderModel {
           (data['orderedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       deliveredAt: (data['deliveredAt'] as Timestamp?)?.toDate(),
       trackingNumber: data['trackingNumber'],
+      version: data['version'] ?? 1,
+      cancellationReason: data['cancellationReason'],
+      cancelledAt: (data['cancelledAt'] as Timestamp?)?.toDate(),
+      cancelledBy: data['cancelledBy'],
+      adminNotes: data['adminNotes'],
+      assignedTo: data['assignedTo'],
+      assignedAt: (data['assignedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -121,6 +162,13 @@ class OrderModel {
       'deliveredAt':
           deliveredAt != null ? Timestamp.fromDate(deliveredAt!) : null,
       'trackingNumber': trackingNumber,
+      'version': version,
+      'cancellationReason': cancellationReason,
+      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancelledBy': cancelledBy,
+      'adminNotes': adminNotes,
+      'assignedTo': assignedTo,
+      'assignedAt': assignedAt != null ? Timestamp.fromDate(assignedAt!) : null,
     };
   }
 }

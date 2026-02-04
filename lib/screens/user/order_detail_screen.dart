@@ -4,10 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../../app/theme.dart';
 import '../../models/order_model.dart';
+import '../../models/catalog_product_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../services/cart_service.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final String orderId;
@@ -130,6 +135,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               // Delivery Address
               _buildAddressCard(context, order),
 
+              const SizedBox(height: 16),
+              
+              // Download Invoice
+              _buildDownloadInvoiceButton(context, order),
+
               const SizedBox(height: 24),
 
               // Action Buttons
@@ -242,41 +252,58 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildOrderTimeline(BuildContext context, OrderModel order) {
+    // Calculate estimated delivery (3-5 business days from order date)
+    final estimatedDelivery = order.orderedAt.add(const Duration(days: 5));
+    final estimatedText = 'Expected by ${DateFormat('MMM d').format(estimatedDelivery)}';
+    
+    // Check if order was cancelled or returned - show different timeline
+    if (order.status == OrderStatus.cancelled) {
+      return _buildCancelledTimeline(context, order);
+    }
+    
+    if (order.status == OrderStatus.returned) {
+      return _buildReturnedTimeline(context, order);
+    }
+
     final steps = [
       _TimelineStep(
         title: 'Order Placed',
         subtitle: DateFormat('MMM d, yyyy • h:mm a').format(order.orderedAt),
         isCompleted: true,
         isFirst: true,
+        icon: Icons.receipt_long_outlined,
       ),
       _TimelineStep(
         title: 'Confirmed',
         subtitle: order.status.index >= OrderStatus.confirmed.index 
-            ? 'Order confirmed' 
-            : 'Pending confirmation',
+            ? 'Your order has been confirmed' 
+            : 'Awaiting confirmation',
         isCompleted: order.status.index >= OrderStatus.confirmed.index,
+        isCurrent: order.status == OrderStatus.confirmed,
+        icon: Icons.check_circle_outline,
       ),
       _TimelineStep(
         title: 'Shipped',
         subtitle: order.status.index >= OrderStatus.shipped.index
-            ? 'Out for delivery'
-            : 'Awaiting shipment',
+            ? order.trackingNumber != null 
+                ? 'Tracking: ${order.trackingNumber}'
+                : 'Your order is on the way!'
+            : 'Will be shipped soon',
         isCompleted: order.status.index >= OrderStatus.shipped.index,
+        isCurrent: order.status == OrderStatus.shipped,
+        icon: Icons.local_shipping_outlined,
       ),
       _TimelineStep(
         title: 'Delivered',
         subtitle: order.deliveredAt != null
-            ? DateFormat('MMM d, yyyy').format(order.deliveredAt!)
-            : 'Estimated in 3-5 days',
+            ? DateFormat('MMM d, yyyy • h:mm a').format(order.deliveredAt!)
+            : estimatedText,
         isCompleted: order.status == OrderStatus.delivered,
+        isCurrent: order.status == OrderStatus.delivered,
         isLast: true,
+        icon: Icons.verified_outlined,
       ),
     ];
-
-    // Don't show timeline for cancelled/returned
-    if (order.status == OrderStatus.cancelled || order.status == OrderStatus.returned) {
-      return const SizedBox.shrink();
-    }
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -288,11 +315,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Order Timeline',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Icon(Icons.timeline, color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Order Timeline',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Spacer(),
+              if (order.status != OrderStatus.delivered)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    estimatedText,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           ...steps.map((step) => _buildTimelineItem(context, step)),
@@ -301,32 +350,179 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
+  Widget _buildCancelledTimeline(BuildContext context, OrderModel order) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.error.withAlpha(50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withAlpha(25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.cancel_outlined, color: AppTheme.error, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Order Cancelled',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.error,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (order.cancelledAt != null)
+                      Text(
+                        DateFormat('MMM d, yyyy • h:mm a').format(order.cancelledAt!),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary(context),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (order.cancellationReason != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundLight,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cancellation Reason',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textSecondary(context),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order.cancellationReason!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (order.cancelledBy != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Cancelled by: ${order.cancelledBy == 'admin' ? 'Administrator' : 'You'}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary(context),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReturnedTimeline(BuildContext context, OrderModel order) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.warning.withAlpha(50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withAlpha(25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.assignment_return_outlined, color: AppTheme.warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Order Returned',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.warning,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'This order has been returned. If you have any questions, please contact support.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTimelineItem(BuildContext context, _TimelineStep step) {
+    final isActive = step.isCompleted || step.isCurrent;
+    final activeColor = step.isCompleted ? AppTheme.success : AppTheme.primary;
+    
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Column(
           children: [
             Container(
-              width: 24,
-              height: 24,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: step.isCompleted ? AppTheme.success : AppTheme.borderLight,
+                color: isActive ? activeColor : Colors.transparent,
                 border: Border.all(
-                  color: step.isCompleted ? AppTheme.success : AppTheme.borderLight,
+                  color: isActive ? activeColor : AppTheme.borderLight,
                   width: 2,
                 ),
               ),
-              child: step.isCompleted
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                  : null,
+              child: Icon(
+                step.isCompleted ? Icons.check : step.icon,
+                size: 16,
+                color: isActive ? Colors.white : AppTheme.textSecondary(context),
+              ),
             ),
             if (!step.isLast)
               Container(
                 width: 2,
                 height: 40,
-                color: step.isCompleted ? AppTheme.success : AppTheme.borderLight,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: step.isCompleted 
+                      ? [AppTheme.success, AppTheme.success]
+                      : [AppTheme.borderLight, AppTheme.borderLight],
+                  ),
+                ),
               ),
           ],
         ),
@@ -337,14 +533,37 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  step.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: step.isCompleted 
-                        ? AppTheme.textPrimary(context) 
-                        : AppTheme.textSecondary(context),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      step.title,
+                      style: TextStyle(
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                        color: isActive 
+                            ? AppTheme.textPrimary(context) 
+                            : AppTheme.textSecondary(context),
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (step.isCurrent && !step.isCompleted) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withAlpha(25),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Current',
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -605,11 +824,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _buildReorderButton(BuildContext context, OrderModel order) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => context.pushNamed('product-catalog'),
+      child: ElevatedButton.icon(
+        onPressed: () => _handleReorder(context, order),
         icon: const Icon(Icons.replay),
-        label: const Text('Browse More Products'),
-        style: OutlinedButton.styleFrom(
+        label: const Text('Reorder Items'),
+        style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -617,55 +836,724 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  void _showCancelDialog(BuildContext context, OrderModel order) {
+  Future<void> _handleReorder(BuildContext context, OrderModel order) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final firestoreService = context.read<FirestoreService>();
+      final cartService = context.read<CartService>();
+      
+      int addedCount = 0;
+      int unavailableCount = 0;
+      List<String> unavailableItems = [];
+
+      for (final item in order.items) {
+        // Fetch the current product from Firestore
+        final product = await firestoreService.getCatalogProduct(item.productId);
+        
+        if (product == null || !product.isActive) {
+          unavailableCount++;
+          unavailableItems.add(item.productName);
+          continue;
+        }
+
+        // Find the variation if any
+        ProductVariation? variation;
+        if (item.variationId != null && product.variations.isNotEmpty) {
+          try {
+            variation = product.variations.firstWhere(
+              (v) => v.id == item.variationId,
+            );
+          } catch (_) {
+            // Variation not found, try to find one with matching attributes
+            for (final v in product.variations) {
+              bool matches = true;
+              for (final attr in item.selectedAttributes.entries) {
+                if (v.attributes[attr.key] != attr.value) {
+                  matches = false;
+                  break;
+                }
+              }
+              if (matches) {
+                variation = v;
+                break;
+              }
+            }
+          }
+        }
+
+        // Check stock
+        final inStock = cartService.isProductInStock(product, variation);
+        if (!inStock) {
+          unavailableCount++;
+          unavailableItems.add(item.productName);
+          continue;
+        }
+
+        // Add to cart
+        cartService.addToCart(product, variation: variation, quantity: item.quantity);
+        addedCount++;
+      }
+
+      // Close loading dialog
+      if (context.mounted) Navigator.pop(context);
+
+      // Show result
+      if (context.mounted) {
+        if (addedCount > 0 && unavailableCount == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text('$addedCount item${addedCount > 1 ? 's' : ''} added to cart'),
+                ],
+              ),
+              backgroundColor: AppTheme.success,
+              action: SnackBarAction(
+                label: 'View Cart',
+                textColor: Colors.white,
+                onPressed: () => context.pushNamed('cart'),
+              ),
+            ),
+          );
+        } else if (addedCount > 0 && unavailableCount > 0) {
+          _showReorderResultDialog(context, addedCount, unavailableItems);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('None of the items are currently available'),
+              backgroundColor: AppTheme.warning,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showReorderResultDialog(BuildContext context, int addedCount, List<String> unavailableItems) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Cancel Order?'),
-        content: Text(
-          'Are you sure you want to cancel this order?\n\nThis action cannot be undone.',
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.warning.withAlpha(25),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.info_outline, color: AppTheme.warning, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(child: Text('Partial Reorder')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '$addedCount item${addedCount > 1 ? 's' : ''} added to cart.',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'The following items are unavailable:',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary(context),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...unavailableItems.map((name) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  const Icon(Icons.remove_circle_outline, size: 14, color: AppTheme.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('No, Keep Order'),
+            child: const Text('OK'),
           ),
           FilledButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogContext);
-              try {
-                final authService = context.read<AuthService>();
-                final firestoreService = context.read<FirestoreService>();
-                final userId = await authService.getResolvedUserId();
-                
-                await firestoreService.cancelOrder(order.id, userId);
-                
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Order cancelled successfully'),
-                      backgroundColor: AppTheme.success,
-                    ),
-                  );
-                  // Refresh the order
-                  _loadOrder();
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to cancel: $e'),
-                      backgroundColor: AppTheme.error,
-                    ),
-                  );
-                }
-              }
+              context.pushNamed('cart');
             },
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Yes, Cancel Order'),
+            child: const Text('View Cart'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadInvoiceButton(BuildContext context, OrderModel order) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _downloadInvoice(context, order),
+        icon: const Icon(Icons.receipt_long_outlined),
+        label: const Text('Download Invoice'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _downloadInvoice(BuildContext context, OrderModel order) async {
+    try {
+      final pdf = await _generateInvoicePdf(order);
+      await Printing.sharePdf(
+        bytes: await pdf.save(),
+        filename: 'vignesh_agencies_invoice_${order.id.substring(order.id.length - 6).toUpperCase()}.pdf',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating invoice: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<pw.Document> _generateInvoicePdf(OrderModel order) async {
+    final pdf = pw.Document();
+    
+    // Calculate totals
+    final subtotal = order.items.fold<double>(
+      0,
+      (sum, item) => sum + (item.price * item.quantity),
+    );
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(40),
+        build: (pw.Context context) {
+          return [
+            // Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      'VIGNESH AGENCIES',
+                      style: pw.TextStyle(
+                        fontSize: 24,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.blue800,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      'Premium Home Appliances',
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey600,
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'No. 123, Main Road\nChennai, Tamil Nadu - 600001\nPhone: +91 99999 99999',
+                      style: const pw.TextStyle(
+                        fontSize: 9,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: pw.BoxDecoration(
+                        color: PdfColors.blue100,
+                        borderRadius: pw.BorderRadius.circular(4),
+                      ),
+                      child: pw.Text(
+                        'INVOICE',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.blue800,
+                        ),
+                      ),
+                    ),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      DateFormat('MMMM dd, yyyy').format(order.orderedAt),
+                      style: const pw.TextStyle(
+                        fontSize: 10,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Bill To Section
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'BILL TO',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Text(
+                        order.address.name,
+                        style: pw.TextStyle(
+                          fontSize: 11,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        order.address.phone,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        '${order.address.street}\n${order.address.city}, ${order.address.state} - ${order.address.pincode}',
+                        style: const pw.TextStyle(
+                          fontSize: 10,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ORDER DETAILS',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                      pw.SizedBox(height: 6),
+                      _pdfLabelValue('Status', order.status.displayName),
+                      _pdfLabelValue('Payment', order.paymentMethod == 'COD' ? 'Cash on Delivery' : order.paymentMethod),
+                      _pdfLabelValue('Items', '${order.items.length}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            pw.SizedBox(height: 30),
+
+            // Items Table
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey300),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(4),
+                1: const pw.FlexColumnWidth(1),
+                2: const pw.FlexColumnWidth(1.5),
+                3: const pw.FlexColumnWidth(1.5),
+              },
+              children: [
+                // Header Row
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    _pdfTableHeader('Item'),
+                    _pdfTableHeader('Qty'),
+                    _pdfTableHeader('Price'),
+                    _pdfTableHeader('Total'),
+                  ],
+                ),
+                // Item Rows
+                ...order.items.map((item) => pw.TableRow(
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            item.productName,
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          if (item.selectedAttributes.isNotEmpty)
+                            pw.Text(
+                              item.selectedAttributes.entries
+                                  .map((e) => '${e.key}: ${e.value}')
+                                  .join(' • '),
+                              style: const pw.TextStyle(
+                                fontSize: 8,
+                                color: PdfColors.grey600,
+                              ),
+                            ),
+                          if (item.warrantyMonths > 0)
+                            pw.Text(
+                              'Warranty: ${item.warrantyMonths} months',
+                              style: const pw.TextStyle(
+                                fontSize: 8,
+                                color: PdfColors.grey600,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    _pdfTableCell('${item.quantity}'),
+                    _pdfTableCell('₹${item.price.toStringAsFixed(0)}'),
+                    _pdfTableCell('₹${(item.price * item.quantity).toStringAsFixed(0)}'),
+                  ],
+                )),
+              ],
+            ),
+
+            pw.SizedBox(height: 20),
+
+            // Totals
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.end,
+              children: [
+                pw.SizedBox(
+                  width: 200,
+                  child: pw.Column(
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 10)),
+                          pw.Text('₹${subtotal.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Shipping', style: const pw.TextStyle(fontSize: 10)),
+                          pw.Text('FREE', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green700)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 8),
+                      pw.Divider(color: PdfColors.grey300),
+                      pw.SizedBox(height: 8),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(
+                            'Total',
+                            style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                          pw.Text(
+                            '₹${order.totalAmount.toStringAsFixed(0)}',
+                            style: pw.TextStyle(
+                              fontSize: 12,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.blue800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            pw.SizedBox(height: 40),
+
+            // Footer
+            pw.Divider(color: PdfColors.grey300),
+            pw.SizedBox(height: 10),
+            pw.Center(
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    'Thank you for shopping with Vignesh Agencies!',
+                    style: pw.TextStyle(
+                      fontSize: 11,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.blue800,
+                    ),
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'For queries, contact us at support@vigneshagencies.com',
+                    style: const pw.TextStyle(
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return pdf;
+  }
+
+  // PDF helper methods
+  pw.Widget _pdfTableHeader(String text) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: pw.FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  pw.Widget _pdfTableCell(String text, {bool bold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(8),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          fontSize: 10,
+          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+        ),
+        textAlign: pw.TextAlign.right,
+      ),
+    );
+  }
+
+  pw.Widget _pdfLabelValue(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 4),
+      child: pw.Row(
+        children: [
+          pw.Text(
+            '$label: ',
+            style: const pw.TextStyle(
+              fontSize: 10,
+              color: PdfColors.grey600,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 10,
+              fontWeight: pw.FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCancelDialog(BuildContext context, OrderModel order) {
+    String? selectedReason;
+    String customReason = '';
+    
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withAlpha(25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.cancel_outlined, color: AppTheme.error, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text('Cancel Order'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Please select a reason for cancellation:',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...OrderModel.cancellationReasons.map((reason) => 
+                  RadioListTile<String>(
+                    title: Text(reason, style: const TextStyle(fontSize: 14)),
+                    value: reason,
+                    groupValue: selectedReason,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (value) {
+                      setDialogState(() {
+                        selectedReason = value;
+                      });
+                    },
+                  ),
+                ),
+                if (selectedReason == 'Other') ...[
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Please specify your reason...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                    ),
+                    maxLines: 2,
+                    onChanged: (value) => customReason = value,
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.warning.withAlpha(50)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, color: AppTheme.warning, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This action cannot be undone.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Keep Order'),
+            ),
+            FilledButton(
+              onPressed: selectedReason == null 
+                ? null 
+                : () async {
+                    final reason = selectedReason == 'Other' && customReason.isNotEmpty
+                        ? customReason
+                        : selectedReason;
+                    Navigator.pop(dialogContext);
+                    try {
+                      final authService = context.read<AuthService>();
+                      final firestoreService = context.read<FirestoreService>();
+                      final userId = await authService.getResolvedUserId();
+                      
+                      await firestoreService.cancelOrder(order.id, userId, reason: reason);
+                      
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Order cancelled successfully'),
+                            backgroundColor: AppTheme.success,
+                          ),
+                        );
+                        // Refresh the order
+                        _loadOrder();
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to cancel: $e'),
+                            backgroundColor: AppTheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
+              style: FilledButton.styleFrom(
+                backgroundColor: selectedReason == null 
+                  ? AppTheme.error.withAlpha(100) 
+                  : AppTheme.error,
+              ),
+              child: const Text('Cancel Order'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -677,6 +1565,8 @@ class _TimelineStep {
   final bool isCompleted;
   final bool isFirst;
   final bool isLast;
+  final bool isCurrent;
+  final IconData icon;
 
   _TimelineStep({
     required this.title,
@@ -684,5 +1574,7 @@ class _TimelineStep {
     required this.isCompleted,
     this.isFirst = false,
     this.isLast = false,
+    this.isCurrent = false,
+    this.icon = Icons.check_circle_outline,
   });
 }

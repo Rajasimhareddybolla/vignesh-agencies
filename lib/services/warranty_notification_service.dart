@@ -11,7 +11,9 @@ class WarrantyNotificationService {
 
   static const String _scheduledNotificationsKey =
       'scheduled_warranty_notifications';
-  static const int _daysBeforeExpiry = 30;
+  
+  // Phase 3: Multiple reminder points
+  static const List<int> _reminderDays = [30, 7, 3, 1];
 
   /// Initialize the notification service with timezone support
   static Future<void> initialize() async {
@@ -63,8 +65,8 @@ class WarrantyNotificationService {
     final scheduledIds = prefs.getStringList(_scheduledNotificationsKey) ?? [];
 
     for (final appliance in appliances) {
-      // Skip if already scheduled or warranty already expired
-      if (scheduledIds.contains(appliance.id) || !appliance.isUnderWarranty) {
+      // Skip if warranty already expired
+      if (!appliance.isUnderWarranty) {
         continue;
       }
 
@@ -73,31 +75,118 @@ class WarrantyNotificationService {
         continue;
       }
 
-      // Calculate notification date (30 days before expiry)
-      final notificationDate = appliance.warrantyEndDate.subtract(
-        const Duration(days: _daysBeforeExpiry),
-      );
+      // Schedule notifications for each reminder day
+      for (final days in _reminderDays) {
+        final notificationKey = '${appliance.id}_$days';
+        
+        // Skip if already scheduled
+        if (scheduledIds.contains(notificationKey)) {
+          continue;
+        }
 
-      // Skip if notification date is in the past
-      if (notificationDate.isBefore(DateTime.now())) {
-        continue;
+        // Calculate notification date
+        final notificationDate = appliance.warrantyEndDate.subtract(
+          Duration(days: days),
+        );
+
+        // Skip if notification date is in the past
+        if (notificationDate.isBefore(DateTime.now())) {
+          continue;
+        }
+
+        final (title, body) = _getNotificationContent(days, appliance.productName);
+
+        await _scheduleNotification(
+          id: notificationKey.hashCode,
+          title: title,
+          body: body,
+          scheduledDate: notificationDate,
+          payload: appliance.id,
+        );
+
+        // Mark as scheduled
+        scheduledIds.add(notificationKey);
       }
-
-      await _scheduleNotification(
-        id: appliance.id.hashCode,
-        title: 'Warranty Expiring Soon!',
-        body:
-            'Your ${appliance.productName} warranty expires in $_daysBeforeExpiry days. '
-            'Schedule a service check if needed.',
-        scheduledDate: notificationDate,
-        payload: appliance.id,
-      );
-
-      // Mark as scheduled
-      scheduledIds.add(appliance.id);
     }
 
     await prefs.setStringList(_scheduledNotificationsKey, scheduledIds);
+  }
+
+  /// Get notification content based on days remaining
+  static (String, String) _getNotificationContent(int daysRemaining, String productName) {
+    switch (daysRemaining) {
+      case 30:
+        return (
+          'Warranty Reminder: $productName',
+          'Your warranty expires in 30 days. Schedule a service check if needed.',
+        );
+      case 7:
+        return (
+          'Warranty Expiring Soon!',
+          'Only 7 days left on your $productName warranty. Consider scheduling a service.',
+        );
+      case 3:
+        return (
+          '⚠️ Warranty Alert: $productName',
+          'Your warranty expires in 3 days! Don\'t miss out on free service coverage.',
+        );
+      case 1:
+        return (
+          '🚨 Last Day: Warranty Expiring Tomorrow!',
+          'Your $productName warranty expires tomorrow. Request service now if needed!',
+        );
+      default:
+        return (
+          'Warranty Reminder',
+          'Your $productName warranty expires in $daysRemaining days.',
+        );
+    }
+  }
+
+  /// Get appliances with warranties expiring soon (Phase 3 - for UI alerts)
+  static List<WarrantyAlert> getWarrantyAlerts(List<UserApplianceModel> appliances) {
+    final alerts = <WarrantyAlert>[];
+    final now = DateTime.now();
+
+    for (final appliance in appliances) {
+      if (appliance.status != ProductStatus.active) continue;
+      
+      final daysRemaining = appliance.warrantyEndDate.difference(now).inDays;
+      
+      if (daysRemaining < 0) {
+        // Expired
+        alerts.add(WarrantyAlert(
+          appliance: appliance,
+          daysRemaining: daysRemaining,
+          alertType: WarrantyAlertType.expired,
+        ));
+      } else if (daysRemaining <= 3) {
+        // Critical
+        alerts.add(WarrantyAlert(
+          appliance: appliance,
+          daysRemaining: daysRemaining,
+          alertType: WarrantyAlertType.critical,
+        ));
+      } else if (daysRemaining <= 7) {
+        // Warning
+        alerts.add(WarrantyAlert(
+          appliance: appliance,
+          daysRemaining: daysRemaining,
+          alertType: WarrantyAlertType.warning,
+        ));
+      } else if (daysRemaining <= 30) {
+        // Info
+        alerts.add(WarrantyAlert(
+          appliance: appliance,
+          daysRemaining: daysRemaining,
+          alertType: WarrantyAlertType.info,
+        ));
+      }
+    }
+
+    // Sort by urgency (most urgent first)
+    alerts.sort((a, b) => a.daysRemaining.compareTo(b.daysRemaining));
+    return alerts;
   }
 
   /// Schedule a single notification
@@ -168,10 +257,15 @@ class WarrantyNotificationService {
   /// Cancel notification for a specific appliance
   static Future<void> cancelNotification(String applianceId) async {
     await _notifications.cancel(applianceId.hashCode);
+    
+    // Cancel all reminder notifications for this appliance
+    for (final days in _reminderDays) {
+      await _notifications.cancel('${applianceId}_$days'.hashCode);
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final scheduledIds = prefs.getStringList(_scheduledNotificationsKey) ?? [];
-    scheduledIds.remove(applianceId);
+    scheduledIds.removeWhere((id) => id.startsWith(applianceId));
     await prefs.setStringList(_scheduledNotificationsKey, scheduledIds);
   }
 
@@ -186,5 +280,38 @@ class WarrantyNotificationService {
             .toList();
 
     await scheduleWarrantyNotifications(activeAppliances);
+  }
+}
+
+/// Warranty alert types for UI display
+enum WarrantyAlertType {
+  info,    // 30 days or less
+  warning, // 7 days or less
+  critical, // 3 days or less
+  expired,  // Already expired
+}
+
+/// Warranty alert model for UI
+class WarrantyAlert {
+  final UserApplianceModel appliance;
+  final int daysRemaining;
+  final WarrantyAlertType alertType;
+
+  const WarrantyAlert({
+    required this.appliance,
+    required this.daysRemaining,
+    required this.alertType,
+  });
+
+  String get message {
+    if (daysRemaining < 0) {
+      return 'Warranty expired ${-daysRemaining} days ago';
+    } else if (daysRemaining == 0) {
+      return 'Warranty expires today!';
+    } else if (daysRemaining == 1) {
+      return 'Warranty expires tomorrow!';
+    } else {
+      return 'Warranty expires in $daysRemaining days';
+    }
   }
 }

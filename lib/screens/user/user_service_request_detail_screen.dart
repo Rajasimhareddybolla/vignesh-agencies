@@ -196,6 +196,20 @@ class _UserServiceRequestDetailScreenState
 
                 const SizedBox(height: 16),
 
+                // Service Timeline (Phase 3)
+                _buildServiceTimeline(context, request),
+
+                const SizedBox(height: 16),
+
+                // Technician Contact Card (Phase 3) - only show when assigned
+                if (request.technicianName != null && 
+                    request.status != ServiceRequestStatus.pending)
+                  _buildTechnicianCard(context, request),
+
+                if (request.technicianName != null && 
+                    request.status != ServiceRequestStatus.pending)
+                  const SizedBox(height: 16),
+
                 // Assignment Information (Read-Only)
                 _SectionCard(
                   title: 'Service Assignment',
@@ -219,6 +233,10 @@ class _UserServiceRequestDetailScreenState
                     ],
                   ),
 
+                // Feedback Section (Phase 3) - show for completed requests
+                if (request.status == ServiceRequestStatus.completed)
+                  _buildFeedbackSection(context, request),
+
                 const SizedBox(height: 24),
 
                 // Action Button - Only show "Mark as Completed" when status is resolved
@@ -231,6 +249,644 @@ class _UserServiceRequestDetailScreenState
         },
       ),
     );
+  }
+
+  // Phase 3: Service Timeline Widget
+  Widget _buildServiceTimeline(BuildContext context, ServiceRequestModel request) {
+    final steps = <_ServiceTimelineStep>[
+      _ServiceTimelineStep(
+        title: 'Request Submitted',
+        subtitle: DateFormat('MMM d, yyyy • h:mm a').format(request.createdAt),
+        isCompleted: true,
+        icon: Icons.receipt_long_outlined,
+      ),
+      _ServiceTimelineStep(
+        title: 'Technician Assigned',
+        subtitle: request.assignedAt != null
+            ? DateFormat('MMM d, yyyy • h:mm a').format(request.assignedAt!)
+            : 'Awaiting assignment',
+        isCompleted: request.status.index >= ServiceRequestStatus.assigned.index,
+        isCurrent: request.status == ServiceRequestStatus.assigned,
+        icon: Icons.assignment_ind_outlined,
+      ),
+      _ServiceTimelineStep(
+        title: 'Service In Progress',
+        subtitle: request.serviceStartedAt != null
+            ? DateFormat('MMM d, yyyy • h:mm a').format(request.serviceStartedAt!)
+            : request.status == ServiceRequestStatus.inProgress 
+                ? 'Technician is working on it'
+                : 'Pending',
+        isCompleted: request.status.index >= ServiceRequestStatus.inProgress.index,
+        isCurrent: request.status == ServiceRequestStatus.inProgress,
+        icon: Icons.engineering_outlined,
+      ),
+      _ServiceTimelineStep(
+        title: 'Service Resolved',
+        subtitle: request.resolvedAt != null
+            ? DateFormat('MMM d, yyyy • h:mm a').format(request.resolvedAt!)
+            : 'Pending resolution',
+        isCompleted: request.status.index >= ServiceRequestStatus.resolved.index,
+        isCurrent: request.status == ServiceRequestStatus.resolved,
+        icon: Icons.check_circle_outline,
+      ),
+      _ServiceTimelineStep(
+        title: 'Completed',
+        subtitle: request.completedAt != null
+            ? DateFormat('MMM d, yyyy • h:mm a').format(request.completedAt!)
+            : 'Awaiting your confirmation',
+        isCompleted: request.status == ServiceRequestStatus.completed,
+        isCurrent: request.status == ServiceRequestStatus.completed,
+        icon: Icons.verified_outlined,
+        isLast: true,
+      ),
+    ];
+
+    // For cancelled/escalated, show different timeline
+    if (request.status == ServiceRequestStatus.cancelled ||
+        request.status == ServiceRequestStatus.escalated) {
+      return _buildSpecialStatusCard(context, request);
+    }
+
+    return _SectionCard(
+      title: 'Service Timeline',
+      icon: Icons.timeline,
+      children: [
+        if (request.estimatedCompletionDate != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: AppTheme.info.withAlpha(25),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.info.withAlpha(50)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.schedule, color: AppTheme.info, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Estimated completion: ${DateFormat('MMM d, yyyy').format(request.estimatedCompletionDate!)}',
+                    style: TextStyle(
+                      color: AppTheme.infoDark,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        ...steps.map((step) => _buildTimelineStep(context, step)),
+      ],
+    );
+  }
+
+  Widget _buildTimelineStep(BuildContext context, _ServiceTimelineStep step) {
+    final isActive = step.isCompleted || step.isCurrent;
+    final activeColor = step.isCompleted ? AppTheme.success : AppTheme.primary;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isActive ? activeColor : Colors.transparent,
+                border: Border.all(
+                  color: isActive ? activeColor : AppTheme.borderLight,
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                step.isCompleted ? Icons.check : step.icon,
+                size: 14,
+                color: isActive ? Colors.white : AppTheme.textSecondary(context),
+              ),
+            ),
+            if (!step.isLast)
+              Container(
+                width: 2,
+                height: 32,
+                color: step.isCompleted ? AppTheme.success : AppTheme.borderLight,
+              ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: step.isLast ? 0 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      step.title,
+                      style: TextStyle(
+                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                        color: isActive 
+                            ? AppTheme.textPrimary(context) 
+                            : AppTheme.textSecondary(context),
+                      ),
+                    ),
+                    if (step.isCurrent && !step.isCompleted) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withAlpha(25),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Current',
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  step.subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpecialStatusCard(BuildContext context, ServiceRequestModel request) {
+    final isEscalated = request.status == ServiceRequestStatus.escalated;
+    final color = isEscalated ? AppTheme.error : AppTheme.neutral;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: color.withAlpha(50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withAlpha(50),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  isEscalated ? Icons.priority_high : Icons.cancel_outlined,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEscalated ? 'Request Escalated' : 'Request Cancelled',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isEscalated 
+                          ? 'This request has been escalated to senior support for priority handling.'
+                          : 'This service request has been cancelled.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Phase 3: Technician Contact Card
+  Widget _buildTechnicianCard(BuildContext context, ServiceRequestModel request) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary.withAlpha(15),
+            AppTheme.primaryLight.withAlpha(10),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.primary.withAlpha(30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.support_agent, color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Your Technician',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: AppTheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.technicianName ?? 'Technician',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (request.assignedProvider != null)
+                      Text(
+                        request.assignedProvider!,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary(context),
+                        ),
+                      ),
+                    if (request.technicianArrivalTime != null)
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time, size: 12, color: AppTheme.success),
+                          const SizedBox(width: 4),
+                          Text(
+                            'ETA: ${DateFormat('h:mm a').format(request.technicianArrivalTime!)}',
+                            style: const TextStyle(
+                              color: AppTheme.success,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (request.technicianPhone != null) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _launchPhone(request.technicianPhone!),
+                    icon: const Icon(Icons.phone_outlined, size: 18),
+                    label: const Text('Call'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(color: AppTheme.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _launchSms(request.technicianPhone!),
+                    icon: const Icon(Icons.message_outlined, size: 18),
+                    label: const Text('Message'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      side: const BorderSide(color: AppTheme.primary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Phase 3: Feedback Section
+  Widget _buildFeedbackSection(BuildContext context, ServiceRequestModel request) {
+    // If already submitted feedback
+    if (request.rating != null) {
+      return Column(
+        children: [
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Your Feedback',
+            icon: Icons.star,
+            children: [
+              Row(
+                children: List.generate(5, (index) {
+                  return Icon(
+                    index < request.rating! ? Icons.star : Icons.star_border,
+                    color: AppTheme.warning,
+                    size: 28,
+                  );
+                }),
+              ),
+              if (request.feedbackComment != null && 
+                  request.feedbackComment!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '"${request.feedbackComment}"',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                'Submitted on ${DateFormat('MMM d, yyyy').format(request.feedbackSubmittedAt ?? DateTime.now())}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textSecondary(context),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    // Show feedback prompt
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.warning.withAlpha(15),
+                AppTheme.warning.withAlpha(5),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            border: Border.all(color: AppTheme.warning.withAlpha(30)),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warning.withAlpha(25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.rate_review, color: AppTheme.warning),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Rate Your Experience',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Help us improve by sharing your feedback',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showFeedbackDialog(context, request),
+                  icon: const Icon(Icons.star_outline),
+                  label: const Text('Submit Feedback'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.warning,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showFeedbackDialog(BuildContext context, ServiceRequestModel request) {
+    int selectedRating = 0;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withAlpha(25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.star, color: AppTheme.warning, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text('Rate Service'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'How was your service experience?',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedRating = index + 1;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          index < selectedRating ? Icons.star : Icons.star_border,
+                          color: AppTheme.warning,
+                          size: 40,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _getRatingText(selectedRating),
+                  style: TextStyle(
+                    color: AppTheme.warning,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: commentController,
+                  decoration: InputDecoration(
+                    hintText: 'Share your experience (optional)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: selectedRating == 0 
+                ? null 
+                : () async {
+                    Navigator.pop(dialogContext);
+                    try {
+                      await context
+                          .read<FirestoreService>()
+                          .submitServiceFeedback(
+                            requestId: request.id,
+                            rating: selectedRating,
+                            comment: commentController.text.trim().isEmpty 
+                                ? null 
+                                : commentController.text.trim(),
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Thank you for your feedback!'),
+                            backgroundColor: AppTheme.success,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to submit feedback: $e'),
+                            backgroundColor: AppTheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
+              style: FilledButton.styleFrom(
+                backgroundColor: selectedRating == 0 
+                    ? AppTheme.warning.withAlpha(100) 
+                    : AppTheme.warning,
+              ),
+              child: const Text('Submit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _getRatingText(int rating) {
+    switch (rating) {
+      case 1: return 'Poor';
+      case 2: return 'Fair';
+      case 3: return 'Good';
+      case 4: return 'Very Good';
+      case 5: return 'Excellent!';
+      default: return 'Tap to rate';
+    }
+  }
+
+  void _launchPhone(String phone) async {
+    // Using url_launcher for phone call
+    final uri = Uri.parse('tel:$phone');
+    // In a real implementation, use: await launchUrl(uri);
+    // For now, show a snackbar
+    debugPrint('Would launch: $uri');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Calling $phone...')),
+      );
+    }
+  }
+
+  void _launchSms(String phone) async {
+    // Using url_launcher for SMS
+    final uri = Uri.parse('sms:$phone');
+    // In a real implementation, use: await launchUrl(uri);
+    debugPrint('Would launch: $uri');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Opening SMS to $phone...')),
+      );
+    }
   }
 
   Widget _buildStatusHeader(BuildContext context, ServiceRequestModel request) {
@@ -880,4 +1536,23 @@ class _DetailRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// Phase 3: Timeline Step Helper Class
+class _ServiceTimelineStep {
+  final String title;
+  final String subtitle;
+  final bool isCompleted;
+  final bool isCurrent;
+  final IconData icon;
+  final bool isLast;
+
+  const _ServiceTimelineStep({
+    required this.title,
+    required this.subtitle,
+    this.isCompleted = false,
+    this.isCurrent = false,
+    this.icon = Icons.circle,
+    this.isLast = false,
+  });
 }

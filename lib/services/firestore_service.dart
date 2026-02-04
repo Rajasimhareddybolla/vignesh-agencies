@@ -330,6 +330,29 @@ class FirestoreService {
     return snapshot.count ?? 0;
   }
 
+  // Submit feedback for a completed service request (Phase 3)
+  Future<void> submitServiceFeedback({
+    required String requestId,
+    required int rating,
+    String? comment,
+  }) async {
+    await _firestore.collection('service_requests').doc(requestId).update({
+      'rating': rating,
+      'feedbackComment': comment,
+      'feedbackSubmittedAt': FieldValue.serverTimestamp(),
+      'feedbackRequested': false,
+    });
+  }
+
+  // Mark service request as completed by user (Phase 3)
+  Future<void> markServiceRequestCompleted(String requestId) async {
+    await _firestore.collection('service_requests').doc(requestId).update({
+      'status': 'completed',
+      'completedAt': FieldValue.serverTimestamp(),
+      'feedbackRequested': true,
+    });
+  }
+
   // ============== REFERRALS ==============
 
   // Stream of user's referrals
@@ -726,54 +749,99 @@ class FirestoreService {
     );
   }
 
-  // Update Order Status (Admin)
+  // Update Order Status (Admin) - With concurrency control
   Future<void> updateOrderStatus(
     String orderId,
     OrderStatus status, {
     String? trackingNumber,
+    int? expectedVersion,
   }) async {
-    final updates = <String, dynamic>{'status': status.firestoreValue};
+    await _firestore.runTransaction((transaction) async {
+      final orderRef = _firestore.collection('orders').doc(orderId);
+      final orderDoc = await transaction.get(orderRef);
+      
+      if (!orderDoc.exists) {
+        throw Exception('Order not found');
+      }
+      
+      final currentVersion = orderDoc.data()?['version'] ?? 1;
+      if (expectedVersion != null && currentVersion != expectedVersion) {
+        throw Exception('Order was modified by another user. Please refresh and try again.');
+      }
+      
+      final updates = <String, dynamic>{
+        'status': status.firestoreValue,
+        'version': currentVersion + 1,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-    if (status == OrderStatus.delivered) {
-      updates['deliveredAt'] = Timestamp.now();
-    }
-    if (trackingNumber != null) {
-      updates['trackingNumber'] = trackingNumber;
-    }
+      if (status == OrderStatus.delivered) {
+        updates['deliveredAt'] = Timestamp.now();
+      }
+      if (trackingNumber != null) {
+        updates['trackingNumber'] = trackingNumber;
+      }
 
-    await _firestore.collection('orders').doc(orderId).update(updates);
+      transaction.update(orderRef, updates);
+    });
 
-    // If Delivered, Automatically Register Valid Appliances
+    // If Delivered, Automatically Register Valid Appliances (outside transaction)
     if (status == OrderStatus.delivered) {
       await _autoRegisterAppliancesFromOrder(orderId);
     }
   }
 
-  // Cancel Order (User) - Only allowed before shipping
-  Future<void> cancelOrder(String orderId, String userId) async {
-    final orderDoc = await _firestore.collection('orders').doc(orderId).get();
-    if (!orderDoc.exists) throw Exception('Order not found');
+  // Cancel Order (User) - Only allowed before shipping, with reason
+  Future<void> cancelOrder(
+    String orderId,
+    String userId, {
+    String? reason,
+  }) async {
+    await _firestore.runTransaction((transaction) async {
+      final orderRef = _firestore.collection('orders').doc(orderId);
+      final orderDoc = await transaction.get(orderRef);
+      
+      if (!orderDoc.exists) throw Exception('Order not found');
 
-    final order = OrderModel.fromFirestore(orderDoc);
+      final order = OrderModel.fromFirestore(orderDoc);
 
-    // Validate ownership
-    if (order.userId != userId) {
-      throw Exception('You can only cancel your own orders');
-    }
+      // Validate ownership
+      if (order.userId != userId) {
+        throw Exception('You can only cancel your own orders');
+      }
 
-    // Only allow cancellation before shipping
-    if (order.status == OrderStatus.shipped ||
-        order.status == OrderStatus.delivered) {
-      throw Exception('Cannot cancel order after it has been shipped');
-    }
+      // Only allow cancellation before shipping
+      if (order.status == OrderStatus.shipped ||
+          order.status == OrderStatus.delivered) {
+        throw Exception('Cannot cancel order after it has been shipped');
+      }
 
-    if (order.status == OrderStatus.cancelled) {
-      throw Exception('Order is already cancelled');
-    }
+      if (order.status == OrderStatus.cancelled) {
+        throw Exception('Order is already cancelled');
+      }
 
-    await _firestore.collection('orders').doc(orderId).update({
-      'status': OrderStatus.cancelled.firestoreValue,
-      'cancelledAt': Timestamp.now(),
+      // Restore stock for cancelled items
+      for (final item in order.items) {
+        final productRef = _firestore.collection('catalog_products').doc(item.productId);
+        final productDoc = await transaction.get(productRef);
+        
+        if (productDoc.exists) {
+          final trackInventory = productDoc.data()?['trackInventory'] ?? true;
+          if (trackInventory) {
+            transaction.update(productRef, {
+              'stockQuantity': FieldValue.increment(item.quantity),
+            });
+          }
+        }
+      }
+
+      transaction.update(orderRef, {
+        'status': OrderStatus.cancelled.firestoreValue,
+        'cancelledAt': Timestamp.now(),
+        'cancelledBy': 'user',
+        'cancellationReason': reason,
+        'version': FieldValue.increment(1),
+      });
     });
   }
 
@@ -959,5 +1027,203 @@ class FirestoreService {
         .collection('service_requests')
         .where('userId', isEqualTo: userId)
         .get(const GetOptions(source: Source.server));
+  }
+
+  // ============== STOCK MANAGEMENT ==============
+
+  /// Get products with low stock (Admin)
+  Stream<List<CatalogProductModel>> getLowStockProducts() {
+    return _firestore
+        .collection('catalog_products')
+        .where('trackInventory', isEqualTo: true)
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => CatalogProductModel.fromFirestore(doc))
+              .where((product) => product.isLowStock || product.isOutOfStock)
+              .toList()
+            ..sort((a, b) => a.stockQuantity.compareTo(b.stockQuantity));
+        });
+  }
+
+  /// Get out of stock products count
+  Future<int> getOutOfStockCount() async {
+    final snapshot = await _firestore
+        .collection('catalog_products')
+        .where('trackInventory', isEqualTo: true)
+        .where('isActive', isEqualTo: true)
+        .where('stockQuantity', isLessThanOrEqualTo: 0)
+        .count()
+        .get();
+    return snapshot.count ?? 0;
+  }
+
+  /// Get low stock products count
+  Future<int> getLowStockCount() async {
+    final snapshot = await _firestore
+        .collection('catalog_products')
+        .where('trackInventory', isEqualTo: true)
+        .where('isActive', isEqualTo: true)
+        .get();
+    
+    int count = 0;
+    for (final doc in snapshot.docs) {
+      final stockQty = doc.data()['stockQuantity'] ?? 0;
+      final threshold = doc.data()['lowStockThreshold'] ?? 5;
+      if (stockQty > 0 && stockQty <= threshold) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /// Update stock quantity for a product
+  Future<void> updateProductStock(String productId, int newQuantity) async {
+    await _firestore.collection('catalog_products').doc(productId).update({
+      'stockQuantity': newQuantity,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Increment stock quantity (for restocking)
+  Future<void> incrementProductStock(String productId, int quantity) async {
+    await _firestore.collection('catalog_products').doc(productId).update({
+      'stockQuantity': FieldValue.increment(quantity),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Decrement stock quantity (for sales)
+  Future<void> decrementProductStock(String productId, int quantity) async {
+    await _firestore.collection('catalog_products').doc(productId).update({
+      'stockQuantity': FieldValue.increment(-quantity),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Validate stock availability for cart items
+  /// Returns a map of productId -> error message for items with issues
+  Future<Map<String, String>> validateCartStock(
+    List<Map<String, dynamic>> cartItems,
+  ) async {
+    final issues = <String, String>{};
+    
+    for (final item in cartItems) {
+      final productId = item['productId'] as String;
+      final requestedQty = item['quantity'] as int;
+      final productName = item['productName'] as String? ?? 'Product';
+      
+      final productDoc = await _firestore
+          .collection('catalog_products')
+          .doc(productId)
+          .get();
+      
+      if (!productDoc.exists) {
+        issues[productId] = '$productName is no longer available';
+        continue;
+      }
+      
+      final data = productDoc.data()!;
+      final isActive = data['isActive'] ?? true;
+      final trackInventory = data['trackInventory'] ?? true;
+      final stockQuantity = data['stockQuantity'] ?? 0;
+      
+      if (!isActive) {
+        issues[productId] = '$productName is no longer available';
+      } else if (trackInventory && stockQuantity < requestedQty) {
+        if (stockQuantity <= 0) {
+          issues[productId] = '$productName is out of stock';
+        } else {
+          issues[productId] = 'Only $stockQuantity units of $productName available';
+        }
+      }
+    }
+    
+    return issues;
+  }
+
+  /// Place order with stock validation and decrement (atomic transaction)
+  Future<String> placeOrderWithStockValidation({
+    required OrderModel order,
+    required List<Map<String, dynamic>> cartItems,
+  }) async {
+    return await _firestore.runTransaction<String>((transaction) async {
+      // First, validate and collect all product docs
+      final productDocs = <String, DocumentSnapshot>{};
+      
+      for (final item in cartItems) {
+        final productId = item['productId'] as String;
+        final productRef = _firestore.collection('catalog_products').doc(productId);
+        final productDoc = await transaction.get(productRef);
+        productDocs[productId] = productDoc;
+      }
+      
+      // Validate stock for all items
+      for (final item in cartItems) {
+        final productId = item['productId'] as String;
+        final requestedQty = item['quantity'] as int;
+        final productName = item['productName'] as String? ?? 'Product';
+        final productDoc = productDocs[productId]!;
+        
+        if (!productDoc.exists) {
+          throw Exception('$productName is no longer available');
+        }
+        
+        final data = productDoc.data() as Map<String, dynamic>;
+        final isActive = data['isActive'] ?? true;
+        final trackInventory = data['trackInventory'] ?? true;
+        final stockQuantity = data['stockQuantity'] ?? 0;
+        
+        if (!isActive) {
+          throw Exception('$productName is no longer available');
+        }
+        
+        if (trackInventory && stockQuantity < requestedQty) {
+          if (stockQuantity <= 0) {
+            throw Exception('$productName is out of stock');
+          } else {
+            throw Exception('Only $stockQuantity units of $productName available');
+          }
+        }
+      }
+      
+      // All validation passed - decrement stock
+      for (final item in cartItems) {
+        final productId = item['productId'] as String;
+        final requestedQty = item['quantity'] as int;
+        final productDoc = productDocs[productId]!;
+        final data = productDoc.data() as Map<String, dynamic>;
+        final trackInventory = data['trackInventory'] ?? true;
+        
+        if (trackInventory) {
+          final productRef = _firestore.collection('catalog_products').doc(productId);
+          transaction.update(productRef, {
+            'stockQuantity': FieldValue.increment(-requestedQty),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      
+      // Create the order
+      final orderRef = _firestore.collection('orders').doc();
+      final orderWithId = OrderModel(
+        id: orderRef.id,
+        userId: order.userId,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        address: order.address,
+        orderedAt: order.orderedAt,
+        deliveredAt: order.deliveredAt,
+        trackingNumber: order.trackingNumber,
+        version: 1,
+      );
+      
+      transaction.set(orderRef, orderWithId.toFirestore());
+      
+      return orderRef.id;
+    });
   }
 }

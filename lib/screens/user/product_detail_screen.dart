@@ -26,6 +26,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   CatalogProductModel? _product;
   bool _isLoading = true;
   int _currentImageIndex = 0;
+  int _quantity = 1;
 
   // Selection State
   ProductVariation? _selectedVariation;
@@ -75,6 +76,38 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           : null;
     }
     return _product?.offerPrice != null ? _product?.basePrice : null;
+  }
+
+  /// Gets the current stock quantity based on selected variation or product
+  int get _currentStock {
+    if (_selectedVariation != null) {
+      return _selectedVariation!.stockQuantity;
+    }
+    return _product?.stockQuantity ?? 0;
+  }
+
+  /// Checks if the current selection is in stock
+  bool get _isCurrentInStock {
+    if (_selectedVariation != null) {
+      return _selectedVariation!.isInStock;
+    }
+    return _product?.isInStock ?? false;
+  }
+
+  /// Checks if the current selection is low stock
+  bool get _isCurrentLowStock {
+    if (_selectedVariation != null) {
+      // Variation low stock check (stock > 0 but <= 5)
+      return _selectedVariation!.stockQuantity > 0 && 
+             _selectedVariation!.stockQuantity <= 5;
+    }
+    return _product?.isLowStock ?? false;
+  }
+
+  /// Gets the max quantity user can add
+  int get _maxQuantity {
+    if (_product?.trackInventory == false) return 99; // No limit
+    return _currentStock > 0 ? _currentStock : 0;
   }
 
   void _handleBuyNow() {
@@ -189,6 +222,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ],
                   ),
 
+                  // Stock Status Badge
+                  const SizedBox(height: 16),
+                  _buildStockStatusBadge(),
+
+                  // Quantity Selector (only show if in stock)
+                  if (_isCurrentInStock) ...[
+                    const SizedBox(height: 20),
+                    _buildQuantitySelector(),
+                  ],
+
                   const SizedBox(height: 24),
                   // Variations (Simplified for now - just listing if any)
                   if (_product!.variations.isNotEmpty) ...[
@@ -207,8 +250,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               label: Text(label),
                               selected: isSelected,
                               onSelected: (selected) {
-                                if (selected)
-                                  setState(() => _selectedVariation = v);
+                                if (selected) {
+                                  setState(() {
+                                    _selectedVariation = v;
+                                    // Reset quantity when variation changes
+                                    _quantity = 1;
+                                  });
+                                }
                               },
                               selectedColor: AppTheme.primary.withAlpha(30),
                               labelStyle: TextStyle(
@@ -335,53 +383,96 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       bottomNavigationBar: GlassContainer(
         padding: const EdgeInsets.all(20),
         child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () {
-                    if (_product != null) {
-                      context.read<CartService>().addToCart(
-                        _product!,
-                        variation: _selectedVariation,
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Added to Cart')),
-                      );
-                    }
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppTheme.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+          child: _isCurrentInStock 
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          if (_product != null) {
+                            for (int i = 0; i < _quantity; i++) {
+                              context.read<CartService>().addToCart(
+                                _product!,
+                                variation: _selectedVariation,
+                              );
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _quantity == 1 
+                                      ? 'Added to Cart' 
+                                      : 'Added $_quantity items to Cart',
+                                ),
+                              ),
+                            );
+                            // Reset quantity after adding
+                            setState(() => _quantity = 1);
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: AppTheme.primary),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(_quantity > 1 
+                            ? 'Add $_quantity to Cart' 
+                            : 'Add to Cart'),
+                      ),
                     ),
-                  ),
-                  child: const Text('Add to Cart'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _handleBuyNow,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _handleBuyNow,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: AppTheme.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 8,
+                          shadowColor: AppTheme.primary.withAlpha(100),
+                        ),
+                        child: const Text(
+                          'Buy Now',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
                     ),
-                    elevation: 8,
-                    shadowColor: AppTheme.primary.withAlpha(100),
+                  ],
+                )
+              : Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Text(
-                    'Buy Now',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.inventory_2_outlined, color: Colors.grey),
+                      SizedBox(height: 4),
+                      Text(
+                        'Currently Out of Stock',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'We\'ll notify you when available',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -525,6 +616,169 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Builds the stock status badge
+  Widget _buildStockStatusBadge() {
+    if (!_product!.trackInventory) {
+      // Not tracking inventory, show as available
+      return _buildStatusContainer(
+        icon: Icons.check_circle,
+        color: AppTheme.success,
+        text: 'In Stock',
+      );
+    }
+
+    if (!_isCurrentInStock) {
+      return _buildStatusContainer(
+        icon: Icons.cancel,
+        color: AppTheme.error,
+        text: 'Out of Stock',
+        subText: 'This item is currently unavailable',
+      );
+    }
+
+    if (_isCurrentLowStock) {
+      return _buildStatusContainer(
+        icon: Icons.warning_amber,
+        color: AppTheme.warning,
+        text: 'Only $_currentStock left!',
+        subText: 'Order soon before it\'s gone',
+      );
+    }
+
+    return _buildStatusContainer(
+      icon: Icons.check_circle,
+      color: AppTheme.success,
+      text: 'In Stock',
+      subText: _product!.estimatedDeliveryDays > 0 
+          ? 'Delivery in ${_product!.estimatedDeliveryDays} days'
+          : null,
+    );
+  }
+
+  Widget _buildStatusContainer({
+    required IconData icon,
+    required Color color,
+    required String text,
+    String? subText,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                text,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              if (subText != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subText,
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.8),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Builds the quantity selector widget
+  Widget _buildQuantitySelector() {
+    return Row(
+      children: [
+        Text(
+          'Quantity',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textPrimary(context),
+          ),
+        ),
+        const Spacer(),
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppTheme.borderLight),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              _buildQuantityButton(
+                icon: Icons.remove,
+                onPressed: _quantity > 1 
+                    ? () => setState(() => _quantity--) 
+                    : null,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '$_quantity',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              _buildQuantityButton(
+                icon: Icons.add,
+                onPressed: _quantity < _maxQuantity 
+                    ? () => setState(() => _quantity++) 
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        if (_maxQuantity < 99 && _maxQuantity > 0) ...[
+          const SizedBox(width: 12),
+          Text(
+            'Max: $_maxQuantity',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary(context),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildQuantityButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Icon(
+          icon,
+          size: 20,
+          color: onPressed != null 
+              ? AppTheme.primary 
+              : AppTheme.textSecondary(context),
+        ),
+      ),
     );
   }
 }
