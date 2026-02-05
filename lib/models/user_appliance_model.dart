@@ -75,6 +75,7 @@ class UserApplianceModel {
   final double? purchaseAmount;
   final String? storeLocation;
   final String? linkedOrderId;
+  final String? productImageUrl; // URL from catalog or custom
 
   UserApplianceModel({
     required this.id,
@@ -94,6 +95,7 @@ class UserApplianceModel {
     this.purchaseAmount,
     this.storeLocation,
     this.linkedOrderId,
+    this.productImageUrl,
   });
 
   factory UserApplianceModel.fromFirestore(DocumentSnapshot doc) {
@@ -120,6 +122,7 @@ class UserApplianceModel {
       purchaseAmount: (data['purchaseAmount'] ?? 0).toDouble(),
       storeLocation: data['storeLocation'],
       linkedOrderId: data['linkedOrderId'],
+      productImageUrl: data['productImageUrl'],
     );
   }
 
@@ -142,6 +145,7 @@ class UserApplianceModel {
       'purchaseAmount': purchaseAmount,
       'storeLocation': storeLocation,
       'linkedOrderId': linkedOrderId,
+      'productImageUrl': productImageUrl,
     };
   }
 
@@ -160,6 +164,7 @@ class UserApplianceModel {
     double? purchaseAmount,
     String? storeLocation,
     String? linkedOrderId,
+    String? productImageUrl,
   }) {
     return UserApplianceModel(
       id: id,
@@ -179,6 +184,7 @@ class UserApplianceModel {
       purchaseAmount: purchaseAmount ?? this.purchaseAmount,
       storeLocation: storeLocation ?? this.storeLocation,
       linkedOrderId: linkedOrderId ?? this.linkedOrderId,
+      productImageUrl: productImageUrl ?? this.productImageUrl,
     );
   }
 
@@ -199,10 +205,4 @@ class UserApplianceModel {
   }
 
   // Product image assets (local) - Generic fallback
-  static String getProductImage(String category) {
-    // We can map some known ones if we want, or just return a default
-    // User requested to remove "fan/oven" etc.
-    // For now, let's keep a generic set or just one default.
-    return 'assets/images/water_heater.png'; // Default placeholder
-  }
 }

@@ -498,19 +498,31 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        UserApplianceModel.getProductImage(
-                          widget.product.category,
-                        ),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.product.productImageUrl ?? '',
                         width: 60,
                         height: 60,
                         fit: BoxFit.cover,
-                        errorBuilder:
+                        placeholder:
+                            (_, __) => Container(
+                              width: 60,
+                              height: 60,
+                              color: AppTheme.background(context),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                        errorWidget:
                             (_, __, ___) => Container(
                               width: 60,
                               height: 60,
                               color: AppTheme.background(context),
-                              child: const Icon(Icons.devices),
+                              child: const Icon(
+                                Icons.devices,
+                                color: AppTheme.primary,
+                              ),
                             ),
                       ),
                     ),

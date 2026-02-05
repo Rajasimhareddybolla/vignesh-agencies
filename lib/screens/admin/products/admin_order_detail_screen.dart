@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/theme.dart';
 import '../../../models/order_model.dart';
 import '../../../services/firestore_service.dart';
+import '../users/admin_user_profile_screen.dart';
 // import '../../../widgets/common/premium_widgets.dart'; // Removed as per potential issue
 
 class AdminOrderDetailScreen extends StatefulWidget {
@@ -69,8 +70,20 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     children: [
                       _buildDetailRow(
                         Icons.person,
-                        'Name',
+                        'Name (View Profile)',
                         _order.address.name,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => AdminUserProfileScreen(
+                                    userId: _order.userId,
+                                    userName: _order.address.name,
+                                  ),
+                            ),
+                          );
+                        },
                       ),
                       const Divider(height: 16, thickness: 0.5),
                       _buildDetailRow(
@@ -200,35 +213,45 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: AppTheme.textSecondary(context)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary(context),
+  Widget _buildDetailRow(
+    IconData icon,
+    String label,
+    String value, {
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppTheme.textSecondary(context)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary(context),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: onTap != null ? AppTheme.primary : null,
+                    decoration: onTap != null ? TextDecoration.underline : null,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -185,21 +185,39 @@ class _ApplianceDetailContent extends StatelessWidget {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(13),
-                            child: Image.asset(
-                              UserApplianceModel.getProductImage(
-                                appliance.category,
-                              ),
-                              fit: BoxFit.cover,
-                              errorBuilder:
-                                  (_, __, ___) => Container(
-                                    color: AppTheme.background(context),
-                                    child: Icon(
-                                      Icons.devices,
-                                      size: 40,
-                                      color: statusColor,
+                            child:
+                                appliance.productImageUrl != null &&
+                                        appliance.productImageUrl!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                      imageUrl: appliance.productImageUrl!,
+                                      fit: BoxFit.cover,
+                                      placeholder:
+                                          (context, url) => Container(
+                                            color: AppTheme.background(context),
+                                            child: const Center(
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            ),
+                                          ),
+                                      errorWidget:
+                                          (_, __, ___) => Container(
+                                            color: AppTheme.background(context),
+                                            child: Icon(
+                                              Icons.devices,
+                                              size: 32,
+                                              color: statusColor,
+                                            ),
+                                          ),
+                                    )
+                                    : Container(
+                                      color: AppTheme.background(context),
+                                      child: Icon(
+                                        Icons.devices,
+                                        size: 32,
+                                        color: statusColor,
+                                      ),
                                     ),
-                                  ),
-                            ),
                           ),
                         ),
                         const SizedBox(width: 16),

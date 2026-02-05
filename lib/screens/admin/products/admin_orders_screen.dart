@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
 import '../../../app/theme.dart';
 import '../../../models/order_model.dart';
 import '../../../services/firestore_service.dart';
@@ -212,13 +211,6 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => context.pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 16),
                     Text(
                       'Order Management',
                       style: Theme.of(

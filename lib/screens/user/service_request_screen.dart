@@ -318,13 +318,32 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.asset(
-                                UserApplianceModel.getProductImage(
-                                  _product!.category,
-                                ),
+                              child: CachedNetworkImage(
+                                imageUrl: _product!.productImageUrl ?? '',
                                 width: 60,
                                 height: 60,
                                 fit: BoxFit.cover,
+                                placeholder:
+                                    (_, __) => Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: AppTheme.primary.withOpacity(0.1),
+                                      child: const Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                errorWidget:
+                                    (_, __, ___) => Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: AppTheme.primary.withOpacity(0.1),
+                                      child: Icon(
+                                        Icons.devices,
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
                               ),
                             ),
                             const SizedBox(width: 16),

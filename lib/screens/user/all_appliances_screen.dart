@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/user_model.dart';
@@ -145,37 +146,6 @@ class _ProductCard extends StatelessWidget {
 
   const _ProductCard({required this.product});
 
-  String _getCategoryImage(String category) {
-    switch (category.toLowerCase()) {
-      case 'water heater':
-        return 'assets/images/water_heater.png';
-      case 'stabilizer':
-        return 'assets/images/stabilizer.png';
-      case 'inverter':
-        return 'assets/images/inverter.png';
-      case 'fan':
-        return 'assets/images/fan.png';
-      case 'air cooler':
-        return 'assets/images/air_cooler.png';
-      case 'kitchen appliances':
-        return 'assets/images/kitchen_appliances.png';
-      case 'solar products':
-        return 'assets/images/solar_products.png';
-      case 'wiring & cables':
-        return 'assets/images/wiring_cables.png';
-      case 'switchgear':
-        return 'assets/images/switchgear.png';
-      case 'ups':
-        return 'assets/images/ups.png';
-      case 'motor':
-        return 'assets/images/motor.png';
-      case 'pump':
-        return 'assets/images/pump.png';
-      default:
-        return 'assets/images/water_heater.png';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isWarrantyActive = product.warrantyEndDate.isAfter(DateTime.now());
@@ -199,13 +169,22 @@ class _ProductCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    _getCategoryImage(product.category),
+                  child: CachedNetworkImage(
+                    imageUrl: product.productImageUrl ?? '',
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,
-                    errorBuilder:
-                        (context, error, stackTrace) => Container(
+                    placeholder:
+                        (context, url) => Container(
+                          width: 64,
+                          height: 64,
+                          color: AppTheme.primary.withOpacity(0.1),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    errorWidget:
+                        (context, url, error) => Container(
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
@@ -281,8 +260,11 @@ class _ProductCard extends StatelessWidget {
                       children: [
                         Text(
                           'Warranty Status',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textSecondary(context)),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Row(

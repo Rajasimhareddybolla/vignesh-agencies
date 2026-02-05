@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
@@ -1003,9 +1004,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   // Phase 3: Warranty Alerts Banner
-  Widget _buildWarrantyAlertsBanner(BuildContext context, List<UserApplianceModel> products) {
+  Widget _buildWarrantyAlertsBanner(
+    BuildContext context,
+    List<UserApplianceModel> products,
+  ) {
     final alerts = WarrantyNotificationService.getWarrantyAlerts(products);
-    
+
     if (alerts.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -1016,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     Color alertColor;
     IconData alertIcon;
-    
+
     switch (urgentAlert.alertType) {
       case WarrantyAlertType.expired:
         alertColor = AppTheme.error;
@@ -1053,10 +1057,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                alertColor.withAlpha(20),
-                alertColor.withAlpha(10),
-              ],
+              colors: [alertColor.withAlpha(20), alertColor.withAlpha(10)],
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: alertColor.withAlpha(50)),
@@ -1116,10 +1117,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: alertColor,
-              ),
+              Icon(Icons.chevron_right, color: alertColor),
             ],
           ),
         ),
@@ -1256,14 +1254,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     children: [
                                       ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
-                                        child: Image.asset(
-                                          UserApplianceModel.getProductImage(
-                                            product.category,
-                                          ),
+                                        child: CachedNetworkImage(
+                                          imageUrl:
+                                              product.productImageUrl ?? '',
                                           width: 56,
                                           height: 56,
                                           fit: BoxFit.cover,
-                                          errorBuilder:
+                                          placeholder:
+                                              (context, url) => Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: AppTheme.background(
+                                                  context,
+                                                ),
+                                                child: const Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                ),
+                                              ),
+                                          errorWidget:
                                               (_, __, ___) => Container(
                                                 width: 56,
                                                 height: 56,
@@ -1417,12 +1428,21 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.asset(
-                    UserApplianceModel.getProductImage(product.category),
+                  child: CachedNetworkImage(
+                    imageUrl: product.productImageUrl ?? '',
                     width: 74,
                     height: 74,
                     fit: BoxFit.cover,
-                    errorBuilder:
+                    placeholder:
+                        (context, url) => Container(
+                          width: 74,
+                          height: 74,
+                          color: AppTheme.background(context),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                    errorWidget:
                         (_, __, ___) => Container(
                           width: 74,
                           height: 74,
@@ -1747,9 +1767,7 @@ class _PremiumQuickActionCardState extends State<_PremiumQuickActionCard>
                         widget.title,
                         maxLines: 2,
                         overflow: TextOverflow.visible,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleSmall?.copyWith(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color:
                               widget.isPrimary
                                   ? Colors.white

@@ -180,13 +180,6 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => context.pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 16),
                     Text(
                       'Product Catalog',
                       style: Theme.of(

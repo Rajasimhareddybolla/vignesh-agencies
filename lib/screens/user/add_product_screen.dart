@@ -37,6 +37,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   XFile? _billImage;
   bool _isLoading = false;
   String? _errorMessage;
+  String? _selectedProductImageUrl; // To store image from catalog
 
   final _imagePicker = ImagePicker();
 
@@ -50,6 +51,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _selectedCategory = widget.sourceOrderItem!.category;
       _productNameController.text = widget.sourceOrderItem!.productName;
       _purchaseDate = widget.sourceOrder!.orderedAt;
+      _selectedProductImageUrl = widget.sourceOrderItem!.productImage;
 
       // If we have variation info or sku, we might use it for model number
       if (widget.sourceOrderItem!.sku != null) {
@@ -156,7 +158,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCategory == null) {
-      setState(() => _errorMessage = 'Please select a product category');
+      // Should effectively be caught by the fact that Search is main way now
+      setState(
+        () => _errorMessage = 'Please search and select a product above',
+      );
       return;
     }
 
@@ -239,6 +244,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         linkedOrderId: widget.sourceOrder?.id,
         purchaseAmount: widget.sourceOrderItem?.price,
         storeLocation: 'Vignesh Agencies App Store',
+        productImageUrl: _selectedProductImageUrl,
       );
 
       await firestoreService.addProduct(product);
@@ -308,193 +314,125 @@ class _AddProductScreenState extends State<AddProductScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Product Category Dropdown
+              // 1. GLOBAL SEARCH (Top Priority)
               Text(
-                'Product Category',
+                'Search Product (Recommended)',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
-              StreamBuilder<List<String>>(
-                stream: context.read<FirestoreService>().getCategories(),
+              StreamBuilder<List<CatalogProductModel>>(
+                stream: context.read<FirestoreService>().getCatalogProducts(
+                  // No category filter - Global Search
+                ),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Text('Error: ${snapshot.error}');
-                  }
+                  if (!snapshot.hasData) return const SizedBox.shrink();
+                  final products = snapshot.data!;
 
-                  if (snapshot.connectionState == ConnectionState.waiting &&
-                      !snapshot.hasData) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
+                  return Autocomplete<CatalogProductModel>(
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      if (textEditingValue.text.isEmpty) {
+                        return const Iterable<CatalogProductModel>.empty();
+                      }
+                      return products.where((CatalogProductModel option) {
+                        return option.name.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            ) ||
+                            option.brand.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            );
+                      });
+                    },
+                    displayStringForOption: (option) => option.name,
+                    onSelected: (CatalogProductModel selection) {
+                      setState(() {
+                        _selectedCategory =
+                            selection.categoryId; // Auto-fill Category
+                        _productNameController.text =
+                            selection.name; // Auto-fill Name
 
-                  final categories = snapshot.data ?? [];
-                  final uniqueCategories = categories.toSet().toList();
+                        // Auto-fill Model from first variation if available
+                        if (selection.variations.isNotEmpty) {
+                          _modelController.text =
+                              selection.variations.first.sku ?? '';
+                        }
 
-                  return DropdownButtonFormField<String>(
-                    value: _selectedCategory,
-                    decoration: const InputDecoration(
-                      hintText: 'Select Category',
-                      prefixIcon: Icon(Icons.category_outlined),
-                    ),
-                    items:
-                        uniqueCategories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.devices,
-                                  size: 20,
-                                  color: AppTheme.primary,
-                                ),
-                                const SizedBox(width: 12),
-                                Flexible(child: Text(category)),
-                              ],
+                        _selectedProductImageUrl =
+                            selection.images.isNotEmpty
+                                ? selection.images.first
+                                : null; // Auto-fill Image
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Product details auto-filled!'),
+                          backgroundColor: AppTheme.success,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    fieldViewBuilder: (
+                      context,
+                      controller,
+                      focusNode,
+                      onFieldSubmitted,
+                    ) {
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or model...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon:
+                              controller.text.isNotEmpty
+                                  ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () => controller.clear(),
+                                  )
+                                  : null,
+                        ),
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            height: 200,
+                            width: MediaQuery.of(context).size.width - 40,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(8.0),
+                              itemCount: options.length,
+                              itemBuilder: (context, index) {
+                                final option = options.elementAt(index);
+                                return ListTile(
+                                  leading:
+                                      option.images.isNotEmpty
+                                          ? Image.network(
+                                            option.images.first,
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (_, __, ___) =>
+                                                    const Icon(Icons.image),
+                                          )
+                                          : const Icon(Icons.image),
+                                  title: Text(option.name),
+                                  subtitle: Text(option.categoryId),
+                                  onTap: () => onSelected(option),
+                                );
+                              },
                             ),
-                          );
-                        }).toList(),
-                    onChanged:
-                        (value) => setState(() => _selectedCategory = value),
-                    validator:
-                        (value) =>
-                            value == null || value.isEmpty
-                                ? 'Please select a category'
-                                : null,
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
 
-              const SizedBox(height: 24),
-
-              // Select from Catalog (Optional)
-              if (_selectedCategory != null) ...[
-                Text(
-                  'Select from Catalog (Recommended)',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 8),
-                StreamBuilder<List<CatalogProductModel>>(
-                  stream: context.read<FirestoreService>().getCatalogProducts(
-                    categoryId: _selectedCategory,
-                  ),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const SizedBox.shrink();
-                    }
-                    final products = snapshot.data!;
-                    return Autocomplete<CatalogProductModel>(
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                        if (textEditingValue.text.isEmpty) {
-                          return const Iterable<CatalogProductModel>.empty();
-                        }
-                        return products.where((CatalogProductModel option) {
-                          return option.name.toLowerCase().contains(
-                            textEditingValue.text.toLowerCase(),
-                          );
-                        });
-                      },
-                      displayStringForOption:
-                          (CatalogProductModel option) => option.name,
-                      fieldViewBuilder: (
-                        BuildContext context,
-                        TextEditingController fieldTextEditingController,
-                        FocusNode fieldFocusNode,
-                        VoidCallback onFieldSubmitted,
-                      ) {
-                        return TextFormField(
-                          controller: fieldTextEditingController,
-                          focusNode: fieldFocusNode,
-                          decoration: InputDecoration(
-                            hintText: 'Search for your product model...',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon:
-                                fieldTextEditingController.text.isNotEmpty
-                                    ? IconButton(
-                                      icon: const Icon(Icons.clear),
-                                      onPressed: () {
-                                        fieldTextEditingController.clear();
-                                      },
-                                    )
-                                    : null,
-                          ),
-                        );
-                      },
-                      onSelected: (CatalogProductModel selection) {
-                        setState(() {
-                          _productNameController.text = selection.name;
-                          // If brand is V-Guard, maybe prefix model?
-                          // For now just fill name. User can fill Model if needed.
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Product details auto-filled from catalog',
-                            ),
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      },
-                      optionsViewBuilder: (
-                        BuildContext context,
-                        AutocompleteOnSelected<CatalogProductModel> onSelected,
-                        Iterable<CatalogProductModel> options,
-                      ) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Material(
-                            elevation: 4.0,
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              height: 200,
-                              width:
-                                  MediaQuery.of(context).size.width -
-                                  40, // Match search width
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(8.0),
-                                itemCount: options.length,
-                                itemBuilder: (BuildContext context, int index) {
-                                  final CatalogProductModel option = options
-                                      .elementAt(index);
-                                  return GestureDetector(
-                                    onTap: () {
-                                      onSelected(option);
-                                    },
-                                    child: ListTile(
-                                      leading:
-                                          option.images.isNotEmpty
-                                              ? Image.network(
-                                                option.images.first,
-                                                width: 40,
-                                                height: 40,
-                                                fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (_, __, ___) => const Icon(
-                                                      Icons.image_not_supported,
-                                                    ),
-                                              )
-                                              : const Icon(Icons.image),
-                                      title: Text(option.name),
-                                      subtitle: Text(
-                                        '₹${option.basePrice.toStringAsFixed(0)}',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-              ],
+              const SizedBox(height: 32),
 
               // Product Name (Optional)
               Text(
