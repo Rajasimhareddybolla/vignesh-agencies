@@ -13,9 +13,14 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../services/storage_service.dart';
 import '../../widgets/common/profile_completion_service.dart';
+import '../../models/order_model.dart';
+import '../../models/catalog_product_model.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({super.key});
+  final OrderModel? sourceOrder;
+  final OrderItem? sourceOrderItem;
+
+  const AddProductScreen({super.key, this.sourceOrder, this.sourceOrderItem});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -34,6 +39,24 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String? _errorMessage;
 
   final _imagePicker = ImagePicker();
+
+  bool _isInternalOrder = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.sourceOrder != null && widget.sourceOrderItem != null) {
+      _isInternalOrder = true;
+      _selectedCategory = widget.sourceOrderItem!.category;
+      _productNameController.text = widget.sourceOrderItem!.productName;
+      _purchaseDate = widget.sourceOrder!.orderedAt;
+
+      // If we have variation info or sku, we might use it for model number
+      if (widget.sourceOrderItem!.sku != null) {
+        _modelController.text = widget.sourceOrderItem!.sku!;
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -165,7 +188,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final userId = await authService.getResolvedUserId();
       String? billImageUrl;
 
-      // Upload bill image if selected
+      // Upload bill image if selected (manual upload)
       if (_billImage != null) {
         billImageUrl = await storageService.uploadBillImage(
           userId: userId,
@@ -174,9 +197,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
 
       // Calculate warranty end date (1 year from purchase by default)
+      // Use warranty info from order item if available?
+      int warrantyMonths = 12;
+      if (widget.sourceOrderItem != null) {
+        warrantyMonths = widget.sourceOrderItem!.warrantyMonths;
+      }
+
       final warrantyEndDate = DateTime(
-        _purchaseDate!.year + 1,
-        _purchaseDate!.month,
+        _purchaseDate!.year,
+        _purchaseDate!.month + (warrantyMonths > 0 ? warrantyMonths : 12),
         _purchaseDate!.day,
       );
 
@@ -197,8 +226,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
         purchaseDate: _purchaseDate!,
         warrantyEndDate: warrantyEndDate,
         billImageUrl: billImageUrl,
-        status: ProductStatus.pendingValidation,
+        // If it comes from an internal order, we can auto-validate or mark differently.
+        // For now, keep as pending but with linked order ID.
+        status:
+            _isInternalOrder
+                ? ProductStatus.active
+                : ProductStatus.pendingValidation,
+        validatedAt: _isInternalOrder ? DateTime.now() : null,
+        validatedBy: _isInternalOrder ? 'System (Order Linked)' : null,
         createdAt: DateTime.now(),
+        // Link to internal order
+        linkedOrderId: widget.sourceOrder?.id,
+        purchaseAmount: widget.sourceOrderItem?.price,
+        storeLocation: 'Vignesh Agencies App Store',
       );
 
       await firestoreService.addProduct(product);
@@ -206,9 +246,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Vignesh Agencies product registered successfully! Awaiting verification.',
-            ),
+            content: Text('Product registered successfully!'),
             backgroundColor: AppTheme.success,
           ),
         );
@@ -217,7 +255,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to register product with Vignesh Agencies: $e';
+        _errorMessage = 'Failed to register product: $e';
       });
     }
   }
@@ -276,36 +314,187 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _selectedCategory,
-                decoration: const InputDecoration(
-                  hintText: 'Select Category',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items:
-                    UserApplianceModel.categories.map((category) {
-                      return DropdownMenuItem(
-                        value: category,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _getCategoryIcon(category),
-                              size: 20,
-                              color: AppTheme.primary,
+              StreamBuilder<List<String>>(
+                stream: context.read<FirestoreService>().getCategories(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Text('Error: ${snapshot.error}');
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      !snapshot.hasData) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  final categories = snapshot.data ?? [];
+                  final uniqueCategories = categories.toSet().toList();
+
+                  return DropdownButtonFormField<String>(
+                    value: _selectedCategory,
+                    decoration: const InputDecoration(
+                      hintText: 'Select Category',
+                      prefixIcon: Icon(Icons.category_outlined),
+                    ),
+                    items:
+                        uniqueCategories.map((category) {
+                          return DropdownMenuItem(
+                            value: category,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.devices,
+                                  size: 20,
+                                  color: AppTheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(child: Text(category)),
+                              ],
                             ),
-                            const SizedBox(width: 12),
-                            Flexible(child: Text(category)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() => _selectedCategory = value);
+                          );
+                        }).toList(),
+                    onChanged:
+                        (value) => setState(() => _selectedCategory = value),
+                    validator:
+                        (value) =>
+                            value == null || value.isEmpty
+                                ? 'Please select a category'
+                                : null,
+                  );
                 },
               ),
 
               const SizedBox(height: 24),
+
+              // Select from Catalog (Optional)
+              if (_selectedCategory != null) ...[
+                Text(
+                  'Select from Catalog (Recommended)',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                const SizedBox(height: 8),
+                StreamBuilder<List<CatalogProductModel>>(
+                  stream: context.read<FirestoreService>().getCatalogProducts(
+                    categoryId: _selectedCategory,
+                  ),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const SizedBox.shrink();
+                    }
+                    final products = snapshot.data!;
+                    return Autocomplete<CatalogProductModel>(
+                      optionsBuilder: (TextEditingValue textEditingValue) {
+                        if (textEditingValue.text.isEmpty) {
+                          return const Iterable<CatalogProductModel>.empty();
+                        }
+                        return products.where((CatalogProductModel option) {
+                          return option.name.toLowerCase().contains(
+                            textEditingValue.text.toLowerCase(),
+                          );
+                        });
+                      },
+                      displayStringForOption:
+                          (CatalogProductModel option) => option.name,
+                      fieldViewBuilder: (
+                        BuildContext context,
+                        TextEditingController fieldTextEditingController,
+                        FocusNode fieldFocusNode,
+                        VoidCallback onFieldSubmitted,
+                      ) {
+                        return TextFormField(
+                          controller: fieldTextEditingController,
+                          focusNode: fieldFocusNode,
+                          decoration: InputDecoration(
+                            hintText: 'Search for your product model...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon:
+                                fieldTextEditingController.text.isNotEmpty
+                                    ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        fieldTextEditingController.clear();
+                                      },
+                                    )
+                                    : null,
+                          ),
+                        );
+                      },
+                      onSelected: (CatalogProductModel selection) {
+                        setState(() {
+                          _productNameController.text = selection.name;
+                          // If brand is V-Guard, maybe prefix model?
+                          // For now just fill name. User can fill Model if needed.
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Product details auto-filled from catalog',
+                            ),
+                            duration: Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      optionsViewBuilder: (
+                        BuildContext context,
+                        AutocompleteOnSelected<CatalogProductModel> onSelected,
+                        Iterable<CatalogProductModel> options,
+                      ) {
+                        return Align(
+                          alignment: Alignment.topLeft,
+                          child: Material(
+                            elevation: 4.0,
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              height: 200,
+                              width:
+                                  MediaQuery.of(context).size.width -
+                                  40, // Match search width
+                              child: ListView.builder(
+                                padding: const EdgeInsets.all(8.0),
+                                itemCount: options.length,
+                                itemBuilder: (BuildContext context, int index) {
+                                  final CatalogProductModel option = options
+                                      .elementAt(index);
+                                  return GestureDetector(
+                                    onTap: () {
+                                      onSelected(option);
+                                    },
+                                    child: ListTile(
+                                      leading:
+                                          option.images.isNotEmpty
+                                              ? Image.network(
+                                                option.images.first,
+                                                width: 40,
+                                                height: 40,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (_, __, ___) => const Icon(
+                                                      Icons.image_not_supported,
+                                                    ),
+                                              )
+                                              : const Icon(Icons.image),
+                                      title: Text(option.name),
+                                      subtitle: Text(
+                                        '₹${option.basePrice.toStringAsFixed(0)}',
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Product Name (Optional)
               Text(
@@ -408,131 +597,175 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
-              GestureDetector(
-                onTap: _showImageSourcePicker,
-                child: Container(
-                  height: 180,
+              if (_isInternalOrder)
+                Container(
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
+                    color: AppTheme.success.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    border: Border.all(
-                      color: Theme.of(context).dividerColor.withAlpha(50),
-                      style:
-                          _billImage == null
-                              ? BorderStyle.solid
-                              : BorderStyle.none,
-                    ),
+                    border: Border.all(color: AppTheme.success),
                   ),
-                  child:
-                      _billImage != null
-                          ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                  AppTheme.radiusMd,
-                                ),
-                                child:
-                                    kIsWeb
-                                        ? Image.network(
-                                          _billImage!.path,
-                                          width: double.infinity,
-                                          height: 180,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              color: AppTheme.backgroundLight,
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.image,
-                                                  size: 48,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        )
-                                        : Image.file(
-                                          File(_billImage!.path),
-                                          width: double.infinity,
-                                          height: 180,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (
-                                            context,
-                                            error,
-                                            stackTrace,
-                                          ) {
-                                            return Container(
-                                              color: AppTheme.backgroundLight,
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.image,
-                                                  size: 48,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified, color: AppTheme.success),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Verified by Order #${widget.sourceOrder?.id.substring(0, 8) ?? ""}',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleSmall?.copyWith(
+                                color: AppTheme.success,
+                                fontWeight: FontWeight.bold,
                               ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
+                            ),
+                            Text(
+                              'Proof of purchase automatically linked.',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondary(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: _showImageSourcePicker,
+                  child: Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withAlpha(50),
+                        style:
+                            _billImage == null
+                                ? BorderStyle.solid
+                                : BorderStyle.none,
+                      ),
+                    ),
+                    child:
+                        _billImage != null
+                            ? Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusMd,
+                                  ),
+                                  child:
+                                      kIsWeb
+                                          ? Image.network(
+                                            _billImage!.path,
+                                            width: double.infinity,
+                                            height: 180,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) {
+                                              return Container(
+                                                color: AppTheme.background(
+                                                  context,
+                                                ),
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.image,
+                                                    size: 48,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          )
+                                          : Image.file(
+                                            File(_billImage!.path),
+                                            width: double.infinity,
+                                            height: 180,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (
+                                              context,
+                                              error,
+                                              stackTrace,
+                                            ) {
+                                              return Container(
+                                                color: AppTheme.background(
+                                                  context,
+                                                ),
+                                                child: const Center(
+                                                  child: Icon(
+                                                    Icons.image,
+                                                    size: 48,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  right: 8,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        setState(() => _billImage = null);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                            : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 56,
+                                  height: 56,
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: AppTheme.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      setState(() => _billImage = null);
-                                    },
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: AppTheme.primary,
+                                    size: 28,
                                   ),
                                 ),
-                              ),
-                            ],
-                          )
-                          : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withOpacity(0.1),
-                                  shape: BoxShape.circle,
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Upload Photo',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: AppTheme.primary,
-                                  size: 28,
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Tap to take a photo or upload document',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary(context),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Upload Photo',
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Tap to take a photo or upload document',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondary(context),
-                                ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
+                  ),
                 ),
-              ),
 
               if (_errorMessage != null) ...[
                 const SizedBox(height: 24),
@@ -592,32 +825,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
     );
   }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category.toLowerCase()) {
-      case 'water heater':
-        return Icons.water_drop;
-      case 'stabilizer':
-        return Icons.electrical_services;
-      case 'inverter':
-        return Icons.battery_charging_full;
-      case 'fan':
-        return Icons.wind_power;
-      case 'air cooler':
-        return Icons.ac_unit;
-      case 'kitchen appliances':
-        return Icons.kitchen;
-      case 'solar products':
-        return Icons.solar_power;
-      case 'wiring & cables':
-        return Icons.cable;
-      case 'switchgear':
-        return Icons.toggle_on;
-      default:
-        return Icons.devices_other;
-    }
-  }
-}
+} // End of _AddProductScreenState
 
 class _ImageSourceOption extends StatelessWidget {
   final IconData icon;

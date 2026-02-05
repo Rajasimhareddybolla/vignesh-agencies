@@ -98,8 +98,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool get _isCurrentLowStock {
     if (_selectedVariation != null) {
       // Variation low stock check (stock > 0 but <= 5)
-      return _selectedVariation!.stockQuantity > 0 && 
-             _selectedVariation!.stockQuantity <= 5;
+      return _selectedVariation!.stockQuantity > 0 &&
+          _selectedVariation!.stockQuantity <= 5;
     }
     return _product?.isLowStock ?? false;
   }
@@ -180,6 +180,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                   // Ratings
                   const SizedBox(height: 12),
+
+                  // Ratings removed as per requirement
+                  /*
+                  const SizedBox(height: 12),
                   Row(
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 20),
@@ -190,7 +194,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
-
+                  */
                   const SizedBox(height: 24),
                   // Price
                   Row(
@@ -324,7 +328,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       child: Text(
                                         e.key,
                                         style: TextStyle(
-                                          color: AppTheme.textSecondary(context),
+                                          color: AppTheme.textSecondary(
+                                            context,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -383,96 +389,99 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       bottomNavigationBar: GlassContainer(
         padding: const EdgeInsets.all(20),
         child: SafeArea(
-          child: _isCurrentInStock 
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          if (_product != null) {
-                            for (int i = 0; i < _quantity; i++) {
-                              context.read<CartService>().addToCart(
-                                _product!,
-                                variation: _selectedVariation,
-                              );
-                            }
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  _quantity == 1 
-                                      ? 'Added to Cart' 
-                                      : 'Added $_quantity items to Cart',
-                                ),
-                              ),
-                            );
-                            // Reset quantity after adding
-                            setState(() => _quantity = 1);
-                          }
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: AppTheme.primary),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(_quantity > 1 
-                            ? 'Add $_quantity to Cart' 
-                            : 'Add to Cart'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _handleBuyNow,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          elevation: 8,
-                          shadowColor: AppTheme.primary.withAlpha(100),
-                        ),
-                        child: const Text(
-                          'Buy Now',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                )
-              : Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
+          child:
+              _isCurrentInStock
+                  ? Row(
                     children: [
-                      Icon(Icons.inventory_2_outlined, color: Colors.grey),
-                      SizedBox(height: 4),
-                      Text(
-                        'Currently Out of Stock',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w600,
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            if (_product != null) {
+                              for (int i = 0; i < _quantity; i++) {
+                                context.read<CartService>().addToCart(
+                                  _product!,
+                                  variation: _selectedVariation,
+                                );
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _quantity == 1
+                                        ? 'Added to Cart'
+                                        : 'Added $_quantity items to Cart',
+                                  ),
+                                ),
+                              );
+                              // Reset quantity after adding
+                              setState(() => _quantity = 1);
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            side: const BorderSide(color: AppTheme.primary),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            _quantity > 1
+                                ? 'Add $_quantity to Cart'
+                                : 'Add to Cart',
+                          ),
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        'We\'ll notify you when available',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _handleBuyNow,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 8,
+                            shadowColor: AppTheme.primary.withAlpha(100),
+                          ),
+                          child: const Text(
+                            'Buy Now',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ),
                     ],
+                  )
+                  : Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, color: Colors.grey),
+                        SizedBox(height: 4),
+                        Text(
+                          'Currently Out of Stock',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'We\'ll notify you when available',
+                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
         ),
       ),
     );
@@ -507,7 +516,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           .toList()
                       : [
                         Container(
-                          color: AppTheme.backgroundLight,
+                          color: AppTheme.background(context),
                           child: const Center(
                             child: Icon(Icons.image, size: 50),
                           ),
@@ -563,7 +572,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black),
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Colors.black,
+                    ),
                     onPressed: () => context.push('/cart'),
                   ),
                   if (cart.itemCount > 0)
@@ -652,9 +664,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       icon: Icons.check_circle,
       color: AppTheme.success,
       text: 'In Stock',
-      subText: _product!.estimatedDeliveryDays > 0 
-          ? 'Delivery in ${_product!.estimatedDeliveryDays} days'
-          : null,
+      subText:
+          _product!.estimatedDeliveryDays > 0
+              ? 'Delivery in ${_product!.estimatedDeliveryDays} days'
+              : null,
     );
   }
 
@@ -725,9 +738,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             children: [
               _buildQuantityButton(
                 icon: Icons.remove,
-                onPressed: _quantity > 1 
-                    ? () => setState(() => _quantity--) 
-                    : null,
+                onPressed:
+                    _quantity > 1 ? () => setState(() => _quantity--) : null,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -741,9 +753,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ),
               _buildQuantityButton(
                 icon: Icons.add,
-                onPressed: _quantity < _maxQuantity 
-                    ? () => setState(() => _quantity++) 
-                    : null,
+                onPressed:
+                    _quantity < _maxQuantity
+                        ? () => setState(() => _quantity++)
+                        : null,
               ),
             ],
           ),
@@ -774,9 +787,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         child: Icon(
           icon,
           size: 20,
-          color: onPressed != null 
-              ? AppTheme.primary 
-              : AppTheme.textSecondary(context),
+          color:
+              onPressed != null
+                  ? AppTheme.primary
+                  : AppTheme.textSecondary(context),
         ),
       ),
     );

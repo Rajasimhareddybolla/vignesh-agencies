@@ -1,13 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum OrderStatus {
-  pending,
-  confirmed,
-  shipped,
-  delivered,
-  cancelled,
-  returned,
-}
+enum OrderStatus { pending, confirmed, shipped, delivered, cancelled, returned }
 
 extension OrderStatusExtension on OrderStatus {
   String get displayName {
@@ -75,21 +68,24 @@ class OrderModel {
   final DateTime orderedAt;
   final DateTime? deliveredAt;
   final String? trackingNumber;
-  
+
   // Concurrency control
   final int version;
-  
+
   // Cancellation fields
   final String? cancellationReason;
   final DateTime? cancelledAt;
-  final String? cancelledBy;  // 'user' or 'admin'
-  
+  final String? cancelledBy; // 'user' or 'admin'
+
   // Admin notes
   final String? adminNotes;
-  
+
   // Assignment
   final String? assignedTo;
   final DateTime? assignedAt;
+
+  // Delivery
+  final DateTime? expectedDeliveryDate;
 
   OrderModel({
     required this.id,
@@ -109,8 +105,9 @@ class OrderModel {
     this.adminNotes,
     this.assignedTo,
     this.assignedAt,
+    this.expectedDeliveryDate,
   });
-  
+
   // Cancellation reasons list
   static const List<String> cancellationReasons = [
     'Found better price elsewhere',
@@ -128,7 +125,8 @@ class OrderModel {
     return OrderModel(
       id: doc.id,
       userId: data['userId'] ?? '',
-      items: (data['items'] as List<dynamic>?)
+      items:
+          (data['items'] as List<dynamic>?)
               ?.map((i) => OrderItem.fromMap(i))
               .toList() ??
           [],
@@ -136,8 +134,7 @@ class OrderModel {
       status: OrderStatusExtension.fromString(data['status'] ?? 'pending'),
       paymentMethod: data['paymentMethod'] ?? 'COD',
       address: AddressModel.fromMap(data['address'] ?? {}),
-      orderedAt:
-          (data['orderedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      orderedAt: (data['orderedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       deliveredAt: (data['deliveredAt'] as Timestamp?)?.toDate(),
       trackingNumber: data['trackingNumber'],
       version: data['version'] ?? 1,
@@ -147,6 +144,8 @@ class OrderModel {
       adminNotes: data['adminNotes'],
       assignedTo: data['assignedTo'],
       assignedAt: (data['assignedAt'] as Timestamp?)?.toDate(),
+      expectedDeliveryDate:
+          (data['expectedDeliveryDate'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -164,11 +163,16 @@ class OrderModel {
       'trackingNumber': trackingNumber,
       'version': version,
       'cancellationReason': cancellationReason,
-      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancelledAt':
+          cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
       'cancelledBy': cancelledBy,
       'adminNotes': adminNotes,
       'assignedTo': assignedTo,
       'assignedAt': assignedAt != null ? Timestamp.fromDate(assignedAt!) : null,
+      'expectedDeliveryDate':
+          expectedDeliveryDate != null
+              ? Timestamp.fromDate(expectedDeliveryDate!)
+              : null,
     };
   }
 }
@@ -205,8 +209,9 @@ class OrderItem {
       productName: map['productName'] ?? '',
       productImage: map['productImage'] ?? '',
       category: map['category'] ?? 'Other',
-      selectedAttributes:
-          Map<String, String>.from(map['selectedAttributes'] ?? {}),
+      selectedAttributes: Map<String, String>.from(
+        map['selectedAttributes'] ?? {},
+      ),
       quantity: map['quantity'] ?? 1,
       price: (map['price'] ?? 0).toDouble(),
       warrantyMonths: map['warrantyMonths'] ?? 12,

@@ -111,14 +111,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<bool> _validateCartStock() async {
     final cart = context.read<CartService>();
     final orderService = context.read<OrderService>();
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final validationResult = await orderService.validateCart(cart.items);
-      
+
       if (!mounted) return false;
-      
+
       final isValid = validationResult['isValid'] as bool? ?? false;
       if (!isValid) {
         final dynamic rawIssues = validationResult['issues'];
@@ -130,11 +130,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
           }
         }
-        
+
         await _showValidationIssuesDialog(issues, cart);
         return false;
       }
-      
+
       return true;
     } catch (e) {
       if (mounted) {
@@ -150,121 +150,126 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-  
+
   /// Shows dialog with cart validation issues
   Future<void> _showValidationIssuesDialog(
-    List<Map<String, dynamic>> issues, 
+    List<Map<String, dynamic>> issues,
     CartService cart,
   ) async {
-    final hasStockIssues = issues.any((i) => 
-        i['type'] == 'out_of_stock' || i['type'] == 'insufficient_stock');
+    final hasStockIssues = issues.any(
+      (i) => i['type'] == 'out_of_stock' || i['type'] == 'insufficient_stock',
+    );
     final hasPriceChanges = issues.any((i) => i['type'] == 'price_changed');
     final hasUnavailable = issues.any((i) => i['type'] == 'not_available');
-    
+
     await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(
-              hasUnavailable || hasStockIssues 
-                  ? Icons.error_outline 
-                  : Icons.info_outline,
-              color: hasUnavailable || hasStockIssues 
-                  ? AppTheme.error 
-                  : AppTheme.warning,
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: Text(
-                'Cart Update Required',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Some items in your cart need attention:',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 300),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: issues.length,
-                  separatorBuilder: (_, __) => const Divider(height: 16),
-                  itemBuilder: (context, index) {
-                    final issue = issues[index];
-                    return _buildIssueItem(issue);
-                  },
+      builder:
+          (dialogContext) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  hasUnavailable || hasStockIssues
+                      ? Icons.error_outline
+                      : Icons.info_outline,
+                  color:
+                      hasUnavailable || hasStockIssues
+                          ? AppTheme.error
+                          : AppTheme.warning,
                 ),
-              ),
-              if (hasPriceChanges && !hasStockIssues && !hasUnavailable) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Cart Update Required',
+                    style: TextStyle(fontSize: 18),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.info, size: 16, color: AppTheme.warning),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Price changes will be updated in your cart automatically.',
-                          style: TextStyle(fontSize: 12),
-                        ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Some items in your cart need attention:',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: issues.length,
+                      separatorBuilder: (_, __) => const Divider(height: 16),
+                      itemBuilder: (context, index) {
+                        final issue = issues[index];
+                        return _buildIssueItem(issue);
+                      },
+                    ),
+                  ),
+                  if (hasPriceChanges &&
+                      !hasStockIssues &&
+                      !hasUnavailable) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info, size: 16, color: AppTheme.warning),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Price changes will be updated in your cart automatically.',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              if (hasStockIssues || hasUnavailable) ...[
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Update Cart'),
+                ),
+              ] else ...[
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Review Cart'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    // Continue with updated prices
+                    _showOrderConfirmation(skipValidation: true);
+                  },
+                  child: const Text('Continue Anyway'),
                 ),
               ],
             ],
           ),
-        ),
-        actions: [
-          if (hasStockIssues || hasUnavailable) ...[
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Update Cart'),
-            ),
-          ] else ...[
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Review Cart'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                // Continue with updated prices
-                _showOrderConfirmation(skipValidation: true);
-              },
-              child: const Text('Continue Anyway'),
-            ),
-          ],
-        ],
-      ),
     );
   }
-  
+
   Widget _buildIssueItem(Map<String, dynamic> issue) {
     final type = issue['type'] as String;
     final productName = issue['productName'] as String? ?? 'Unknown Product';
-    
+
     IconData icon;
     Color color;
     String message;
-    
+
     switch (type) {
       case 'not_available':
         icon = Icons.block;
@@ -288,7 +293,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final newPrice = issue['newPrice'] as num? ?? 0;
         icon = Icons.price_change;
         color = newPrice > oldPrice ? AppTheme.error : AppTheme.success;
-        message = 'Price ${newPrice > oldPrice ? 'increased' : 'decreased'}: '
+        message =
+            'Price ${newPrice > oldPrice ? 'increased' : 'decreased'}: '
             '₹${oldPrice.toStringAsFixed(0)} → ₹${newPrice.toStringAsFixed(0)}';
         break;
       default:
@@ -296,7 +302,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         color = Colors.grey;
         message = 'Issue with this product';
     }
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -313,10 +319,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
-              Text(
-                message,
-                style: TextStyle(fontSize: 12, color: color),
-              ),
+              Text(message, style: TextStyle(fontSize: 12, color: color)),
             ],
           ),
         ),
@@ -362,7 +365,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: AppTheme.background(context),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Column(
@@ -462,7 +465,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
         // Calculate estimated delivery
         final estimatedDelivery = DateTime.now().add(const Duration(days: 5));
-        final estimatedText = DateFormat('EEEE, MMMM d').format(estimatedDelivery);
+        final estimatedText = DateFormat(
+          'EEEE, MMMM d',
+        ).format(estimatedDelivery);
 
         // Capture parent context for navigation inside dialog
         final parentContext = context;
@@ -473,7 +478,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           barrierDismissible: false,
           builder:
               (dialogContext) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -512,7 +519,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppTheme.backgroundLight,
+                        color: AppTheme.background(context),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -520,7 +527,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           _OrderConfirmRow(
                             icon: Icons.receipt_outlined,
                             label: 'Order ID',
-                            value: '#${orderId.substring(orderId.length - 6).toUpperCase()}',
+                            value:
+                                '#${orderId.substring(orderId.length - 6).toUpperCase()}',
                           ),
                           const SizedBox(height: 12),
                           _OrderConfirmRow(
@@ -548,7 +556,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline, color: AppTheme.info, size: 18),
+                          const Icon(
+                            Icons.info_outline,
+                            color: AppTheme.info,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -604,20 +616,22 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (e) {
       if (mounted) {
         String errorMessage = 'Failed to place order';
-        
+
         final errorString = e.toString().toLowerCase();
-        if (errorString.contains('out of stock') || 
+        if (errorString.contains('out of stock') ||
             errorString.contains('insufficient stock')) {
-          errorMessage = 'Some items are out of stock. Please update your cart.';
+          errorMessage =
+              'Some items are out of stock. Please update your cart.';
           // Re-validate cart to show specific issues
           _validateCartStock();
-        } else if (errorString.contains('price') || 
-                   errorString.contains('changed')) {
-          errorMessage = 'Product prices have changed. Please review your cart.';
+        } else if (errorString.contains('price') ||
+            errorString.contains('changed')) {
+          errorMessage =
+              'Product prices have changed. Please review your cart.';
         } else {
           errorMessage = 'Failed to place order: $e';
         }
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -1031,10 +1045,7 @@ class _OrderConfirmRow extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ],
     );

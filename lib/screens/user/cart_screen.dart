@@ -173,7 +173,7 @@ class _CartItemTile extends StatelessWidget {
             child: Container(
               width: 80,
               height: 80,
-              color: AppTheme.backgroundLight,
+              color: AppTheme.background(context),
               child:
                   item.product.images.isNotEmpty
                       ? CachedNetworkImage(
@@ -202,13 +202,13 @@ class _CartItemTile extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                  Text(
-                    item.variationText,
-                    style: TextStyle(
-                      color: AppTheme.textSecondary(context),
-                      fontSize: 13,
-                    ),
+                Text(
+                  item.variationText,
+                  style: TextStyle(
+                    color: AppTheme.textSecondary(context),
+                    fontSize: 13,
                   ),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -243,7 +243,7 @@ class _QuantityControl extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.backgroundLight,
+        color: AppTheme.background(context),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(

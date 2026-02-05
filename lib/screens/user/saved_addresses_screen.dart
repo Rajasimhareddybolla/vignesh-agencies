@@ -66,7 +66,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 TextFormField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Full Name',
+                    labelText: 'Full Name *',
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (v) => v?.isNotEmpty == true ? null : 'Required',
@@ -75,7 +75,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 TextFormField(
                   controller: phoneController,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
+                    labelText: 'Phone Number *',
                     prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   keyboardType: TextInputType.phone,
@@ -86,7 +86,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 TextFormField(
                   controller: addressController,
                   decoration: const InputDecoration(
-                    labelText: 'Address (House No, Building, Street)',
+                    labelText: 'Address (House No, Building, Street) *',
                     prefixIcon: Icon(Icons.home_outlined),
                   ),
                   maxLines: 2,
@@ -99,7 +99,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                       child: TextFormField(
                         controller: cityController,
                         decoration: const InputDecoration(
-                          labelText: 'City',
+                          labelText: 'City *',
                           prefixIcon: Icon(Icons.location_city),
                         ),
                         validator:
@@ -111,7 +111,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                       child: TextFormField(
                         controller: pincodeController,
                         decoration: const InputDecoration(
-                          labelText: 'Pincode',
+                          labelText: 'Pincode *',
                           prefixIcon: Icon(Icons.pin_drop_outlined),
                         ),
                         keyboardType: TextInputType.number,

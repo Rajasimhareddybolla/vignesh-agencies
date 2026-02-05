@@ -12,6 +12,7 @@ class UserModel {
   final bool isAdmin;
   final DateTime createdAt;
   final DateTime? lastLoginAt;
+  final int digitalCoins;
 
   UserModel({
     required this.id,
@@ -25,6 +26,7 @@ class UserModel {
     this.isAdmin = false,
     required this.createdAt,
     this.lastLoginAt,
+    this.digitalCoins = 0,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -41,6 +43,7 @@ class UserModel {
       isAdmin: data['isAdmin'] ?? false,
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastLoginAt: (data['lastLoginAt'] as Timestamp?)?.toDate(),
+      digitalCoins: data['digitalCoins'] ?? 0,
     );
   }
 
@@ -55,7 +58,8 @@ class UserModel {
       'pendingPayout': pendingPayout,
       'isAdmin': isAdmin,
       'createdAt': Timestamp.fromDate(createdAt),
-      'lastLoginAt': lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'lastLoginAt':
+          lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
     };
   }
 
@@ -88,8 +92,6 @@ class UserModel {
   static String generateReferralCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = DateTime.now().millisecondsSinceEpoch;
-    return 'VG-${String.fromCharCodes(
-      List.generate(4, (i) => chars.codeUnitAt((random + i * 7) % chars.length)),
-    )}';
+    return 'VG-${String.fromCharCodes(List.generate(4, (i) => chars.codeUnitAt((random + i * 7) % chars.length)))}';
   }
 }

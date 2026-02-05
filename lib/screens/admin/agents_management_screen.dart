@@ -278,77 +278,76 @@ class _AgentFormDialogState extends State<_AgentFormDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(widget.agent == null ? 'Add Agent' : 'Edit Agent'),
       content: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name *',
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter name';
-                  }
-                  return null;
-                },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name *',
+                prefixIcon: Icon(Icons.person),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _phoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number *',
-                  prefixIcon: Icon(Icons.phone),
-                  hintText: '919876543210',
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter phone number';
-                  }
-                  return null;
-                },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _phoneController,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number *',
+                prefixIcon: Icon(Icons.phone),
+                hintText: '919876543210',
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(
-                  labelText: 'Address *',
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                maxLines: 2,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter address';
-                  }
-                  return null;
-                },
+              keyboardType: TextInputType.phone,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter phone number';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _addressController,
+              decoration: const InputDecoration(
+                labelText: 'Address *',
+                prefixIcon: Icon(Icons.location_on),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Email (Optional)',
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
+              maxLines: 2,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter address';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email (Optional)',
+                prefixIcon: Icon(Icons.email),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _specializationController,
-                decoration: const InputDecoration(
-                  labelText: 'Specialization (Optional)',
-                  prefixIcon: Icon(Icons.work),
-                  hintText: 'e.g., Water Heater Expert',
-                ),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _specializationController,
+              decoration: const InputDecoration(
+                labelText: 'Specialization (Optional)',
+                prefixIcon: Icon(Icons.work),
+                hintText: 'e.g., Water Heater Expert',
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
       actions: [

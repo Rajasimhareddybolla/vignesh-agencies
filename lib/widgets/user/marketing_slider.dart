@@ -16,13 +16,18 @@ class MarketingSlider extends StatefulWidget {
 
 class _MarketingSliderState extends State<MarketingSlider> {
   int _currentIndex = 0;
+  late Stream<List<MarketingBannerModel>> _bannersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _bannersStream = context.read<FirestoreService>().getMarketingBanners();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final firestoreService = context.read<FirestoreService>();
-
     return StreamBuilder<List<MarketingBannerModel>>(
-      stream: firestoreService.getMarketingBanners(),
+      stream: _bannersStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildShimmer();

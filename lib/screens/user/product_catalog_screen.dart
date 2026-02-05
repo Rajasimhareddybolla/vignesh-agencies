@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../app/theme.dart';
 import '../../models/catalog_product_model.dart';
-import '../../models/user_appliance_model.dart';
 import '../../services/firestore_service.dart';
 import '../../services/cart_service.dart';
 import '../../widgets/common/premium_widgets.dart';
@@ -83,24 +82,35 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                 // Categories
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _CategoryChip(
-                        label: 'All',
-                        isSelected: _selectedCategory == 'All',
-                        onTap: () => setState(() => _selectedCategory = 'All'),
-                      ),
-                      ...UserApplianceModel.categories.map(
-                        (c) => Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: _CategoryChip(
-                            label: c,
-                            isSelected: _selectedCategory == c,
-                            onTap: () => setState(() => _selectedCategory = c),
+                  child: StreamBuilder<List<String>>(
+                    stream: firestoreService.getCategories(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) return const SizedBox();
+
+                      final categories = snapshot.data ?? [];
+
+                      return Row(
+                        children: [
+                          _CategoryChip(
+                            label: 'All',
+                            isSelected: _selectedCategory == 'All',
+                            onTap:
+                                () => setState(() => _selectedCategory = 'All'),
                           ),
-                        ),
-                      ),
-                    ],
+                          ...categories.map(
+                            (c) => Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: _CategoryChip(
+                                label: c,
+                                isSelected: _selectedCategory == c,
+                                onTap:
+                                    () => setState(() => _selectedCategory = c),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -135,8 +145,11 @@ class _ProductCatalogScreenState extends State<ProductCatalogScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'No products found',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(color: AppTheme.textSecondary(context)),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleMedium?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../app/theme.dart';
 import '../../models/service_request_model.dart';
 import '../../services/firestore_service.dart';
@@ -202,11 +203,11 @@ class _UserServiceRequestDetailScreenState
                 const SizedBox(height: 16),
 
                 // Technician Contact Card (Phase 3) - only show when assigned
-                if (request.technicianName != null && 
+                if (request.technicianName != null &&
                     request.status != ServiceRequestStatus.pending)
                   _buildTechnicianCard(context, request),
 
-                if (request.technicianName != null && 
+                if (request.technicianName != null &&
                     request.status != ServiceRequestStatus.pending)
                   const SizedBox(height: 16),
 
@@ -252,7 +253,10 @@ class _UserServiceRequestDetailScreenState
   }
 
   // Phase 3: Service Timeline Widget
-  Widget _buildServiceTimeline(BuildContext context, ServiceRequestModel request) {
+  Widget _buildServiceTimeline(
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     final steps = <_ServiceTimelineStep>[
       _ServiceTimelineStep(
         title: 'Request Submitted',
@@ -262,38 +266,49 @@ class _UserServiceRequestDetailScreenState
       ),
       _ServiceTimelineStep(
         title: 'Technician Assigned',
-        subtitle: request.assignedAt != null
-            ? DateFormat('MMM d, yyyy • h:mm a').format(request.assignedAt!)
-            : 'Awaiting assignment',
-        isCompleted: request.status.index >= ServiceRequestStatus.assigned.index,
+        subtitle:
+            request.assignedAt != null
+                ? DateFormat('MMM d, yyyy • h:mm a').format(request.assignedAt!)
+                : 'Awaiting assignment',
+        isCompleted:
+            request.status.index >= ServiceRequestStatus.assigned.index,
         isCurrent: request.status == ServiceRequestStatus.assigned,
         icon: Icons.assignment_ind_outlined,
       ),
       _ServiceTimelineStep(
         title: 'Service In Progress',
-        subtitle: request.serviceStartedAt != null
-            ? DateFormat('MMM d, yyyy • h:mm a').format(request.serviceStartedAt!)
-            : request.status == ServiceRequestStatus.inProgress 
+        subtitle:
+            request.serviceStartedAt != null
+                ? DateFormat(
+                  'MMM d, yyyy • h:mm a',
+                ).format(request.serviceStartedAt!)
+                : request.status == ServiceRequestStatus.inProgress
                 ? 'Technician is working on it'
                 : 'Pending',
-        isCompleted: request.status.index >= ServiceRequestStatus.inProgress.index,
+        isCompleted:
+            request.status.index >= ServiceRequestStatus.inProgress.index,
         isCurrent: request.status == ServiceRequestStatus.inProgress,
         icon: Icons.engineering_outlined,
       ),
       _ServiceTimelineStep(
         title: 'Service Resolved',
-        subtitle: request.resolvedAt != null
-            ? DateFormat('MMM d, yyyy • h:mm a').format(request.resolvedAt!)
-            : 'Pending resolution',
-        isCompleted: request.status.index >= ServiceRequestStatus.resolved.index,
+        subtitle:
+            request.resolvedAt != null
+                ? DateFormat('MMM d, yyyy • h:mm a').format(request.resolvedAt!)
+                : 'Pending resolution',
+        isCompleted:
+            request.status.index >= ServiceRequestStatus.resolved.index,
         isCurrent: request.status == ServiceRequestStatus.resolved,
         icon: Icons.check_circle_outline,
       ),
       _ServiceTimelineStep(
         title: 'Completed',
-        subtitle: request.completedAt != null
-            ? DateFormat('MMM d, yyyy • h:mm a').format(request.completedAt!)
-            : 'Awaiting your confirmation',
+        subtitle:
+            request.completedAt != null
+                ? DateFormat(
+                  'MMM d, yyyy • h:mm a',
+                ).format(request.completedAt!)
+                : 'Awaiting your confirmation',
         isCompleted: request.status == ServiceRequestStatus.completed,
         isCurrent: request.status == ServiceRequestStatus.completed,
         icon: Icons.verified_outlined,
@@ -365,14 +380,16 @@ class _UserServiceRequestDetailScreenState
               child: Icon(
                 step.isCompleted ? Icons.check : step.icon,
                 size: 14,
-                color: isActive ? Colors.white : AppTheme.textSecondary(context),
+                color:
+                    isActive ? Colors.white : AppTheme.textSecondary(context),
               ),
             ),
             if (!step.isLast)
               Container(
                 width: 2,
                 height: 32,
-                color: step.isCompleted ? AppTheme.success : AppTheme.borderLight,
+                color:
+                    step.isCompleted ? AppTheme.success : AppTheme.borderLight,
               ),
           ],
         ),
@@ -388,16 +405,21 @@ class _UserServiceRequestDetailScreenState
                     Text(
                       step.title,
                       style: TextStyle(
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        color: isActive 
-                            ? AppTheme.textPrimary(context) 
-                            : AppTheme.textSecondary(context),
+                        fontWeight:
+                            isActive ? FontWeight.bold : FontWeight.w500,
+                        color:
+                            isActive
+                                ? AppTheme.textPrimary(context)
+                                : AppTheme.textSecondary(context),
                       ),
                     ),
                     if (step.isCurrent && !step.isCompleted) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withAlpha(25),
                           borderRadius: BorderRadius.circular(4),
@@ -429,10 +451,13 @@ class _UserServiceRequestDetailScreenState
     );
   }
 
-  Widget _buildSpecialStatusCard(BuildContext context, ServiceRequestModel request) {
+  Widget _buildSpecialStatusCard(
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     final isEscalated = request.status == ServiceRequestStatus.escalated;
     final color = isEscalated ? AppTheme.error : AppTheme.neutral;
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -472,7 +497,7 @@ class _UserServiceRequestDetailScreenState
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isEscalated 
+                      isEscalated
                           ? 'This request has been escalated to senior support for priority handling.'
                           : 'This service request has been cancelled.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -490,7 +515,10 @@ class _UserServiceRequestDetailScreenState
   }
 
   // Phase 3: Technician Contact Card
-  Widget _buildTechnicianCard(BuildContext context, ServiceRequestModel request) {
+  Widget _buildTechnicianCard(
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -510,13 +538,17 @@ class _UserServiceRequestDetailScreenState
         children: [
           Row(
             children: [
-              const Icon(Icons.support_agent, color: AppTheme.primary, size: 20),
+              const Icon(
+                Icons.support_agent,
+                color: AppTheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Your Technician',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -557,7 +589,11 @@ class _UserServiceRequestDetailScreenState
                     if (request.technicianArrivalTime != null)
                       Row(
                         children: [
-                          const Icon(Icons.access_time, size: 12, color: AppTheme.success),
+                          const Icon(
+                            Icons.access_time,
+                            size: 12,
+                            color: AppTheme.success,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'ETA: ${DateFormat('h:mm a').format(request.technicianArrivalTime!)}',
@@ -610,7 +646,10 @@ class _UserServiceRequestDetailScreenState
   }
 
   // Phase 3: Feedback Section
-  Widget _buildFeedbackSection(BuildContext context, ServiceRequestModel request) {
+  Widget _buildFeedbackSection(
+    BuildContext context,
+    ServiceRequestModel request,
+  ) {
     // If already submitted feedback
     if (request.rating != null) {
       return Column(
@@ -629,7 +668,7 @@ class _UserServiceRequestDetailScreenState
                   );
                 }),
               ),
-              if (request.feedbackComment != null && 
+              if (request.feedbackComment != null &&
                   request.feedbackComment!.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -681,7 +720,10 @@ class _UserServiceRequestDetailScreenState
                       color: AppTheme.warning.withAlpha(25),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.rate_review, color: AppTheme.warning),
+                    child: const Icon(
+                      Icons.rate_review,
+                      color: AppTheme.warning,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -690,13 +732,14 @@ class _UserServiceRequestDetailScreenState
                       children: [
                         Text(
                           'Rate Your Experience',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'Help us improve by sharing your feedback',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
                             color: AppTheme.textSecondary(context),
                           ),
                         ),
@@ -732,160 +775,196 @@ class _UserServiceRequestDetailScreenState
 
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.warning.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.star, color: AppTheme.warning, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text('Rate Service'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'How was your service experience?',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    return GestureDetector(
-                      onTap: () {
-                        setDialogState(() {
-                          selectedRating = index + 1;
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          index < selectedRating ? Icons.star : Icons.star_border,
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.warning.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.star,
                           color: AppTheme.warning,
-                          size: 40,
+                          size: 20,
                         ),
                       ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _getRatingText(selectedRating),
-                  style: TextStyle(
-                    color: AppTheme.warning,
-                    fontWeight: FontWeight.w500,
+                      const SizedBox(width: 12),
+                      const Text('Rate Service'),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: commentController,
-                  decoration: InputDecoration(
-                    hintText: 'Share your experience (optional)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'How was your service experience?',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  selectedRating = index + 1;
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                child: Icon(
+                                  index < selectedRating
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: AppTheme.warning,
+                                  size: 40,
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _getRatingText(selectedRating),
+                          style: TextStyle(
+                            color: AppTheme.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        TextField(
+                          controller: commentController,
+                          decoration: InputDecoration(
+                            hintText: 'Share your experience (optional)',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.all(12),
+                          ),
+                          maxLines: 3,
+                        ),
+                      ],
                     ),
-                    contentPadding: const EdgeInsets.all(12),
                   ),
-                  maxLines: 3,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed:
+                          selectedRating == 0
+                              ? null
+                              : () async {
+                                Navigator.pop(dialogContext);
+                                try {
+                                  await context
+                                      .read<FirestoreService>()
+                                      .submitServiceFeedback(
+                                        requestId: request.id,
+                                        rating: selectedRating,
+                                        comment:
+                                            commentController.text
+                                                    .trim()
+                                                    .isEmpty
+                                                ? null
+                                                : commentController.text.trim(),
+                                      );
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Thank you for your feedback!',
+                                        ),
+                                        backgroundColor: AppTheme.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Failed to submit feedback: $e',
+                                        ),
+                                        backgroundColor: AppTheme.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            selectedRating == 0
+                                ? AppTheme.warning.withAlpha(100)
+                                : AppTheme.warning,
+                      ),
+                      child: const Text('Submit'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: selectedRating == 0 
-                ? null 
-                : () async {
-                    Navigator.pop(dialogContext);
-                    try {
-                      await context
-                          .read<FirestoreService>()
-                          .submitServiceFeedback(
-                            requestId: request.id,
-                            rating: selectedRating,
-                            comment: commentController.text.trim().isEmpty 
-                                ? null 
-                                : commentController.text.trim(),
-                          );
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Thank you for your feedback!'),
-                            backgroundColor: AppTheme.success,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to submit feedback: $e'),
-                            backgroundColor: AppTheme.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
-              style: FilledButton.styleFrom(
-                backgroundColor: selectedRating == 0 
-                    ? AppTheme.warning.withAlpha(100) 
-                    : AppTheme.warning,
-              ),
-              child: const Text('Submit'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   String _getRatingText(int rating) {
     switch (rating) {
-      case 1: return 'Poor';
-      case 2: return 'Fair';
-      case 3: return 'Good';
-      case 4: return 'Very Good';
-      case 5: return 'Excellent!';
-      default: return 'Tap to rate';
+      case 1:
+        return 'Poor';
+      case 2:
+        return 'Fair';
+      case 3:
+        return 'Good';
+      case 4:
+        return 'Very Good';
+      case 5:
+        return 'Excellent!';
+      default:
+        return 'Tap to rate';
     }
   }
 
   void _launchPhone(String phone) async {
-    // Using url_launcher for phone call
-    final uri = Uri.parse('tel:$phone');
-    // In a real implementation, use: await launchUrl(uri);
-    // For now, show a snackbar
-    debugPrint('Would launch: $uri');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Calling $phone...')),
-      );
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri.parse('tel:$cleanPhone');
+    try {
+      if (!await launchUrl(uri)) {
+        throw 'Could not launch $uri';
+      }
+    } catch (e) {
+      debugPrint('Error launching phone: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open dialer')));
+      }
     }
   }
 
   void _launchSms(String phone) async {
-    // Using url_launcher for SMS
-    final uri = Uri.parse('sms:$phone');
-    // In a real implementation, use: await launchUrl(uri);
-    debugPrint('Would launch: $uri');
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Opening SMS to $phone...')),
-      );
+    final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final uri = Uri.parse('sms:$cleanPhone');
+    try {
+      if (!await launchUrl(uri)) {
+        throw 'Could not launch $uri';
+      }
+    } catch (e) {
+      debugPrint('Error launching SMS: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open messaging app')),
+        );
+      }
     }
   }
 

@@ -12,6 +12,47 @@ import '../models/agent_model.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // ============== CATEGORIES ==============
+
+  // Get all categories
+  Stream<List<String>> getCategories() {
+    return _firestore.collection('categories').orderBy('name').snapshots().map((
+      snapshot,
+    ) {
+      return snapshot.docs.map((doc) => doc['name'] as String).toList();
+    });
+  }
+
+  // Add a new category
+  Future<void> addCategory(String categoryName) async {
+    // Check if exists to avoid duplicates
+    final query =
+        await _firestore
+            .collection('categories')
+            .where('name', isEqualTo: categoryName)
+            .get();
+
+    if (query.docs.isEmpty) {
+      await _firestore.collection('categories').add({
+        'name': categoryName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  // Delete a category (Optional for now, but good to have)
+  Future<void> deleteCategory(String categoryName) async {
+    final query =
+        await _firestore
+            .collection('categories')
+            .where('name', isEqualTo: categoryName)
+            .get();
+
+    for (var doc in query.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   // ============== SUPPORT MESSAGES ==============
 
   // Send a support message
@@ -123,6 +164,28 @@ class FirestoreService {
     });
   }
 
+  // Update product purchase date and recalculate warranty (admin)
+  Future<void> updateProductPurchaseDate(
+    String productId,
+    DateTime newDate,
+  ) async {
+    final docRef = _firestore.collection('products').doc(productId);
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    final oldPurchase = (data['purchaseDate'] as Timestamp).toDate();
+    final oldWarrantyEnd = (data['warrantyEndDate'] as Timestamp).toDate();
+    // Preserve warranty duration
+    final duration = oldWarrantyEnd.difference(oldPurchase);
+    final newWarrantyEnd = newDate.add(duration);
+
+    await docRef.update({
+      'purchaseDate': Timestamp.fromDate(newDate),
+      'warrantyEndDate': Timestamp.fromDate(newWarrantyEnd),
+    });
+  }
+
   /// Process referral commission when a user's first product is validated
   Future<void> _processReferralForProduct(UserApplianceModel product) async {
     try {
@@ -176,6 +239,27 @@ class FirestoreService {
           docs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
           return docs;
         });
+  }
+
+  // Get User Appliances (Admin/User)
+  Stream<List<UserApplianceModel>> getUserAppliances(String userId) {
+    return _firestore
+        .collection('products')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+              .map((doc) => UserApplianceModel.fromFirestore(doc))
+              .toList();
+        });
+  }
+
+  // Expire User Appliance (Admin)
+  Future<void> expireUserAppliance(String productId) async {
+    await _firestore.collection('products').doc(productId).update({
+      'status': ProductStatus.expired.firestoreValue,
+      'warrantyEndDate': Timestamp.now(), // Expire immediately
+    });
   }
 
   // Get all products (admin)
@@ -279,6 +363,16 @@ class FirestoreService {
         .update(updates);
   }
 
+  // Update Estimated Completion Date (Admin)
+  Future<void> updateServiceRequestEstimatedDate(
+    String requestId,
+    DateTime date,
+  ) async {
+    await _firestore.collection('service_requests').doc(requestId).update({
+      'estimatedCompletionDate': Timestamp.fromDate(date),
+    });
+  }
+
   // Get all service requests (admin)
   Stream<List<ServiceRequestModel>> getAllServiceRequests({
     ServiceRequestStatus? filterStatus,
@@ -369,6 +463,25 @@ class FirestoreService {
           docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
           return docs;
         });
+  }
+
+  // Get all referrals (Admin)
+  Stream<List<ReferralModel>> getAllReferrals() {
+    return _firestore.collection('referrals').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ReferralModel.fromFirestore(doc))
+          .toList();
+    });
+  }
+
+  // Approve referral and set reward coins
+  Future<void> approveReferral(String referralId, int rewardCoins) async {
+    await _firestore.collection('referrals').doc(referralId).update({
+      'status': 'approved',
+      'adminApproved': true,
+      'rewardCoins': rewardCoins,
+      'approvedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   // Create a referral when new user signs up with code
@@ -512,58 +625,66 @@ class FirestoreService {
   // ============== DASHBOARD STATS (Admin) ==============
 
   Future<Map<String, dynamic>> getDashboardStats() async {
-    final pendingRequests =
-        await _firestore
-            .collection('service_requests')
-            .where('status', isEqualTo: 'pending')
-            .count()
-            .get();
+    try {
+      final pendingRequests =
+          await _firestore
+              .collection('service_requests')
+              .where('status', isEqualTo: 'pending')
+              .count()
+              .get();
 
-    final pendingRegistrations =
-        await _firestore
-            .collection('products')
-            .where('status', isEqualTo: 'pending_validation')
-            .count()
-            .get();
+      final pendingRegistrations =
+          await _firestore
+              .collection('products')
+              .where('status', isEqualTo: 'pending_validation')
+              .count()
+              .get();
 
-    // Count UNIQUE users only (exclude proxy/linked accounts)
-    final uniqueUsers =
-        await _firestore
-            .collection('users')
-            .where('isProxy', isNotEqualTo: true)
-            .count()
-            .get();
+      // Count ALL users for now to ensure numbers show up
+      // The 'isProxy' query requires a composite index and might exclude docs where the field is missing
+      final totalUsers = await _firestore.collection('users').count().get();
 
-    final usersWithPayouts =
-        await _firestore
-            .collection('users')
-            .where('pendingPayout', isGreaterThan: 0)
-            .get();
+      final usersWithPayouts =
+          await _firestore
+              .collection('users')
+              .where('pendingPayout', isGreaterThan: 0)
+              .get();
 
-    double totalPendingPayouts = 0;
-    for (final doc in usersWithPayouts.docs) {
-      totalPendingPayouts += (doc.data()['pendingPayout'] ?? 0).toDouble();
+      double totalPendingPayouts = 0;
+      for (final doc in usersWithPayouts.docs) {
+        totalPendingPayouts += (doc.data()['pendingPayout'] ?? 0).toDouble();
+      }
+
+      // Count total and resolved service requests
+      final totalRequests =
+          await _firestore.collection('service_requests').count().get();
+
+      final resolvedRequests =
+          await _firestore
+              .collection('service_requests')
+              .where('status', whereIn: ['resolved', 'completed'])
+              .count()
+              .get();
+
+      return {
+        'pendingRequests': pendingRequests.count ?? 0,
+        'pendingRegistrations': pendingRegistrations.count ?? 0,
+        'totalUsers': totalUsers.count ?? 0,
+        'pendingPayouts': totalPendingPayouts,
+        'totalRequests': totalRequests.count ?? 0,
+        'resolvedRequests': resolvedRequests.count ?? 0,
+      };
+    } catch (e) {
+      print('Error getting dashboard stats: $e');
+      return {
+        'pendingRequests': 0,
+        'pendingRegistrations': 0,
+        'totalUsers': 0,
+        'pendingPayouts': 0.0,
+        'totalRequests': 0,
+        'resolvedRequests': 0,
+      };
     }
-
-    // Count total and resolved service requests
-    final totalRequests =
-        await _firestore.collection('service_requests').count().get();
-
-    final resolvedRequests =
-        await _firestore
-            .collection('service_requests')
-            .where('status', whereIn: ['resolved', 'completed'])
-            .count()
-            .get();
-
-    return {
-      'pendingRequests': pendingRequests.count ?? 0,
-      'pendingRegistrations': pendingRegistrations.count ?? 0,
-      'totalUsers': uniqueUsers.count ?? 0,
-      'pendingPayouts': totalPendingPayouts,
-      'totalRequests': totalRequests.count ?? 0,
-      'resolvedRequests': resolvedRequests.count ?? 0,
-    };
   }
 
   // Get recent activity for dashboard
@@ -733,6 +854,13 @@ class FirestoreService {
     return doc.exists ? OrderModel.fromFirestore(doc) : null;
   }
 
+  // Get all users (Admin)
+  Stream<List<UserModel>> getAllUsers() {
+    return _firestore.collection('users').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+    });
+  }
+
   // Get All Orders (Admin)
   Stream<List<OrderModel>> getAllOrders({OrderStatus? status}) {
     Query<Map<String, dynamic>> query = _firestore
@@ -759,16 +887,18 @@ class FirestoreService {
     await _firestore.runTransaction((transaction) async {
       final orderRef = _firestore.collection('orders').doc(orderId);
       final orderDoc = await transaction.get(orderRef);
-      
+
       if (!orderDoc.exists) {
         throw Exception('Order not found');
       }
-      
+
       final currentVersion = orderDoc.data()?['version'] ?? 1;
       if (expectedVersion != null && currentVersion != expectedVersion) {
-        throw Exception('Order was modified by another user. Please refresh and try again.');
+        throw Exception(
+          'Order was modified by another user. Please refresh and try again.',
+        );
       }
-      
+
       final updates = <String, dynamic>{
         'status': status.firestoreValue,
         'version': currentVersion + 1,
@@ -777,6 +907,19 @@ class FirestoreService {
 
       if (status == OrderStatus.delivered) {
         updates['deliveredAt'] = Timestamp.now();
+
+        // Calculate and credit 5% digital coins
+        final orderData = orderDoc.data()!;
+        final totalAmount = (orderData['totalAmount'] ?? 0).toDouble();
+        final userId = orderData['userId'] as String;
+        final coins = (totalAmount * 0.05).round();
+
+        if (coins > 0) {
+          final userRef = _firestore.collection('users').doc(userId);
+          transaction.update(userRef, {
+            'digitalCoins': FieldValue.increment(coins),
+          });
+        }
       }
       if (trackingNumber != null) {
         updates['trackingNumber'] = trackingNumber;
@@ -791,6 +934,16 @@ class FirestoreService {
     }
   }
 
+  // Update Order Expected Delivery Date (Admin)
+  Future<void> updateOrderExpectedDeliveryDate(
+    String orderId,
+    DateTime date,
+  ) async {
+    await _firestore.collection('orders').doc(orderId).update({
+      'expectedDeliveryDate': Timestamp.fromDate(date),
+    });
+  }
+
   // Cancel Order (User) - Only allowed before shipping, with reason
   Future<void> cancelOrder(
     String orderId,
@@ -800,7 +953,7 @@ class FirestoreService {
     await _firestore.runTransaction((transaction) async {
       final orderRef = _firestore.collection('orders').doc(orderId);
       final orderDoc = await transaction.get(orderRef);
-      
+
       if (!orderDoc.exists) throw Exception('Order not found');
 
       final order = OrderModel.fromFirestore(orderDoc);
@@ -822,9 +975,11 @@ class FirestoreService {
 
       // Restore stock for cancelled items
       for (final item in order.items) {
-        final productRef = _firestore.collection('catalog_products').doc(item.productId);
+        final productRef = _firestore
+            .collection('catalog_products')
+            .doc(item.productId);
         final productDoc = await transaction.get(productRef);
-        
+
         if (productDoc.exists) {
           final trackInventory = productDoc.data()?['trackInventory'] ?? true;
           if (trackInventory) {
@@ -1049,24 +1204,26 @@ class FirestoreService {
 
   /// Get out of stock products count
   Future<int> getOutOfStockCount() async {
-    final snapshot = await _firestore
-        .collection('catalog_products')
-        .where('trackInventory', isEqualTo: true)
-        .where('isActive', isEqualTo: true)
-        .where('stockQuantity', isLessThanOrEqualTo: 0)
-        .count()
-        .get();
+    final snapshot =
+        await _firestore
+            .collection('catalog_products')
+            .where('trackInventory', isEqualTo: true)
+            .where('isActive', isEqualTo: true)
+            .where('stockQuantity', isLessThanOrEqualTo: 0)
+            .count()
+            .get();
     return snapshot.count ?? 0;
   }
 
   /// Get low stock products count
   Future<int> getLowStockCount() async {
-    final snapshot = await _firestore
-        .collection('catalog_products')
-        .where('trackInventory', isEqualTo: true)
-        .where('isActive', isEqualTo: true)
-        .get();
-    
+    final snapshot =
+        await _firestore
+            .collection('catalog_products')
+            .where('trackInventory', isEqualTo: true)
+            .where('isActive', isEqualTo: true)
+            .get();
+
     int count = 0;
     for (final doc in snapshot.docs) {
       final stockQty = doc.data()['stockQuantity'] ?? 0;
@@ -1108,38 +1265,37 @@ class FirestoreService {
     List<Map<String, dynamic>> cartItems,
   ) async {
     final issues = <String, String>{};
-    
+
     for (final item in cartItems) {
       final productId = item['productId'] as String;
       final requestedQty = item['quantity'] as int;
       final productName = item['productName'] as String? ?? 'Product';
-      
-      final productDoc = await _firestore
-          .collection('catalog_products')
-          .doc(productId)
-          .get();
-      
+
+      final productDoc =
+          await _firestore.collection('catalog_products').doc(productId).get();
+
       if (!productDoc.exists) {
         issues[productId] = '$productName is no longer available';
         continue;
       }
-      
+
       final data = productDoc.data()!;
       final isActive = data['isActive'] ?? true;
       final trackInventory = data['trackInventory'] ?? true;
       final stockQuantity = data['stockQuantity'] ?? 0;
-      
+
       if (!isActive) {
         issues[productId] = '$productName is no longer available';
       } else if (trackInventory && stockQuantity < requestedQty) {
         if (stockQuantity <= 0) {
           issues[productId] = '$productName is out of stock';
         } else {
-          issues[productId] = 'Only $stockQuantity units of $productName available';
+          issues[productId] =
+              'Only $stockQuantity units of $productName available';
         }
       }
     }
-    
+
     return issues;
   }
 
@@ -1151,43 +1307,47 @@ class FirestoreService {
     return await _firestore.runTransaction<String>((transaction) async {
       // First, validate and collect all product docs
       final productDocs = <String, DocumentSnapshot>{};
-      
+
       for (final item in cartItems) {
         final productId = item['productId'] as String;
-        final productRef = _firestore.collection('catalog_products').doc(productId);
+        final productRef = _firestore
+            .collection('catalog_products')
+            .doc(productId);
         final productDoc = await transaction.get(productRef);
         productDocs[productId] = productDoc;
       }
-      
+
       // Validate stock for all items
       for (final item in cartItems) {
         final productId = item['productId'] as String;
         final requestedQty = item['quantity'] as int;
         final productName = item['productName'] as String? ?? 'Product';
         final productDoc = productDocs[productId]!;
-        
+
         if (!productDoc.exists) {
           throw Exception('$productName is no longer available');
         }
-        
+
         final data = productDoc.data() as Map<String, dynamic>;
         final isActive = data['isActive'] ?? true;
         final trackInventory = data['trackInventory'] ?? true;
         final stockQuantity = data['stockQuantity'] ?? 0;
-        
+
         if (!isActive) {
           throw Exception('$productName is no longer available');
         }
-        
+
         if (trackInventory && stockQuantity < requestedQty) {
           if (stockQuantity <= 0) {
             throw Exception('$productName is out of stock');
           } else {
-            throw Exception('Only $stockQuantity units of $productName available');
+            throw Exception(
+              'Only $stockQuantity units of $productName available',
+            );
           }
         }
       }
-      
+
       // All validation passed - decrement stock
       for (final item in cartItems) {
         final productId = item['productId'] as String;
@@ -1195,16 +1355,18 @@ class FirestoreService {
         final productDoc = productDocs[productId]!;
         final data = productDoc.data() as Map<String, dynamic>;
         final trackInventory = data['trackInventory'] ?? true;
-        
+
         if (trackInventory) {
-          final productRef = _firestore.collection('catalog_products').doc(productId);
+          final productRef = _firestore
+              .collection('catalog_products')
+              .doc(productId);
           transaction.update(productRef, {
             'stockQuantity': FieldValue.increment(-requestedQty),
             'updatedAt': FieldValue.serverTimestamp(),
           });
         }
       }
-      
+
       // Create the order
       final orderRef = _firestore.collection('orders').doc();
       final orderWithId = OrderModel(
@@ -1220,9 +1382,9 @@ class FirestoreService {
         trackingNumber: order.trackingNumber,
         version: 1,
       );
-      
+
       transaction.set(orderRef, orderWithId.toFirestore());
-      
+
       return orderRef.id;
     });
   }

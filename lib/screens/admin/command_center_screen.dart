@@ -7,6 +7,9 @@ import '../../app/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
+import 'admin_feedback_screen.dart';
+import 'admin_referrals_screen.dart';
+import 'users/admin_user_list_screen.dart';
 
 class CommandCenterScreen extends StatefulWidget {
   const CommandCenterScreen({super.key});
@@ -157,11 +160,12 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   icon: Icons.people,
                                   color: AppTheme.success,
                                   onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Total registered users: ${(stats['totalUsers'] as num?)?.toInt() ?? 0}',
-                                        ),
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                const AdminUserListScreen(),
                                       ),
                                     );
                                   },
@@ -468,6 +472,36 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
             onTap: () {
               HapticFeedback.lightImpact();
               context.goNamed('admin-reports');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.rate_review,
+            label: 'Customer\nFeedback',
+            color: Colors.teal,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminFeedbackScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.card_giftcard,
+            label: 'Referral\nApproval',
+            color: Colors.indigo,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminReferralsScreen(),
+                ),
+              );
             },
           ),
           const SizedBox(width: 12),
@@ -975,23 +1009,23 @@ class _LowStockAlertsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final firestoreService = context.read<FirestoreService>();
-    
+
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _getLowStockData(firestoreService),
       builder: (context, snapshot) {
         final outOfStock = snapshot.data?[0]['count'] ?? 0;
         final lowStock = snapshot.data?[1]['count'] ?? 0;
-        
+
         // Don't show card if no stock issues
         if (outOfStock == 0 && lowStock == 0) {
           return const SizedBox.shrink();
         }
-        
+
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                outOfStock > 0 
+                outOfStock > 0
                     ? AppTheme.error.withValues(alpha: 0.1)
                     : AppTheme.warning.withValues(alpha: 0.1),
                 Theme.of(context).cardColor,
@@ -1001,9 +1035,10 @@ class _LowStockAlertsCard extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: outOfStock > 0 
-                  ? AppTheme.error.withValues(alpha: 0.3)
-                  : AppTheme.warning.withValues(alpha: 0.3),
+              color:
+                  outOfStock > 0
+                      ? AppTheme.error.withValues(alpha: 0.3)
+                      : AppTheme.warning.withValues(alpha: 0.3),
             ),
           ),
           child: Material(
@@ -1019,20 +1054,20 @@ class _LowStockAlertsCard extends StatelessWidget {
                     Row(
                       children: [
                         Icon(
-                          outOfStock > 0 
-                              ? Icons.error_outline 
+                          outOfStock > 0
+                              ? Icons.error_outline
                               : Icons.warning_amber,
-                          color: outOfStock > 0 
-                              ? AppTheme.error 
-                              : AppTheme.warning,
+                          color:
+                              outOfStock > 0
+                                  ? AppTheme.error
+                                  : AppTheme.warning,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Stock Alerts',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const Spacer(),
                         Icon(
@@ -1063,7 +1098,7 @@ class _LowStockAlertsCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      outOfStock > 0 
+                      outOfStock > 0
                           ? 'Some products are unavailable for purchase'
                           : 'Restock soon to avoid stockouts',
                       style: TextStyle(
@@ -1080,7 +1115,7 @@ class _LowStockAlertsCard extends StatelessWidget {
       },
     );
   }
-  
+
   Future<List<Map<String, dynamic>>> _getLowStockData(
     FirestoreService firestoreService,
   ) async {

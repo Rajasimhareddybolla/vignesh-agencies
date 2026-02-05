@@ -7,10 +7,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import '../../../app/theme.dart';
 import '../../../models/catalog_product_model.dart';
-import '../../../models/user_appliance_model.dart'; // For Categories
 import '../../../services/firestore_service.dart';
 import '../../../services/storage_service.dart';
-import '../../../widgets/common/premium_widgets.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final CatalogProductModel? product; // Null for Add, Non-null for Edit
@@ -97,7 +95,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Future<void> _pickImage() async {
     try {
-      final img = await _imagePicker.pickImage(source: ImageSource.gallery);
+      final img = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 60,
+      );
       if (img != null) {
         setState(() => _newImages.add(img));
       }
@@ -159,7 +162,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         stockQuantity: int.tryParse(_stockQuantityController.text) ?? 0,
         lowStockThreshold: int.tryParse(_lowStockThresholdController.text) ?? 5,
         trackInventory: _trackInventory,
-        estimatedDeliveryDays: int.tryParse(_estimatedDeliveryDaysController.text) ?? 3,
+        estimatedDeliveryDays:
+            int.tryParse(_estimatedDeliveryDaysController.text) ?? 3,
         variations: _variations,
         specifications: _specifications,
         highlights: _highlights,
@@ -185,6 +189,88 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       ).showSnackBar(SnackBar(content: Text('Error saving product: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _confirmArchive() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Archive Product'),
+            content: const Text(
+              'Are you sure you want to archive this product? It will no longer be visible to customers.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Archive',
+                  style: TextStyle(color: AppTheme.error),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isActive = false);
+      // _saveProduct will handle the update
+      await _saveProduct();
+    }
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final controller = TextEditingController();
+    final shouldAdd = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add New Category'),
+            content: TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Category Name',
+                hintText: 'e.g. Smart Fan',
+              ),
+              textCapitalization: TextCapitalization.words,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Add'),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldAdd == true && controller.text.trim().isNotEmpty) {
+      final newCategory = controller.text.trim();
+      try {
+        await context.read<FirestoreService>().addCategory(newCategory);
+        setState(() {
+          _selectedCategory = newCategory;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Category "$newCategory" added')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error adding category: $e')));
+        }
+      }
     }
   }
 
@@ -218,22 +304,62 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         validator: (v) => v!.isEmpty ? 'Required' : null,
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCategory,
-                        decoration: const InputDecoration(
-                          labelText: 'Category',
-                        ),
-                        items:
-                            UserApplianceModel.categories
-                                .map(
-                                  (c) => DropdownMenuItem(
-                                    value: c,
-                                    child: Text(c),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: StreamBuilder<List<String>>(
+                              stream:
+                                  context
+                                      .read<FirestoreService>()
+                                      .getCategories(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasError) {
+                                  return Text('Error: ${snapshot.error}');
+                                }
+
+                                final categories = snapshot.data ?? [];
+                                final uniqueCategories =
+                                    categories.toSet().toList();
+
+                                // Ensure selected category is in the list (for edits)
+                                if (_selectedCategory != null &&
+                                    !uniqueCategories.contains(
+                                      _selectedCategory,
+                                    ) &&
+                                    _selectedCategory!.isNotEmpty) {
+                                  uniqueCategories.add(_selectedCategory!);
+                                }
+
+                                return DropdownButtonFormField<String>(
+                                  value: _selectedCategory,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Category',
                                   ),
-                                )
-                                .toList(),
-                        onChanged: (v) => setState(() => _selectedCategory = v),
+                                  items:
+                                      uniqueCategories.map((c) {
+                                        return DropdownMenuItem(
+                                          value: c,
+                                          child: Text(c),
+                                        );
+                                      }).toList(),
+                                  onChanged:
+                                      (v) =>
+                                          setState(() => _selectedCategory = v),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            onPressed: _showAddCategoryDialog,
+                            icon: const Icon(Icons.add_circle_outline),
+                            color: AppTheme.primary,
+                            tooltip: 'Add New Category',
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 12),
                       const SizedBox(height: 12),
                       TextFormField(
                         controller: _descriptionController,
@@ -282,9 +408,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       _buildSectionHeader('Stock Management'),
                       SwitchListTile(
                         title: const Text('Track Inventory'),
-                        subtitle: const Text(
-                          'Enable to manage stock quantity',
-                        ),
+                        subtitle: const Text('Enable to manage stock quantity'),
                         value: _trackInventory,
                         onChanged: (v) => setState(() => _trackInventory = v),
                         contentPadding: EdgeInsets.zero,
@@ -411,30 +535,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       ),
 
                       const SizedBox(height: 24),
-                      _buildSectionHeader('Specifications (Key-Value)'),
-                      // Simplified Specs Editor
-                      ..._specifications.entries.map(
-                        (e) => ListTile(
-                          title: Text(e.key),
-                          subtitle: Text(e.value),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, size: 16),
-                            onPressed:
-                                () => setState(
-                                  () => _specifications.remove(e.key),
-                                ),
-                          ),
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: _showAddSpecDialog,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Specification'),
-                      ),
-
-                      const SizedBox(height: 24),
                       _buildSectionHeader('Variations'),
-                      // Placeholder for variations logic
                       ..._variations.map(
                         (v) => ListTile(
                           title: Text(v.attributes.toString()),
@@ -453,6 +554,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       ),
 
                       const SizedBox(height: 50),
+                      if (widget.product != null) ...[
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _confirmArchive,
+                            icon: const Icon(
+                              Icons.archive,
+                              color: AppTheme.error,
+                            ),
+                            label: const Text(
+                              'Archive Product',
+                              style: TextStyle(color: AppTheme.error),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: AppTheme.error),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -469,50 +591,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           context,
         ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
       ),
-    );
-  }
-
-  void _showAddSpecDialog() {
-    String key = '';
-    String value = '';
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Add Specification'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Name (e.g. Power)',
-                  ),
-                  onChanged: (v) => key = v,
-                ),
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Value (e.g. 500W)',
-                  ),
-                  onChanged: (v) => value = v,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (key.isNotEmpty && value.isNotEmpty) {
-                    setState(() => _specifications[key] = value);
-                    Navigator.pop(context);
-                  }
-                },
-                child: const Text('Add'),
-              ),
-            ],
-          ),
     );
   }
 
@@ -580,7 +658,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   Widget? _buildStockStatusIcon() {
     final qty = int.tryParse(_stockQuantityController.text) ?? 0;
     final threshold = int.tryParse(_lowStockThresholdController.text) ?? 5;
-    
+
     if (qty <= 0) {
       return const Icon(Icons.error, color: AppTheme.error);
     } else if (qty <= threshold) {
@@ -593,11 +671,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   Widget _buildStockStatusBanner() {
     final qty = int.tryParse(_stockQuantityController.text) ?? 0;
     final threshold = int.tryParse(_lowStockThresholdController.text) ?? 5;
-    
+
     IconData icon;
     Color color;
     String message;
-    
+
     if (qty <= 0) {
       icon = Icons.error_outline;
       color = AppTheme.error;
@@ -611,7 +689,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       color = AppTheme.success;
       message = '$qty units in stock';
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -624,10 +702,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: TextStyle(color: color, fontSize: 13),
-            ),
+            child: Text(message, style: TextStyle(color: color, fontSize: 13)),
           ),
         ],
       ),

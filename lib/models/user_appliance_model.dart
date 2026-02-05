@@ -74,6 +74,7 @@ class UserApplianceModel {
   final DateTime createdAt;
   final double? purchaseAmount;
   final String? storeLocation;
+  final String? linkedOrderId;
 
   UserApplianceModel({
     required this.id,
@@ -92,6 +93,7 @@ class UserApplianceModel {
     required this.createdAt,
     this.purchaseAmount,
     this.storeLocation,
+    this.linkedOrderId,
   });
 
   factory UserApplianceModel.fromFirestore(DocumentSnapshot doc) {
@@ -117,6 +119,7 @@ class UserApplianceModel {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       purchaseAmount: (data['purchaseAmount'] ?? 0).toDouble(),
       storeLocation: data['storeLocation'],
+      linkedOrderId: data['linkedOrderId'],
     );
   }
 
@@ -132,13 +135,13 @@ class UserApplianceModel {
       'billImageUrl': billImageUrl,
       'status': status.firestoreValue,
       'validatedBy': validatedBy,
-      'validatedAt': validatedAt != null
-          ? Timestamp.fromDate(validatedAt!)
-          : null,
+      'validatedAt':
+          validatedAt != null ? Timestamp.fromDate(validatedAt!) : null,
       'rejectionReason': rejectionReason,
       'createdAt': Timestamp.fromDate(createdAt),
       'purchaseAmount': purchaseAmount,
       'storeLocation': storeLocation,
+      'linkedOrderId': linkedOrderId,
     };
   }
 
@@ -156,6 +159,7 @@ class UserApplianceModel {
     String? rejectionReason,
     double? purchaseAmount,
     String? storeLocation,
+    String? linkedOrderId,
   }) {
     return UserApplianceModel(
       id: id,
@@ -174,6 +178,7 @@ class UserApplianceModel {
       createdAt: createdAt,
       purchaseAmount: purchaseAmount ?? this.purchaseAmount,
       storeLocation: storeLocation ?? this.storeLocation,
+      linkedOrderId: linkedOrderId ?? this.linkedOrderId,
     );
   }
 
@@ -193,49 +198,11 @@ class UserApplianceModel {
     return warrantyEndDate.difference(DateTime.now()).inDays;
   }
 
-  // Product categories
-  static const List<String> categories = [
-    'Water Heater',
-    'Stabilizer',
-    'Inverter',
-    'Fan',
-    'Air Cooler',
-    'Kitchen Appliances',
-    'Solar Products',
-    'Wiring & Cables',
-    'Switchgear',
-    'Other',
-  ];
-
-  // Product image assets (local)
+  // Product image assets (local) - Generic fallback
   static String getProductImage(String category) {
-    switch (category.toLowerCase()) {
-      case 'water heater':
-        return 'assets/images/water_heater.png';
-      case 'stabilizer':
-        return 'assets/images/stabilizer.png';
-      case 'inverter':
-        return 'assets/images/inverter.png';
-      case 'fan':
-        return 'assets/images/fan.png';
-      case 'air cooler':
-        return 'assets/images/air_cooler.png';
-      case 'kitchen appliances':
-        return 'assets/images/kitchen_appliances.png';
-      case 'solar products':
-        return 'assets/images/solar_products.png';
-      case 'wiring & cables':
-        return 'assets/images/wiring_cables.png';
-      case 'switchgear':
-        return 'assets/images/switchgear.png';
-      case 'ups':
-        return 'assets/images/ups.png';
-      case 'motor':
-        return 'assets/images/motor.png';
-      case 'pump':
-        return 'assets/images/pump.png';
-      default:
-        return 'assets/images/water_heater.png';
-    }
+    // We can map some known ones if we want, or just return a default
+    // User requested to remove "fan/oven" etc.
+    // For now, let's keep a generic set or just one default.
+    return 'assets/images/water_heater.png'; // Default placeholder
   }
 }

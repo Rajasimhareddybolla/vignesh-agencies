@@ -1,16 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum ReferralStatus {
-  pending,
-  purchased,
-  paid,
-}
+enum ReferralStatus { pending, approved, purchased, paid }
 
 extension ReferralStatusExtension on ReferralStatus {
   String get displayName {
     switch (this) {
       case ReferralStatus.pending:
         return 'Pending';
+      case ReferralStatus.approved:
+        return 'Approved';
       case ReferralStatus.purchased:
         return 'Purchased';
       case ReferralStatus.paid:
@@ -22,6 +20,8 @@ extension ReferralStatusExtension on ReferralStatus {
     switch (this) {
       case ReferralStatus.pending:
         return 'pending';
+      case ReferralStatus.approved:
+        return 'approved';
       case ReferralStatus.purchased:
         return 'purchased';
       case ReferralStatus.paid:
@@ -33,6 +33,8 @@ extension ReferralStatusExtension on ReferralStatus {
     switch (value) {
       case 'pending':
         return ReferralStatus.pending;
+      case 'approved':
+        return ReferralStatus.approved;
       case 'purchased':
         return ReferralStatus.purchased;
       case 'paid':
@@ -54,10 +56,14 @@ class ReferralModel {
   final DateTime createdAt;
   final DateTime? purchasedAt;
   final DateTime? paidAt;
-  
+
   // Referee details (denormalized)
   final String? refereeName;
   final String? refereePhone;
+
+  // Phase 2: Admin Approval
+  final bool adminApproved;
+  final int rewardCoins;
 
   ReferralModel({
     required this.id,
@@ -72,6 +78,8 @@ class ReferralModel {
     this.paidAt,
     this.refereeName,
     this.refereePhone,
+    this.adminApproved = false,
+    this.rewardCoins = 0,
   });
 
   factory ReferralModel.fromFirestore(DocumentSnapshot doc) {
@@ -89,6 +97,8 @@ class ReferralModel {
       paidAt: (data['paidAt'] as Timestamp?)?.toDate(),
       refereeName: data['refereeName'],
       refereePhone: data['refereePhone'],
+      adminApproved: data['adminApproved'] ?? false,
+      rewardCoins: (data['rewardCoins'] ?? 0).toInt(),
     );
   }
 
@@ -101,10 +111,13 @@ class ReferralModel {
       'commission': commission,
       'purchaseAmount': purchaseAmount,
       'createdAt': Timestamp.fromDate(createdAt),
-      'purchasedAt': purchasedAt != null ? Timestamp.fromDate(purchasedAt!) : null,
+      'purchasedAt':
+          purchasedAt != null ? Timestamp.fromDate(purchasedAt!) : null,
       'paidAt': paidAt != null ? Timestamp.fromDate(paidAt!) : null,
       'refereeName': refereeName,
       'refereePhone': refereePhone,
+      'adminApproved': adminApproved,
+      'rewardCoins': rewardCoins,
     };
   }
 

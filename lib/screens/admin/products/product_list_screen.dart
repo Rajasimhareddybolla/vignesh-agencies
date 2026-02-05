@@ -273,12 +273,12 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
               fit: BoxFit.cover,
               placeholder:
                   (context, url) => Container(
-                    color: AppTheme.backgroundLight,
+                    color: AppTheme.background(context),
                     child: const Center(child: CircularProgressIndicator()),
                   ),
               errorWidget:
                   (context, url, error) => Container(
-                    color: AppTheme.backgroundLight,
+                    color: AppTheme.background(context),
                     child: const Icon(Icons.image_not_supported),
                   ),
             ),

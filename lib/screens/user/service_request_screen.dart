@@ -100,7 +100,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
         await _audioRecorder.start(
           const RecordConfig(
             encoder: AudioEncoder.aacLc,
-            bitRate: 128000,
+            bitRate: 64000,
             sampleRate: 44100,
           ),
           path: path,

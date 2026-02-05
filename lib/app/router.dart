@@ -41,6 +41,7 @@ import '../screens/admin/agents_management_screen.dart';
 import '../models/catalog_product_model.dart';
 import '../services/auth_service.dart';
 import '../screens/user/checkout_screen.dart';
+import '../services/push_notification_service.dart';
 
 class AppRouter {
   static final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -169,7 +170,16 @@ class AppRouter {
       GoRoute(
         path: '/add-product',
         name: 'add-product',
-        builder: (context, state) => const AddProductScreen(),
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>?;
+          final sourceOrder = extras?['sourceOrder'];
+          final sourceOrderItem = extras?['sourceOrderItem'];
+
+          return AddProductScreen(
+            sourceOrder: sourceOrder,
+            sourceOrderItem: sourceOrderItem,
+          );
+        },
       ),
       GoRoute(
         path: '/service-request/:productId',
@@ -351,15 +361,27 @@ class AppRouter {
 }
 
 // User Shell Screen with Bottom Navigation
-class UserShellScreen extends StatelessWidget {
+class UserShellScreen extends StatefulWidget {
   final Widget child;
 
   const UserShellScreen({super.key, required this.child});
 
   @override
+  State<UserShellScreen> createState() => _UserShellScreenState();
+}
+
+class _UserShellScreenState extends State<UserShellScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure user is subscribed to promo notifications
+    PushNotificationService().updatePromoSubscription(isUser: true);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -424,10 +446,22 @@ class UserShellScreen extends StatelessWidget {
 }
 
 // Admin Shell Screen with Side Navigation
-class AdminShellScreen extends StatelessWidget {
+class AdminShellScreen extends StatefulWidget {
   final Widget child;
 
   const AdminShellScreen({super.key, required this.child});
+
+  @override
+  State<AdminShellScreen> createState() => _AdminShellScreenState();
+}
+
+class _AdminShellScreenState extends State<AdminShellScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Ensure admin is UNSUBSCRIBED from promo notifications
+    PushNotificationService().updatePromoSubscription(isUser: false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +529,7 @@ class AdminShellScreen extends StatelessWidget {
               ],
             ),
             const VerticalDivider(thickness: 1, width: 1),
-            Expanded(child: child),
+            Expanded(child: widget.child),
           ],
         ),
       );
@@ -503,7 +537,7 @@ class AdminShellScreen extends StatelessWidget {
 
     // Mobile layout with bottom navigation
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _calculateSelectedIndex(context),
         onDestinationSelected: (index) => _onItemTapped(index, context),
@@ -541,19 +575,19 @@ class AdminShellScreen extends StatelessWidget {
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     final isWideScreen = MediaQuery.of(context).size.width >= 800;
-    
+
     if (location == '/admin') return 0;
     if (location.startsWith('/admin/requests')) return 1;
     if (location.startsWith('/admin/warranty')) return 2;
     if (location.startsWith('/admin/payouts')) return 3;
-    
+
     // On wide screens, Reports is index 4; on mobile, Settings is index 4
     if (isWideScreen) {
       if (location.startsWith('/admin/reports')) return 4;
     } else {
       if (location.startsWith('/admin/settings')) return 4;
     }
-    
+
     return 0;
   }
 

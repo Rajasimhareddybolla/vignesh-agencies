@@ -138,27 +138,34 @@ class _OrdersListState extends State<_OrdersList> {
 
     // Filter by search query (order ID or product name)
     if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((order) {
-        final queryLower = _searchQuery.toLowerCase();
-        final orderIdMatch = order.id.toLowerCase().contains(queryLower);
-        final productMatch = order.items.any(
-          (item) => item.productName.toLowerCase().contains(queryLower),
-        );
-        return orderIdMatch || productMatch;
-      }).toList();
+      filtered =
+          filtered.where((order) {
+            final queryLower = _searchQuery.toLowerCase();
+            final orderIdMatch = order.id.toLowerCase().contains(queryLower);
+            final productMatch = order.items.any(
+              (item) => item.productName.toLowerCase().contains(queryLower),
+            );
+            return orderIdMatch || productMatch;
+          }).toList();
     }
 
     // Filter by status
     if (_selectedStatus != null) {
-      filtered = filtered.where((order) => order.status == _selectedStatus).toList();
+      filtered =
+          filtered.where((order) => order.status == _selectedStatus).toList();
     }
 
     // Filter by date range
     if (_selectedDateRange != null) {
-      filtered = filtered.where((order) {
-        return order.orderedAt.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
-               order.orderedAt.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
-      }).toList();
+      filtered =
+          filtered.where((order) {
+            return order.orderedAt.isAfter(
+                  _selectedDateRange!.start.subtract(const Duration(days: 1)),
+                ) &&
+                order.orderedAt.isBefore(
+                  _selectedDateRange!.end.add(const Duration(days: 1)),
+                );
+          }).toList();
     }
 
     return filtered;
@@ -174,7 +181,9 @@ class _OrdersListState extends State<_OrdersList> {
   }
 
   bool get _hasActiveFilters =>
-      _searchQuery.isNotEmpty || _selectedStatus != null || _selectedDateRange != null;
+      _searchQuery.isNotEmpty ||
+      _selectedStatus != null ||
+      _selectedDateRange != null;
 
   @override
   Widget build(BuildContext context) {
@@ -239,15 +248,16 @@ class _OrdersListState extends State<_OrdersList> {
                 decoration: InputDecoration(
                   hintText: 'Search by order ID or product name...',
                   prefixIcon: const Icon(Icons.search, size: 20),
-                  suffixIcon: _searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close, size: 18),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _searchQuery = '');
-                          },
-                        )
-                      : null,
+                  suffixIcon:
+                      _searchQuery.isNotEmpty
+                          ? IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _searchQuery = '');
+                            },
+                          )
+                          : null,
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
@@ -260,9 +270,15 @@ class _OrdersListState extends State<_OrdersList> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+                    borderSide: const BorderSide(
+                      color: AppTheme.primary,
+                      width: 2,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -274,27 +290,31 @@ class _OrdersListState extends State<_OrdersList> {
                     // Date Range Filter
                     _FilterChip(
                       icon: Icons.calendar_today,
-                      label: _selectedDateRange != null
-                          ? '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}'
-                          : 'Date Range',
+                      label:
+                          _selectedDateRange != null
+                              ? '${DateFormat('MMM d').format(_selectedDateRange!.start)} - ${DateFormat('MMM d').format(_selectedDateRange!.end)}'
+                              : 'Date Range',
                       isSelected: _selectedDateRange != null,
                       onTap: () => _showDateRangePicker(context),
                     ),
                     const SizedBox(width: 8),
                     // Status Filter Chips
-                    ..._getStatusFilters().map((status) => Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: _FilterChip(
-                        icon: _getStatusIcon(status),
-                        label: status.displayName,
-                        isSelected: _selectedStatus == status,
-                        onTap: () {
-                          setState(() {
-                            _selectedStatus = _selectedStatus == status ? null : status;
-                          });
-                        },
+                    ..._getStatusFilters().map(
+                      (status) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _FilterChip(
+                          icon: _getStatusIcon(status),
+                          label: status.displayName,
+                          isSelected: _selectedStatus == status,
+                          onTap: () {
+                            setState(() {
+                              _selectedStatus =
+                                  _selectedStatus == status ? null : status;
+                            });
+                          },
+                        ),
                       ),
-                    )),
+                    ),
                     if (_hasActiveFilters)
                       _FilterChip(
                         icon: Icons.clear_all,
@@ -328,40 +348,42 @@ class _OrdersListState extends State<_OrdersList> {
 
         // Orders List
         Expanded(
-          child: filteredOrders.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 64,
-                        color: AppTheme.textSecondary(context),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No orders match your filters',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: _clearFilters,
-                        child: const Text('Clear filters'),
-                      ),
-                    ],
+          child:
+              filteredOrders.isEmpty
+                  ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: AppTheme.textSecondary(context),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No orders match your filters',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _clearFilters,
+                          child: const Text('Clear filters'),
+                        ),
+                      ],
+                    ),
+                  )
+                  : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredOrders.length,
+                    separatorBuilder:
+                        (context, index) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      return StaggeredFadeIn(
+                        index: index,
+                        child: _PremiumOrderCard(order: filteredOrders[index]),
+                      );
+                    },
                   ),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredOrders.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) {
-                    return StaggeredFadeIn(
-                      index: index,
-                      child: _PremiumOrderCard(order: filteredOrders[index]),
-                    );
-                  },
-                ),
         ),
       ],
     );
@@ -371,7 +393,11 @@ class _OrdersListState extends State<_OrdersList> {
     if (widget.isActive) {
       return [OrderStatus.pending, OrderStatus.confirmed, OrderStatus.shipped];
     } else {
-      return [OrderStatus.delivered, OrderStatus.cancelled, OrderStatus.returned];
+      return [
+        OrderStatus.delivered,
+        OrderStatus.cancelled,
+        OrderStatus.returned,
+      ];
     }
   }
 
@@ -398,7 +424,8 @@ class _OrdersListState extends State<_OrdersList> {
       context: context,
       firstDate: now.subtract(const Duration(days: 365)),
       lastDate: now,
-      initialDateRange: _selectedDateRange ??
+      initialDateRange:
+          _selectedDateRange ??
           DateTimeRange(
             start: now.subtract(const Duration(days: 30)),
             end: now,
@@ -406,9 +433,9 @@ class _OrdersListState extends State<_OrdersList> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: AppTheme.primary,
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: AppTheme.primary),
           ),
           child: child!,
         );
@@ -437,14 +464,16 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isDestructive 
-        ? AppTheme.error 
-        : (isSelected ? AppTheme.primary : AppTheme.textSecondary(context));
-    
+    final color =
+        isDestructive
+            ? AppTheme.error
+            : (isSelected ? AppTheme.primary : AppTheme.textSecondary(context));
+
     return Material(
-      color: isSelected 
-          ? AppTheme.primary.withAlpha(25) 
-          : Theme.of(context).cardColor,
+      color:
+          isSelected
+              ? AppTheme.primary.withAlpha(25)
+              : Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
@@ -487,12 +516,16 @@ class _PremiumOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalItems = order.items.fold(0, (sum, i) => sum + i.quantity);
     final isDelivered = order.status == OrderStatus.delivered;
-    final canCancel = order.status == OrderStatus.pending || 
-                      order.status == OrderStatus.confirmed;
+    final canCancel =
+        order.status == OrderStatus.pending ||
+        order.status == OrderStatus.confirmed;
 
     return PremiumCard(
       onTap: () {
-        context.pushNamed('order-detail', pathParameters: {'orderId': order.id});
+        context.pushNamed(
+          'order-detail',
+          pathParameters: {'orderId': order.id},
+        );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -536,7 +569,7 @@ class _PremiumOrderCard extends StatelessWidget {
                       fit: BoxFit.cover,
                       placeholder:
                           (context, url) => Container(
-                            color: AppTheme.backgroundLight,
+                            color: AppTheme.background(context),
                             child: Icon(
                               Icons.image,
                               size: 20,
@@ -545,7 +578,7 @@ class _PremiumOrderCard extends StatelessWidget {
                           ),
                       errorWidget:
                           (context, url, error) => Container(
-                            color: AppTheme.backgroundLight,
+                            color: AppTheme.background(context),
                             child: Icon(
                               Icons.broken_image,
                               size: 20,
@@ -601,11 +634,87 @@ class _PremiumOrderCard extends StatelessWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () {
-                  // Navigate to Add Product Screen with pre-filled data
-                  // Usually we pick the first item or let user choose.
-                  // For simplicity, we just open Add Product for now.
-                  // In a real app, we'd pass the order item details.
-                  context.pushNamed('add-product');
+                  if (order.items.isEmpty) return;
+
+                  if (order.items.length == 1) {
+                    // Single item - Go directly
+                    context.pushNamed(
+                      'add-product',
+                      extra: {
+                        'sourceOrder': order,
+                        'sourceOrderItem': order.items.first,
+                      },
+                    );
+                  } else {
+                    // Multi items - Show selection sheet
+                    showModalBottomSheet(
+                      context: context,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      builder:
+                          (context) => Container(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Select Item to Register',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 16),
+                                Flexible(
+                                  child: ListView.separated(
+                                    shrinkWrap: true,
+                                    itemCount: order.items.length,
+                                    separatorBuilder:
+                                        (ctx, i) => const Divider(),
+                                    itemBuilder: (context, index) {
+                                      final item = order.items[index];
+                                      return ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        leading: ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          child: CachedNetworkImage(
+                                            imageUrl: item.productImage,
+                                            width: 48,
+                                            height: 48,
+                                            fit: BoxFit.cover,
+                                            errorWidget:
+                                                (_, __, ___) => const Icon(
+                                                  Icons.image_not_supported,
+                                                ),
+                                          ),
+                                        ),
+                                        title: Text(item.productName),
+                                        subtitle: Text(item.category),
+                                        trailing: const Icon(
+                                          Icons.chevron_right,
+                                        ),
+                                        onTap: () {
+                                          Navigator.pop(context); // Close sheet
+                                          context.pushNamed(
+                                            'add-product',
+                                            extra: {
+                                              'sourceOrder': order,
+                                              'sourceOrderItem': item,
+                                            },
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.verified_user_outlined, size: 18),
                 label: const Text('Register for Service / Warranty'),
@@ -643,154 +752,190 @@ class _PremiumOrderCard extends StatelessWidget {
   void _showCancelDialog(BuildContext context, OrderModel order) {
     String? selectedReason;
     String customReason = '';
-    
+
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.error.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.cancel_outlined, color: AppTheme.error, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text('Cancel Order', overflow: TextOverflow.ellipsis),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary(context),
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Please select a reason for cancellation:',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...OrderModel.cancellationReasons.map((reason) => 
-                  RadioListTile<String>(
-                    title: Text(reason, style: const TextStyle(fontSize: 14)),
-                    value: reason,
-                    groupValue: selectedReason,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedReason = value;
-                      });
-                    },
-                  ),
-                ),
-                if (selectedReason == 'Other') ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Please specify your reason...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
-                    maxLines: 2,
-                    onChanged: (value) => customReason = value,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.warning.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.warning.withAlpha(50)),
-                  ),
-                  child: Row(
+                  title: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: AppTheme.warning, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.cancel_outlined,
+                          color: AppTheme.error,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
                         child: Text(
-                          'This action cannot be undone.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.warning,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          'Cancel Order',
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Please select a reason for cancellation:',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 12),
+                        ...OrderModel.cancellationReasons.map(
+                          (reason) => RadioListTile<String>(
+                            title: Text(
+                              reason,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            value: reason,
+                            groupValue: selectedReason,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedReason = value;
+                              });
+                            },
+                          ),
+                        ),
+                        if (selectedReason == 'Other') ...[
+                          const SizedBox(height: 8),
+                          TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Please specify your reason...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            maxLines: 2,
+                            onChanged: (value) => customReason = value,
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warning.withAlpha(25),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppTheme.warning.withAlpha(50),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: AppTheme.warning,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'This action cannot be undone.',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Keep Order'),
+                    ),
+                    FilledButton(
+                      onPressed:
+                          selectedReason == null
+                              ? null
+                              : () async {
+                                final reason =
+                                    selectedReason == 'Other' &&
+                                            customReason.isNotEmpty
+                                        ? customReason
+                                        : selectedReason;
+                                Navigator.pop(dialogContext);
+                                try {
+                                  final authService =
+                                      context.read<AuthService>();
+                                  final firestoreService =
+                                      context.read<FirestoreService>();
+                                  final userId =
+                                      await authService.getResolvedUserId();
+
+                                  await firestoreService.cancelOrder(
+                                    order.id,
+                                    userId,
+                                    reason: reason,
+                                  );
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Order cancelled successfully',
+                                        ),
+                                        backgroundColor: AppTheme.success,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to cancel: $e'),
+                                        backgroundColor: AppTheme.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            selectedReason == null
+                                ? AppTheme.error.withAlpha(100)
+                                : AppTheme.error,
+                      ),
+                      child: const Text('Cancel Order'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Keep Order'),
-            ),
-            FilledButton(
-              onPressed: selectedReason == null 
-                ? null 
-                : () async {
-                    final reason = selectedReason == 'Other' && customReason.isNotEmpty
-                        ? customReason
-                        : selectedReason;
-                    Navigator.pop(dialogContext);
-                    try {
-                      final authService = context.read<AuthService>();
-                      final firestoreService = context.read<FirestoreService>();
-                      final userId = await authService.getResolvedUserId();
-                      
-                      await firestoreService.cancelOrder(order.id, userId, reason: reason);
-                      
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Order cancelled successfully'),
-                            backgroundColor: AppTheme.success,
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to cancel: $e'),
-                            backgroundColor: AppTheme.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
-              style: FilledButton.styleFrom(
-                backgroundColor: selectedReason == null 
-                  ? AppTheme.error.withAlpha(100) 
-                  : AppTheme.error,
-              ),
-              child: const Text('Cancel Order'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

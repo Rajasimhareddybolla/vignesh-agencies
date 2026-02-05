@@ -29,11 +29,6 @@ class PushNotificationService {
       sound: true,
     );
 
-    // Subscribe to global promo notifications topic
-    if (!kIsWeb) {
-      await _firebaseMessaging.subscribeToTopic('promo_notifications');
-    }
-
     // 2. Set foreground presentation options (iOS)
     await _firebaseMessaging.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -141,6 +136,23 @@ class PushNotificationService {
       debugPrint('FCM Token: $token');
     } catch (e) {
       debugPrint('Error getting FCM token: $e');
+    }
+  }
+
+  /// Update subscription to promo notifications based on user role
+  Future<void> updatePromoSubscription({required bool isUser}) async {
+    if (kIsWeb) return;
+
+    try {
+      if (isUser) {
+        await _firebaseMessaging.subscribeToTopic('promo_notifications');
+        debugPrint('Subscribed to promo_notifications');
+      } else {
+        await _firebaseMessaging.unsubscribeFromTopic('promo_notifications');
+        debugPrint('Unsubscribed from promo_notifications');
+      }
+    } catch (e) {
+      debugPrint('Error updating promo subscription: $e');
     }
   }
 }

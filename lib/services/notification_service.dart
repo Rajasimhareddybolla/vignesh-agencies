@@ -51,9 +51,10 @@ class NotificationService {
         .limit(50)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => PromoNotification.fromFirestore(doc))
-              .toList(),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => PromoNotification.fromFirestore(doc))
+                  .toList(),
         );
   }
 
@@ -66,7 +67,26 @@ class NotificationService {
         .collection('notifications')
         .orderBy('createdAt', descending: true)
         .limit(50)
-        .snapshots();
+        .snapshots()
+        .transform(
+          StreamTransformer<
+            QuerySnapshot<Map<String, dynamic>>,
+            List<Map<String, dynamic>>
+          >.fromHandlers(
+            handleData: (snapshot, sink) {
+              sink.add(
+                snapshot.docs.map((doc) {
+                  final data = doc.data();
+                  return {'id': doc.id, ...data};
+                }).toList(),
+              );
+            },
+            handleError: (error, stackTrace, sink) {
+              print('Error getting personal notifications: $error');
+              sink.add(<Map<String, dynamic>>[]);
+            },
+          ),
+        );
 
     // Stream 2: Global active promos (Broadcasts)
     final globalStream = _firestore
@@ -74,73 +94,100 @@ class NotificationService {
         .where('isActive', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .limit(20)
-        .snapshots();
+        .snapshots()
+        .transform(
+          StreamTransformer<
+            QuerySnapshot<Map<String, dynamic>>,
+            List<Map<String, dynamic>>
+          >.fromHandlers(
+            handleData: (snapshot, sink) {
+              sink.add(
+                snapshot.docs.map((doc) {
+                  final data = doc.data();
+                  return {'id': doc.id, ...data};
+                }).toList(),
+              );
+            },
+            handleError: (error, stackTrace, sink) {
+              print('Error getting global notifications: $error');
+              sink.add(<Map<String, dynamic>>[]);
+            },
+          ),
+        );
 
     // Stream 3: Read receipts for global promos
     final readReceiptsStream = _firestore
         .collection('users')
         .doc(userId)
         .collection('read_notifications')
-        .snapshots();
+        .snapshots()
+        .transform(
+          StreamTransformer<
+            QuerySnapshot<Map<String, dynamic>>,
+            Set<String>
+          >.fromHandlers(
+            handleData: (snapshot, sink) {
+              sink.add(snapshot.docs.map((doc) => doc.id).toSet());
+            },
+            handleError: (error, stackTrace, sink) {
+              print('Error getting read receipts: $error');
+              sink.add(<String>{});
+            },
+          ),
+        );
 
-    return _combineStreams(
-      personalStream,
-      globalStream,
-      readReceiptsStream,
-      (QuerySnapshot personalSnap, QuerySnapshot globalSnap,
-          QuerySnapshot readSnap) {
-        // 1. Parse Personal Notifications
-        final personalDocs = personalSnap.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return {'id': doc.id, ...data};
-        }).toList();
+    return _combineStreams<
+      List<Map<String, dynamic>>,
+      List<Map<String, dynamic>>,
+      Set<String>,
+      List<Map<String, dynamic>>
+    >(personalStream, globalStream, readReceiptsStream, (
+      List<Map<String, dynamic>> personalDocs,
+      List<Map<String, dynamic>> globalDocsRaw,
+      Set<String> readIds,
+    ) {
+      // 3. Parse Global Promos
+      final globalDocs =
+          globalDocsRaw
+              .map((data) {
+                // Check targeting
+                final targetList = data['targetUserIds'];
+                if (targetList != null) {
+                  // Targeted notifications are handled by personal stream
+                  return null;
+                }
 
-        // 2. Parse Read Receipts
-        final readIds = readSnap.docs.map((doc) => doc.id).toSet();
+                final id = data['id'] as String;
+                // If this global promo ID is in readIds, mark read=true
+                final isRead = readIds.contains(id);
 
-        // 3. Parse Global Promos
-        final globalDocs = globalSnap.docs
-            .map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
+                return {
+                  'id': id,
+                  'promoId': id,
+                  'title': data['title'] ?? '',
+                  'body': data['body'] ?? '',
+                  'imageUrl': data['imageUrl'],
+                  'type': data['type'] ?? 'announcement',
+                  'discountPercent': data['discountPercent'],
+                  'read': isRead,
+                  'createdAt': data['createdAt'],
+                  'isGlobal': true,
+                };
+              })
+              .where((doc) => doc != null)
+              .cast<Map<String, dynamic>>()
+              .toList();
 
-              // Check targeting
-              final targetList = data['targetUserIds'];
-              if (targetList != null) {
-                // Targeted notifications are handled by personal stream
-                return null;
-              }
+      // 4. Merge and Sort
+      final all = [...personalDocs, ...globalDocs];
+      all.sort((a, b) {
+        final tA = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        final tB = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
+        return tB.compareTo(tA);
+      });
 
-              // If this global promo ID is in readIds, mark read=true
-              final isRead = readIds.contains(doc.id);
-
-              return {
-                'id': doc.id,
-                'promoId': doc.id,
-                'title': data['title'] ?? '',
-                'body': data['body'] ?? '',
-                'imageUrl': data['imageUrl'],
-                'type': data['type'] ?? 'announcement',
-                'discountPercent': data['discountPercent'],
-                'read': isRead,
-                'createdAt': data['createdAt'],
-                'isGlobal': true,
-              };
-            })
-            .where((doc) => doc != null)
-            .cast<Map<String, dynamic>>()
-            .toList();
-
-        // 4. Merge and Sort
-        final all = [...personalDocs, ...globalDocs];
-        all.sort((a, b) {
-          final tA = (a['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
-          final tB = (b['createdAt'] as Timestamp?)?.toDate() ?? DateTime(2000);
-          return tB.compareTo(tA);
-        });
-
-        return all;
-      },
-    );
+      return all;
+    });
   }
 
   /// Mark notification as read
@@ -163,9 +210,7 @@ class NotificationService {
           .doc(userId)
           .collection('read_notifications')
           .doc(notificationId)
-          .set({
-        'readAt': FieldValue.serverTimestamp(),
-      });
+          .set({'readAt': FieldValue.serverTimestamp()});
     }
   }
 
@@ -176,7 +221,9 @@ class NotificationService {
           return list.where((n) => n['read'] != true).length;
         })
         .handleError((error) {
-          print('NotificationService: getUnreadCount error for $userId: $error');
+          print(
+            'NotificationService: getUnreadCount error for $userId: $error',
+          );
           return 0;
         });
   }
@@ -184,12 +231,13 @@ class NotificationService {
   /// Mark all notifications as read
   Future<void> markAllAsRead(String userId) async {
     // 1. Mark all personal notifications as read
-    final personalNotifs = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .where('read', isEqualTo: false)
-        .get();
+    final personalNotifs =
+        await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('notifications')
+            .where('read', isEqualTo: false)
+            .get();
 
     final batch = _firestore.batch();
     for (final doc in personalNotifs.docs) {
@@ -197,10 +245,11 @@ class NotificationService {
     }
 
     // 2. Get all global notifications and mark them as read
-    final globalNotifs = await _firestore
-        .collection('promo_notifications')
-        .where('isActive', isEqualTo: true)
-        .get();
+    final globalNotifs =
+        await _firestore
+            .collection('promo_notifications')
+            .where('isActive', isEqualTo: true)
+            .get();
 
     // Create read receipts for global notifications
     for (final doc in globalNotifs.docs) {
@@ -209,7 +258,9 @@ class NotificationService {
           .doc(userId)
           .collection('read_notifications')
           .doc(doc.id);
-      batch.set(readReceiptRef, {'readAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
+      batch.set(readReceiptRef, {
+        'readAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     }
 
     await batch.commit();
@@ -224,10 +275,11 @@ class NotificationService {
   }
 
   Stream<T> _combineStreams<A, B, C, T>(
-      Stream<A> streamA,
-      Stream<B> streamB,
-      Stream<C> streamC,
-      T Function(A a, B b, C c) combiner) {
+    Stream<A> streamA,
+    Stream<B> streamB,
+    Stream<C> streamC,
+    T Function(A a, B b, C c) combiner,
+  ) {
     final controller = StreamController<T>();
     A? lastA;
     B? lastB;

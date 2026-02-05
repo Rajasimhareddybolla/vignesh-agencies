@@ -91,6 +91,11 @@ class _ReferralCard extends StatelessWidget {
         statusBgColor = AppTheme.warningLight;
         statusText = 'Pending';
         break;
+      case ReferralStatus.approved:
+        statusColor = Colors.blue;
+        statusBgColor = Colors.blue.withOpacity(0.1);
+        statusText = 'Approved';
+        break;
       case ReferralStatus.purchased:
         statusColor = AppTheme.success;
         statusBgColor = AppTheme.successLight;

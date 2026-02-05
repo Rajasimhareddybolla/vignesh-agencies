@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../services/firestore_service.dart';
@@ -126,52 +127,63 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
               ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      color: Colors.white.withAlpha(30),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => context.pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white.withAlpha(30),
                       ),
-                      child: const Icon(
-                        Icons.verified,
-                        color: AppTheme.primary,
-                        size: 20,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white,
+                        ),
+                        child: const Icon(
+                          Icons.verified,
+                          color: AppTheme.primary,
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Warranty Validation',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Warranty Validation',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Review and validate registrations',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withAlpha(180),
+                        Text(
+                          'Review and validate registrations',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white.withAlpha(180)),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -339,7 +351,7 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
                   decoration: InputDecoration(
                     hintText: 'Enter rejection reason...',
                     filled: true,
-                    fillColor: AppTheme.backgroundLight,
+                    fillColor: AppTheme.background(context),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -497,7 +509,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                             (_, __, ___) => Container(
                               width: 60,
                               height: 60,
-                              color: AppTheme.backgroundLight,
+                              color: AppTheme.background(context),
                               child: const Icon(Icons.devices),
                             ),
                       ),
@@ -516,8 +528,11 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                         const SizedBox(height: 2),
                         Text(
                           'Model: ${widget.product.modelNumber}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: AppTheme.textSecondary(context)),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Row(
@@ -525,7 +540,9 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                             Icon(
                               Icons.schedule,
                               size: 12,
-                              color: AppTheme.textSecondary(context).withAlpha(150),
+                              color: AppTheme.textSecondary(
+                                context,
+                              ).withAlpha(150),
                             ),
                             const SizedBox(width: 4),
                             Text(
@@ -535,9 +552,9 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary(context).withAlpha(
-                                  150,
-                                ),
+                                color: AppTheme.textSecondary(
+                                  context,
+                                ).withAlpha(150),
                                 fontSize: 11,
                               ),
                             ),
@@ -582,6 +599,52 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
     );
   }
 
+  Future<void> _editPurchaseDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: widget.product.purchaseDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: ColorScheme.light(primary: AppTheme.primary)),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != widget.product.purchaseDate) {
+      if (!mounted) return;
+
+      try {
+        await context.read<FirestoreService>().updateProductPurchaseDate(
+          widget.product.id,
+          picked,
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Purchase date updated successfully'),
+              backgroundColor: AppTheme.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating date: $e'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Widget _buildExpandedContent(BuildContext context) {
     return Column(
       children: [
@@ -612,6 +675,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                         'MMM d, yyyy',
                       ).format(widget.product.purchaseDate),
                       icon: Icons.calendar_today,
+                      onEdit: _editPurchaseDate,
                     ),
                     const Divider(height: 16),
                     _DetailRow(
@@ -655,7 +719,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                         (context, url) => Container(
                           height: 180,
                           decoration: BoxDecoration(
-                            color: AppTheme.backgroundLight,
+                            color: AppTheme.background(context),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Center(
@@ -666,7 +730,7 @@ class _PremiumValidationCardState extends State<_PremiumValidationCard> {
                         (context, url, error) => Container(
                           height: 180,
                           decoration: BoxDecoration(
-                            color: AppTheme.backgroundLight,
+                            color: AppTheme.background(context),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(Icons.broken_image, size: 48),
@@ -724,11 +788,13 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final VoidCallback? onEdit;
 
   const _DetailRow({
     required this.label,
     required this.value,
     required this.icon,
+    this.onEdit,
   });
 
   @override
@@ -748,11 +814,27 @@ class _DetailRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        Text(
-          value,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            if (onEdit != null) ...[
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: onEdit,
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(Icons.edit, size: 16, color: AppTheme.primary),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );

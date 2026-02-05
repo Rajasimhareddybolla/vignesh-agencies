@@ -102,7 +102,8 @@ class _ApplianceDetailContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor();
     final isWarrantyActive = appliance.warrantyEndDate.isAfter(DateTime.now());
-    final daysRemaining = appliance.warrantyEndDate.difference(DateTime.now()).inDays;
+    final daysRemaining =
+        appliance.warrantyEndDate.difference(DateTime.now()).inDays;
 
     return CustomScrollView(
       slivers: [
@@ -127,10 +128,7 @@ class _ApplianceDetailContent extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    statusColor,
-                    statusColor.withAlpha(180),
-                  ],
+                  colors: [statusColor, statusColor.withAlpha(180)],
                 ),
               ),
               child: Stack(
@@ -188,16 +186,19 @@ class _ApplianceDetailContent extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(13),
                             child: Image.asset(
-                              UserApplianceModel.getProductImage(appliance.category),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                color: AppTheme.backgroundLight,
-                                child: Icon(
-                                  Icons.devices,
-                                  size: 40,
-                                  color: statusColor,
-                                ),
+                              UserApplianceModel.getProductImage(
+                                appliance.category,
                               ),
+                              fit: BoxFit.cover,
+                              errorBuilder:
+                                  (_, __, ___) => Container(
+                                    color: AppTheme.background(context),
+                                    child: Icon(
+                                      Icons.devices,
+                                      size: 40,
+                                      color: statusColor,
+                                    ),
+                                  ),
                             ),
                           ),
                         ),
@@ -261,8 +262,19 @@ class _ApplianceDetailContent extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // Rejection Card
+              if (appliance.status == ProductStatus.rejected &&
+                  appliance.rejectionReason != null &&
+                  appliance.rejectionReason!.isNotEmpty)
+                _buildRejectionInfoCard(context),
+
               // Warranty Status Card
-              _buildWarrantyCard(context, isWarrantyActive, daysRemaining, statusColor),
+              _buildWarrantyCard(
+                context,
+                isWarrantyActive,
+                daysRemaining,
+                statusColor,
+              ),
               const SizedBox(height: 20),
 
               // Appliance Details Card
@@ -349,9 +361,9 @@ class _ApplianceDetailContent extends StatelessWidget {
               ),
               Text(
                 DateFormat('dd MMM yyyy').format(appliance.warrantyEndDate),
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -384,15 +396,16 @@ class _ApplianceDetailContent extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Appliance Details',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 16),
           _buildDetailRow(context, 'Model Number', appliance.modelNumber),
-          if (appliance.serialNumber != null && appliance.serialNumber!.isNotEmpty)
+          if (appliance.serialNumber != null &&
+              appliance.serialNumber!.isNotEmpty)
             _buildDetailRow(context, 'Serial Number', appliance.serialNumber!),
           _buildDetailRow(context, 'Category', appliance.category),
           _buildDetailRow(
@@ -419,9 +432,9 @@ class _ApplianceDetailContent extends StatelessWidget {
           ),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -452,9 +465,9 @@ class _ApplianceDetailContent extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Purchase Information',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -470,11 +483,17 @@ class _ApplianceDetailContent extends StatelessWidget {
               'Purchase Amount',
               '₹${NumberFormat('#,##0').format(appliance.purchaseAmount)}',
             ),
-          if (appliance.storeLocation != null && appliance.storeLocation!.isNotEmpty)
-            _buildDetailRow(context, 'Store Location', appliance.storeLocation!),
-          
+          if (appliance.storeLocation != null &&
+              appliance.storeLocation!.isNotEmpty)
+            _buildDetailRow(
+              context,
+              'Store Location',
+              appliance.storeLocation!,
+            ),
+
           // Bill Image Preview
-          if (appliance.billImageUrl != null && appliance.billImageUrl!.isNotEmpty) ...[
+          if (appliance.billImageUrl != null &&
+              appliance.billImageUrl!.isNotEmpty) ...[
             const Divider(height: 24),
             GestureDetector(
               onTap: () => _showBillImage(context),
@@ -492,9 +511,10 @@ class _ApplianceDetailContent extends StatelessWidget {
                       child: CachedNetworkImage(
                         imageUrl: appliance.billImageUrl!,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
+                        placeholder:
+                            (_, __) => const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
                         errorWidget: (_, __, ___) => const Icon(Icons.receipt),
                       ),
                     ),
@@ -506,20 +526,21 @@ class _ApplianceDetailContent extends StatelessWidget {
                       children: [
                         Text(
                           'Purchase Bill',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         Text(
                           'Tap to view full image',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.primary,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: AppTheme.primary),
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: AppTheme.textSecondary(context)),
+                  Icon(
+                    Icons.chevron_right,
+                    color: AppTheme.textSecondary(context),
+                  ),
                 ],
               ),
             ),
@@ -531,38 +552,42 @@ class _ApplianceDetailContent extends StatelessWidget {
 
   void _showBillImage(BuildContext context) {
     if (appliance.billImageUrl == null) return;
-    
+
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: CachedNetworkImage(
-                imageUrl: appliance.billImageUrl!,
-                fit: BoxFit.contain,
-                placeholder: (_, __) => Container(
-                  height: 200,
-                  color: Colors.white,
-                  child: const Center(child: CircularProgressIndicator()),
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: appliance.billImageUrl!,
+                    fit: BoxFit.contain,
+                    placeholder:
+                        (_, __) => Container(
+                          height: 200,
+                          color: Colors.white,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppTheme.textPrimary(context),
+                  ),
+                  child: const Text('Close'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppTheme.textPrimary(context),
-              ),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
@@ -578,9 +603,9 @@ class _ApplianceDetailContent extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               'Service History',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -603,9 +628,11 @@ class _ApplianceDetailContent extends StatelessWidget {
               return Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundLight,
+                  color: AppTheme.background(context),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.borderLight.withAlpha(100)),
+                  border: Border.all(
+                    color: AppTheme.borderLight.withAlpha(100),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -634,13 +661,59 @@ class _ApplianceDetailContent extends StatelessWidget {
             }
 
             return Column(
-              children: requests.map((request) {
-                return _ServiceHistoryCard(request: request);
-              }).toList(),
+              children:
+                  requests.map((request) {
+                    return _ServiceHistoryCard(request: request);
+                  }).toList(),
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildRejectionInfoCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: AppTheme.error.withAlpha(25),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.error.withAlpha(50)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.report_problem, color: AppTheme.error),
+              const SizedBox(width: 12),
+              Text(
+                'Warranty Rejected',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Reason for rejection:',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textSecondary(context),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            appliance.rejectionReason!,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textPrimary(context),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -654,15 +727,16 @@ class _ApplianceDetailContent extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: canRequestService
-                ? () {
-                    HapticFeedback.lightImpact();
-                    context.pushNamed(
-                      'service-request',
-                      pathParameters: {'productId': appliance.id},
-                    );
-                  }
-                : null,
+            onPressed:
+                canRequestService
+                    ? () {
+                      HapticFeedback.lightImpact();
+                      context.pushNamed(
+                        'service-request',
+                        pathParameters: {'productId': appliance.id},
+                      );
+                    }
+                    : null,
             icon: const Icon(Icons.build),
             label: const Text('Request Service'),
             style: ElevatedButton.styleFrom(
@@ -759,19 +833,22 @@ class _ServiceHistoryCard extends StatelessWidget {
                         children: [
                           Text(
                             DateFormat('dd MMM yyyy').format(request.createdAt),
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
                               color: AppTheme.textSecondary(context),
                             ),
                           ),
                           // Show rating if completed and has rating
-                          if (request.status == ServiceRequestStatus.completed && 
+                          if (request.status ==
+                                  ServiceRequestStatus.completed &&
                               request.rating != null) ...[
                             const SizedBox(width: 12),
                             Row(
                               children: List.generate(5, (index) {
                                 return Icon(
-                                  index < request.rating! 
-                                      ? Icons.star 
+                                  index < request.rating!
+                                      ? Icons.star
                                       : Icons.star_border,
                                   color: AppTheme.warning,
                                   size: 14,
@@ -785,7 +862,10 @@ class _ServiceHistoryCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withAlpha(20),
                     borderRadius: BorderRadius.circular(12),

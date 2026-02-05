@@ -99,13 +99,18 @@ class _AdminServiceRequestsScreenState
                         Icon(
                           Icons.inbox_outlined,
                           size: 64,
-                          color: AppTheme.textSecondary(context).withOpacity(0.5),
+                          color: AppTheme.textSecondary(
+                            context,
+                          ).withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'No requests found',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppTheme.textSecondary(context)),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodyLarge?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                          ),
                         ),
                       ],
                     ),
@@ -147,19 +152,38 @@ class _AdminServiceRequestsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Service Requests',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Manage and track all service requests',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => context.pop(),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Service Requests',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Manage and track all service requests',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -201,7 +225,8 @@ class _FilterChip extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: isSelected ? Colors.white : AppTheme.textSecondary(context),
+              color:
+                  isSelected ? Colors.white : AppTheme.textSecondary(context),
               fontWeight: FontWeight.w600,
             ),
           ),

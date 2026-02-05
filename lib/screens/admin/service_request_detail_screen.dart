@@ -152,7 +152,14 @@ class _ServiceRequestDetailScreenState
         final path =
             '${directory.path}/admin_note_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
-        await _audioRecorder.start(const RecordConfig(), path: path);
+        await _audioRecorder.start(
+          const RecordConfig(
+            encoder: AudioEncoder.aacLc,
+            bitRate: 64000,
+            sampleRate: 44100,
+          ),
+          path: path,
+        );
         setState(() {
           _isRecording = true;
           _adminVoiceNotePath = null; // Reset previous
@@ -223,15 +230,23 @@ class _ServiceRequestDetailScreenState
     final request = await firestoreService.getServiceRequest(widget.requestId);
     if (request == null) return;
 
-    final phone = _technicianPhoneController.text.trim();
-    if (phone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot send WhatsApp: No technician phone number'),
-          backgroundColor: AppTheme.error,
-        ),
-      );
+    final rawPhone = _technicianPhoneController.text.trim();
+    if (rawPhone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot send WhatsApp: No technician phone number'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
       return;
+    }
+
+    // Sanitize phone number
+    String phone = rawPhone.replaceAll(RegExp(r'\D'), '');
+    if (phone.length == 10) {
+      phone = '91$phone'; // Default to India
     }
 
     // Fetch Product for Warranty Details
@@ -297,24 +312,39 @@ class _ServiceRequestDetailScreenState
     }
 
     final String message = msg.toString();
-
-    // Try WhatsApp with app scheme first, then fallback to web
-    final List<String> urls = [
-      'whatsapp://send?phone=$phone&text=${Uri.encodeComponent(message)}',
-      'https://wa.me/$phone?text=${Uri.encodeComponent(message)}',
-    ];
+    final String encodedMessage = Uri.encodeComponent(message);
 
     bool launched = false;
-    for (final url in urls) {
-      try {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    // 1. Try whatsapp:// scheme (Direct app launch)
+    try {
+      final uri = Uri.parse(
+        'whatsapp://send?phone=$phone&text=$encodedMessage',
+      );
+      if (await canLaunchUrl(uri)) {
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
           launched = true;
-          break;
+        }
+      }
+    } catch (e) {
+      print('Error launching whatsapp:// scheme: $e');
+    }
+
+    // 2. Fallback to wa.me (Universal Link) if scheme failed
+    if (!launched) {
+      try {
+        final uri = Uri.parse('https://wa.me/$phone?text=$encodedMessage');
+        // Use platformDefault for web links to allow browser/system handling
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+          launched = true;
+        } else {
+          // Retry with platformDefault if externalApplication fails
+          if (await launchUrl(uri, mode: LaunchMode.platformDefault)) {
+            launched = true;
+          }
         }
       } catch (e) {
-        print('Error launching $url: $e');
+        print('Error launching wa.me link: $e');
       }
     }
 
@@ -322,7 +352,7 @@ class _ServiceRequestDetailScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Could not open WhatsApp. Please ensure WhatsApp is installed.',
+            'Could not open WhatsApp. Please ensure WhatsApp is installed or try checking the number.',
           ),
           backgroundColor: AppTheme.error,
         ),
@@ -600,6 +630,139 @@ class _ServiceRequestDetailScreenState
                                 ),
                             ],
                           ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Schedule & Timeline
+                        _SectionCard(
+                          title: 'Schedule & Timeline',
+                          icon: Icons.calendar_today,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Expected Completion',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondary(context),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final DateTime? picked =
+                                        await showDatePicker(
+                                          context: context,
+                                          initialDate:
+                                              request.estimatedCompletionDate ??
+                                              DateTime.now().add(
+                                                const Duration(days: 2),
+                                              ),
+                                          firstDate: DateTime.now(),
+                                          lastDate: DateTime.now().add(
+                                            const Duration(days: 365),
+                                          ),
+                                        );
+                                    if (picked != null) {
+                                      await firestoreService
+                                          .updateServiceRequestEstimatedDate(
+                                            request.id,
+                                            picked,
+                                          );
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Estimated completion date updated',
+                                            ),
+                                            backgroundColor: AppTheme.success,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          request.estimatedCompletionDate !=
+                                                  null
+                                              ? AppTheme.primary.withOpacity(
+                                                0.1,
+                                              )
+                                              : Colors.grey.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color:
+                                            request.estimatedCompletionDate !=
+                                                    null
+                                                ? AppTheme.primary
+                                                : Colors.grey.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          request.estimatedCompletionDate !=
+                                                  null
+                                              ? DateFormat(
+                                                'MMM d, yyyy',
+                                              ).format(
+                                                request
+                                                    .estimatedCompletionDate!,
+                                              )
+                                              : 'Set Date',
+                                          style: TextStyle(
+                                            color:
+                                                request.estimatedCompletionDate !=
+                                                        null
+                                                    ? AppTheme.primary
+                                                    : Colors.grey,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          Icons.edit_calendar,
+                                          size: 16,
+                                          color:
+                                              request.estimatedCompletionDate !=
+                                                      null
+                                                  ? AppTheme.primary
+                                                  : Colors.grey,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (request.technicianArrivalTime != null) ...[
+                              const SizedBox(height: 12),
+                              _DetailRow(
+                                label: 'Technician Arrival',
+                                value: DateFormat(
+                                  'MMM d, h:mm a',
+                                ).format(request.technicianArrivalTime!),
+                              ),
+                            ],
+                            if (request.completedAt != null) ...[
+                              const SizedBox(height: 12),
+                              _DetailRow(
+                                label: 'Completed On',
+                                value: DateFormat(
+                                  'MMM d, h:mm a',
+                                ).format(request.completedAt!),
+                              ),
+                            ],
+                          ],
                         ),
 
                         const SizedBox(height: 24),

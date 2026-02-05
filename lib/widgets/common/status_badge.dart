@@ -137,6 +137,10 @@ class StatusBadge extends StatelessWidget {
         bg = AppTheme.warningLight;
         text = AppTheme.warning;
         break;
+      case ReferralStatus.approved:
+        bg = Colors.blue.withOpacity(0.1);
+        text = Colors.blue;
+        break;
       case ReferralStatus.purchased:
         bg = AppTheme.successLight;
         text = AppTheme.success;

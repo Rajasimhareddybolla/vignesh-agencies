@@ -72,7 +72,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             children: [
               const Icon(Icons.error_outline, size: 64, color: AppTheme.error),
               const SizedBox(height: 16),
-              Text('Order not found', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Order not found',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
               TextButton(
                 onPressed: () => context.pop(),
@@ -85,13 +88,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     final order = _order!;
-    final canCancel = order.status == OrderStatus.pending || 
-                      order.status == OrderStatus.confirmed;
+    final canCancel =
+        order.status == OrderStatus.pending ||
+        order.status == OrderStatus.confirmed;
     final isDelivered = order.status == OrderStatus.delivered;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Order #${order.id.substring(order.id.length - 6).toUpperCase()}'),
+        title: Text(
+          'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -107,7 +113,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             children: [
               // Status Card
               _buildStatusCard(context, order),
-              
+
               const SizedBox(height: 24),
 
               // Order Timeline
@@ -118,9 +124,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               // Items Section
               Text(
                 'Items (${order.items.length})',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               ...order.items.map((item) => _buildOrderItemCard(context, item)),
@@ -136,7 +142,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _buildAddressCard(context, order),
 
               const SizedBox(height: 16),
-              
+
               // Download Invoice
               _buildDownloadInvoiceButton(context, order),
 
@@ -144,7 +150,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
               // Action Buttons
               if (canCancel) _buildCancelButton(context, order),
-              
+
               if (isDelivered) ...[
                 _buildRegisterWarrantyButton(context, order),
                 const SizedBox(height: 12),
@@ -254,13 +260,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _buildOrderTimeline(BuildContext context, OrderModel order) {
     // Calculate estimated delivery (3-5 business days from order date)
     final estimatedDelivery = order.orderedAt.add(const Duration(days: 5));
-    final estimatedText = 'Expected by ${DateFormat('MMM d').format(estimatedDelivery)}';
-    
+    final estimatedText =
+        'Expected by ${DateFormat('MMM d').format(estimatedDelivery)}';
+
     // Check if order was cancelled or returned - show different timeline
     if (order.status == OrderStatus.cancelled) {
       return _buildCancelledTimeline(context, order);
     }
-    
+
     if (order.status == OrderStatus.returned) {
       return _buildReturnedTimeline(context, order);
     }
@@ -275,29 +282,32 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       _TimelineStep(
         title: 'Confirmed',
-        subtitle: order.status.index >= OrderStatus.confirmed.index 
-            ? 'Your order has been confirmed' 
-            : 'Awaiting confirmation',
+        subtitle:
+            order.status.index >= OrderStatus.confirmed.index
+                ? 'Your order has been confirmed'
+                : 'Awaiting confirmation',
         isCompleted: order.status.index >= OrderStatus.confirmed.index,
         isCurrent: order.status == OrderStatus.confirmed,
         icon: Icons.check_circle_outline,
       ),
       _TimelineStep(
         title: 'Shipped',
-        subtitle: order.status.index >= OrderStatus.shipped.index
-            ? order.trackingNumber != null 
-                ? 'Tracking: ${order.trackingNumber}'
-                : 'Your order is on the way!'
-            : 'Will be shipped soon',
+        subtitle:
+            order.status.index >= OrderStatus.shipped.index
+                ? order.trackingNumber != null
+                    ? 'Tracking: ${order.trackingNumber}'
+                    : 'Your order is on the way!'
+                : 'Will be shipped soon',
         isCompleted: order.status.index >= OrderStatus.shipped.index,
         isCurrent: order.status == OrderStatus.shipped,
         icon: Icons.local_shipping_outlined,
       ),
       _TimelineStep(
         title: 'Delivered',
-        subtitle: order.deliveredAt != null
-            ? DateFormat('MMM d, yyyy • h:mm a').format(order.deliveredAt!)
-            : estimatedText,
+        subtitle:
+            order.deliveredAt != null
+                ? DateFormat('MMM d, yyyy • h:mm a').format(order.deliveredAt!)
+                : estimatedText,
         isCompleted: order.status == OrderStatus.delivered,
         isCurrent: order.status == OrderStatus.delivered,
         isLast: true,
@@ -321,14 +331,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               const SizedBox(width: 8),
               Text(
                 'Order Timeline',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               if (order.status != OrderStatus.delivered)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primary.withAlpha(25),
                     borderRadius: BorderRadius.circular(8),
@@ -369,7 +382,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   color: AppTheme.error.withAlpha(25),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.cancel_outlined, color: AppTheme.error, size: 20),
+                child: const Icon(
+                  Icons.cancel_outlined,
+                  color: AppTheme.error,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -386,7 +403,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     ),
                     if (order.cancelledAt != null)
                       Text(
-                        DateFormat('MMM d, yyyy • h:mm a').format(order.cancelledAt!),
+                        DateFormat(
+                          'MMM d, yyyy • h:mm a',
+                        ).format(order.cancelledAt!),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppTheme.textSecondary(context),
                         ),
@@ -402,7 +421,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppTheme.backgroundLight,
+                color: AppTheme.background(context),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -457,7 +476,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   color: AppTheme.warning.withAlpha(25),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.assignment_return_outlined, color: AppTheme.warning, size: 20),
+                child: const Icon(
+                  Icons.assignment_return_outlined,
+                  color: AppTheme.warning,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -487,7 +510,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _buildTimelineItem(BuildContext context, _TimelineStep step) {
     final isActive = step.isCompleted || step.isCurrent;
     final activeColor = step.isCompleted ? AppTheme.success : AppTheme.primary;
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -507,7 +530,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               child: Icon(
                 step.isCompleted ? Icons.check : step.icon,
                 size: 16,
-                color: isActive ? Colors.white : AppTheme.textSecondary(context),
+                color:
+                    isActive ? Colors.white : AppTheme.textSecondary(context),
               ),
             ),
             if (!step.isLast)
@@ -518,9 +542,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: step.isCompleted 
-                      ? [AppTheme.success, AppTheme.success]
-                      : [AppTheme.borderLight, AppTheme.borderLight],
+                    colors:
+                        step.isCompleted
+                            ? [AppTheme.success, AppTheme.success]
+                            : [AppTheme.borderLight, AppTheme.borderLight],
                   ),
                 ),
               ),
@@ -538,17 +563,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     Text(
                       step.title,
                       style: TextStyle(
-                        fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                        color: isActive 
-                            ? AppTheme.textPrimary(context) 
-                            : AppTheme.textSecondary(context),
+                        fontWeight:
+                            isActive ? FontWeight.bold : FontWeight.w500,
+                        color:
+                            isActive
+                                ? AppTheme.textPrimary(context)
+                                : AppTheme.textSecondary(context),
                         fontSize: 15,
                       ),
                     ),
                     if (step.isCurrent && !step.isCompleted) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.primary.withAlpha(25),
                           borderRadius: BorderRadius.circular(4),
@@ -598,14 +628,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               width: 80,
               height: 80,
               fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: AppTheme.backgroundLight,
-                child: Icon(Icons.image, color: AppTheme.textSecondary(context)),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: AppTheme.backgroundLight,
-                child: Icon(Icons.broken_image, color: AppTheme.textSecondary(context)),
-              ),
+              placeholder:
+                  (context, url) => Container(
+                    color: AppTheme.background(context),
+                    child: Icon(
+                      Icons.image,
+                      color: AppTheme.textSecondary(context),
+                    ),
+                  ),
+              errorWidget:
+                  (context, url, error) => Container(
+                    color: AppTheme.background(context),
+                    child: Icon(
+                      Icons.broken_image,
+                      color: AppTheme.textSecondary(context),
+                    ),
+                  ),
             ),
           ),
           const SizedBox(width: 12),
@@ -615,9 +653,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 Text(
                   item.productName,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -676,15 +714,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         children: [
           Text(
             'Price Details',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          _buildPriceRow(context, 'Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
+          _buildPriceRow(
+            context,
+            'Subtotal',
+            '₹${subtotal.toStringAsFixed(0)}',
+          ),
           const SizedBox(height: 8),
-          _buildPriceRow(context, 'Shipping', shipping == 0 ? 'FREE' : '₹${shipping.toStringAsFixed(0)}',
-              valueColor: AppTheme.success),
+          _buildPriceRow(
+            context,
+            'Shipping',
+            shipping == 0 ? 'FREE' : '₹${shipping.toStringAsFixed(0)}',
+            valueColor: AppTheme.success,
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(),
@@ -700,12 +746,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundLight,
+              color: AppTheme.background(context),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-              Icon(Icons.payment, size: 18, color: AppTheme.textSecondary(context)),
+                Icon(
+                  Icons.payment,
+                  size: 18,
+                  color: AppTheme.textSecondary(context),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Payment: ${order.paymentMethod == 'COD' ? 'Cash on Delivery' : order.paymentMethod}',
@@ -721,8 +771,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildPriceRow(BuildContext context, String label, String value,
-      {bool isBold = false, Color? valueColor}) {
+  Widget _buildPriceRow(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isBold = false,
+    Color? valueColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -760,18 +815,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               const SizedBox(width: 8),
               Text(
                 'Delivery Address',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             order.address.name,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 4),
           Text(
@@ -796,11 +851,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: OutlinedButton.icon(
         onPressed: () => _showCancelDialog(context, order),
         icon: const Icon(Icons.cancel_outlined, color: AppTheme.error),
-        label: const Text('Cancel Order', style: TextStyle(color: AppTheme.error)),
+        label: const Text(
+          'Cancel Order',
+          style: TextStyle(color: AppTheme.error),
+        ),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppTheme.error),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -815,7 +875,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         label: const Text('Register for Warranty'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -830,7 +892,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         label: const Text('Reorder Items'),
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -841,23 +905,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
       final firestoreService = context.read<FirestoreService>();
       final cartService = context.read<CartService>();
-      
+
       int addedCount = 0;
       int unavailableCount = 0;
       List<String> unavailableItems = [];
 
       for (final item in order.items) {
         // Fetch the current product from Firestore
-        final product = await firestoreService.getCatalogProduct(item.productId);
-        
+        final product = await firestoreService.getCatalogProduct(
+          item.productId,
+        );
+
         if (product == null || !product.isActive) {
           unavailableCount++;
           unavailableItems.add(item.productName);
@@ -898,7 +962,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         }
 
         // Add to cart
-        cartService.addToCart(product, variation: variation, quantity: item.quantity);
+        cartService.addToCart(
+          product,
+          variation: variation,
+          quantity: item.quantity,
+        );
         addedCount++;
       }
 
@@ -914,7 +982,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 children: [
                   const Icon(Icons.check_circle, color: Colors.white),
                   const SizedBox(width: 8),
-                  Text('$addedCount item${addedCount > 1 ? 's' : ''} added to cart'),
+                  Text(
+                    '$addedCount item${addedCount > 1 ? 's' : ''} added to cart',
+                  ),
                 ],
               ),
               backgroundColor: AppTheme.success,
@@ -949,73 +1019,90 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
   }
 
-  void _showReorderResultDialog(BuildContext context, int addedCount, List<String> unavailableItems) {
+  void _showReorderResultDialog(
+    BuildContext context,
+    int addedCount,
+    List<String> unavailableItems,
+  ) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppTheme.warning.withAlpha(25),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.info_outline, color: AppTheme.warning, size: 20),
+      builder:
+          (dialogContext) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(width: 12),
-            const Expanded(child: Text('Partial Reorder')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$addedCount item${addedCount > 1 ? 's' : ''} added to cart.',
-              style: const TextStyle(fontWeight: FontWeight.w500),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: AppTheme.warning,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('Partial Reorder')),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              'The following items are unavailable:',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppTheme.textSecondary(context),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...unavailableItems.map((name) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.remove_circle_outline, size: 14, color: AppTheme.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$addedCount item${addedCount > 1 ? 's' : ''} added to cart.',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'The following items are unavailable:',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...unavailableItems.map(
+                  (name) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.remove_circle_outline,
+                          size: 14,
+                          color: AppTheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('OK'),
               ),
-            )),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('OK'),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  context.pushNamed('cart');
+                },
+                child: const Text('View Cart'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              context.pushNamed('cart');
-            },
-            child: const Text('View Cart'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -1028,7 +1115,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         label: const Text('Download Invoice'),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -1039,7 +1128,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       final pdf = await _generateInvoicePdf(order);
       await Printing.sharePdf(
         bytes: await pdf.save(),
-        filename: 'vignesh_agencies_invoice_${order.id.substring(order.id.length - 6).toUpperCase()}.pdf',
+        filename:
+            'vignesh_agencies_invoice_${order.id.substring(order.id.length - 6).toUpperCase()}.pdf',
       );
     } catch (e) {
       if (context.mounted) {
@@ -1055,7 +1145,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Future<pw.Document> _generateInvoicePdf(OrderModel order) async {
     final pdf = pw.Document();
-    
+
     // Calculate totals
     final subtotal = order.items.fold<double>(
       0,
@@ -1106,7 +1196,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const pw.EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.blue100,
                         borderRadius: pw.BorderRadius.circular(4),
@@ -1196,7 +1289,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                       pw.SizedBox(height: 6),
                       _pdfLabelValue('Status', order.status.displayName),
-                      _pdfLabelValue('Payment', order.paymentMethod == 'COD' ? 'Cash on Delivery' : order.paymentMethod),
+                      _pdfLabelValue(
+                        'Payment',
+                        order.paymentMethod == 'COD'
+                            ? 'Cash on Delivery'
+                            : order.paymentMethod,
+                      ),
                       _pdfLabelValue('Items', '${order.items.length}'),
                     ],
                   ),
@@ -1227,46 +1325,50 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ],
                 ),
                 // Item Rows
-                ...order.items.map((item) => pw.TableRow(
-                  children: [
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(8),
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            item.productName,
-                            style: pw.TextStyle(
-                              fontSize: 10,
-                              fontWeight: pw.FontWeight.bold,
-                            ),
-                          ),
-                          if (item.selectedAttributes.isNotEmpty)
+                ...order.items.map(
+                  (item) => pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
                             pw.Text(
-                              item.selectedAttributes.entries
-                                  .map((e) => '${e.key}: ${e.value}')
-                                  .join(' • '),
-                              style: const pw.TextStyle(
-                                fontSize: 8,
-                                color: PdfColors.grey600,
+                              item.productName,
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                fontWeight: pw.FontWeight.bold,
                               ),
                             ),
-                          if (item.warrantyMonths > 0)
-                            pw.Text(
-                              'Warranty: ${item.warrantyMonths} months',
-                              style: const pw.TextStyle(
-                                fontSize: 8,
-                                color: PdfColors.grey600,
+                            if (item.selectedAttributes.isNotEmpty)
+                              pw.Text(
+                                item.selectedAttributes.entries
+                                    .map((e) => '${e.key}: ${e.value}')
+                                    .join(' • '),
+                                style: const pw.TextStyle(
+                                  fontSize: 8,
+                                  color: PdfColors.grey600,
+                                ),
                               ),
-                            ),
-                        ],
+                            if (item.warrantyMonths > 0)
+                              pw.Text(
+                                'Warranty: ${item.warrantyMonths} months',
+                                style: const pw.TextStyle(
+                                  fontSize: 8,
+                                  color: PdfColors.grey600,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    _pdfTableCell('${item.quantity}'),
-                    _pdfTableCell('₹${item.price.toStringAsFixed(0)}'),
-                    _pdfTableCell('₹${(item.price * item.quantity).toStringAsFixed(0)}'),
-                  ],
-                )),
+                      _pdfTableCell('${item.quantity}'),
+                      _pdfTableCell('₹${item.price.toStringAsFixed(0)}'),
+                      _pdfTableCell(
+                        '₹${(item.price * item.quantity).toStringAsFixed(0)}',
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
 
@@ -1283,16 +1385,31 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('₹${subtotal.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
+                          pw.Text(
+                            'Subtotal',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                          pw.Text(
+                            '₹${subtotal.toStringAsFixed(0)}',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
                         ],
                       ),
                       pw.SizedBox(height: 4),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('Shipping', style: const pw.TextStyle(fontSize: 10)),
-                          pw.Text('FREE', style: const pw.TextStyle(fontSize: 10, color: PdfColors.green700)),
+                          pw.Text(
+                            'Shipping',
+                            style: const pw.TextStyle(fontSize: 10),
+                          ),
+                          pw.Text(
+                            'FREE',
+                            style: const pw.TextStyle(
+                              fontSize: 10,
+                              color: PdfColors.green700,
+                            ),
+                          ),
                         ],
                       ),
                       pw.SizedBox(height: 8),
@@ -1365,10 +1482,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       padding: const pw.EdgeInsets.all(8),
       child: pw.Text(
         text,
-        style: pw.TextStyle(
-          fontSize: 10,
-          fontWeight: pw.FontWeight.bold,
-        ),
+        style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
       ),
     );
   }
@@ -1394,17 +1508,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         children: [
           pw.Text(
             '$label: ',
-            style: const pw.TextStyle(
-              fontSize: 10,
-              color: PdfColors.grey600,
-            ),
+            style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600),
           ),
           pw.Text(
             value,
-            style: pw.TextStyle(
-              fontSize: 10,
-              fontWeight: pw.FontWeight.bold,
-            ),
+            style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
           ),
         ],
       ),
@@ -1414,147 +1522,178 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   void _showCancelDialog(BuildContext context, OrderModel order) {
     String? selectedReason;
     String customReason = '';
-    
+
     showDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.error.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.cancel_outlined, color: AppTheme.error, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text('Cancel Order'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Please select a reason for cancellation:',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+      builder:
+          (dialogContext) => StatefulBuilder(
+            builder:
+                (context, setDialogState) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                ),
-                const SizedBox(height: 16),
-                ...OrderModel.cancellationReasons.map((reason) => 
-                  RadioListTile<String>(
-                    title: Text(reason, style: const TextStyle(fontSize: 14)),
-                    value: reason,
-                    groupValue: selectedReason,
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        selectedReason = value;
-                      });
-                    },
-                  ),
-                ),
-                if (selectedReason == 'Other') ...[
-                  const SizedBox(height: 8),
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Please specify your reason...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
-                    maxLines: 2,
-                    onChanged: (value) => customReason = value,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.warning.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.warning.withAlpha(50)),
-                  ),
-                  child: Row(
+                  title: Row(
                     children: [
-                      const Icon(Icons.warning_amber_rounded, color: AppTheme.warning, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'This action cannot be undone.',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.warning,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withAlpha(25),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.cancel_outlined,
+                          color: AppTheme.error,
+                          size: 20,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      const Text('Cancel Order'),
                     ],
                   ),
+                  content: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Please select a reason for cancellation:',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 16),
+                        ...OrderModel.cancellationReasons.map(
+                          (reason) => RadioListTile<String>(
+                            title: Text(
+                              reason,
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            value: reason,
+                            groupValue: selectedReason,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedReason = value;
+                              });
+                            },
+                          ),
+                        ),
+                        if (selectedReason == 'Other') ...[
+                          const SizedBox(height: 8),
+                          TextField(
+                            decoration: InputDecoration(
+                              hintText: 'Please specify your reason...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            maxLines: 2,
+                            onChanged: (value) => customReason = value,
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warning.withAlpha(25),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppTheme.warning.withAlpha(50),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                color: AppTheme.warning,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'This action cannot be undone.',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Keep Order'),
+                    ),
+                    FilledButton(
+                      onPressed:
+                          selectedReason == null
+                              ? null
+                              : () async {
+                                final reason =
+                                    selectedReason == 'Other' &&
+                                            customReason.isNotEmpty
+                                        ? customReason
+                                        : selectedReason;
+                                Navigator.pop(dialogContext);
+                                try {
+                                  final authService =
+                                      context.read<AuthService>();
+                                  final firestoreService =
+                                      context.read<FirestoreService>();
+                                  final userId =
+                                      await authService.getResolvedUserId();
+
+                                  await firestoreService.cancelOrder(
+                                    order.id,
+                                    userId,
+                                    reason: reason,
+                                  );
+
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Order cancelled successfully',
+                                        ),
+                                        backgroundColor: AppTheme.success,
+                                      ),
+                                    );
+                                    // Refresh the order
+                                    _loadOrder();
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to cancel: $e'),
+                                        backgroundColor: AppTheme.error,
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            selectedReason == null
+                                ? AppTheme.error.withAlpha(100)
+                                : AppTheme.error,
+                      ),
+                      child: const Text('Cancel Order'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Keep Order'),
-            ),
-            FilledButton(
-              onPressed: selectedReason == null 
-                ? null 
-                : () async {
-                    final reason = selectedReason == 'Other' && customReason.isNotEmpty
-                        ? customReason
-                        : selectedReason;
-                    Navigator.pop(dialogContext);
-                    try {
-                      final authService = context.read<AuthService>();
-                      final firestoreService = context.read<FirestoreService>();
-                      final userId = await authService.getResolvedUserId();
-                      
-                      await firestoreService.cancelOrder(order.id, userId, reason: reason);
-                      
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Order cancelled successfully'),
-                            backgroundColor: AppTheme.success,
-                          ),
-                        );
-                        // Refresh the order
-                        _loadOrder();
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to cancel: $e'),
-                            backgroundColor: AppTheme.error,
-                          ),
-                        );
-                      }
-                    }
-                  },
-              style: FilledButton.styleFrom(
-                backgroundColor: selectedReason == null 
-                  ? AppTheme.error.withAlpha(100) 
-                  : AppTheme.error,
-              ),
-              child: const Text('Cancel Order'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
