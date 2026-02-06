@@ -35,6 +35,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String? _selectedCategory;
   DateTime? _purchaseDate;
   XFile? _billImage;
+  XFile? _warrantyCardImage;
+  int? _selectedWarrantyMonths;
   bool _isLoading = false;
   String? _errorMessage;
   String? _selectedProductImageUrl; // To store image from catalog
@@ -68,25 +70,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final image = await _imagePicker.pickImage(
-        source: source,
-        maxWidth: 600,
-        maxHeight: 600,
-        imageQuality: 40, // Lower quality for faster uploads
-      );
-      if (image != null) {
-        setState(() => _billImage = image);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
-    }
+  void _showImageSourcePicker() {
+    _showImageSourcePickerFor(forWarrantyCard: false);
   }
 
-  void _showImageSourcePicker() {
+  void _showWarrantyCardSourcePicker() {
+    _showImageSourcePickerFor(forWarrantyCard: true);
+  }
+
+  void _showImageSourcePickerFor({required bool forWarrantyCard}) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -100,7 +92,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Upload Bill / Warranty Card',
+                  forWarrantyCard ? 'Upload Warranty Card' : 'Upload Bill / Warranty Card',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 24),
@@ -112,7 +104,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       label: 'Camera',
                       onTap: () {
                         Navigator.pop(context);
-                        _pickImage(ImageSource.camera);
+                        _pickImageFor(ImageSource.camera, forWarrantyCard: forWarrantyCard);
                       },
                     ),
                     _ImageSourceOption(
@@ -120,7 +112,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       label: 'Gallery',
                       onTap: () {
                         Navigator.pop(context);
-                        _pickImage(ImageSource.gallery);
+                        _pickImageFor(ImageSource.gallery, forWarrantyCard: forWarrantyCard);
                       },
                     ),
                   ],
@@ -132,6 +124,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       },
     );
+  }
+
+  Future<void> _pickImageFor(ImageSource source, {required bool forWarrantyCard}) async {
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 600,
+        maxHeight: 600,
+        imageQuality: 40,
+      );
+      if (image != null) {
+        setState(() {
+          if (forWarrantyCard) {
+            _warrantyCardImage = image;
+          } else {
+            _billImage = image;
+          }
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
+    }
   }
 
   Future<void> _selectDate() async {
@@ -201,11 +217,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
       }
 
-      // Calculate warranty end date (1 year from purchase by default)
-      // Use warranty info from order item if available?
+      // Upload warranty card image if selected
+      String? warrantyCardUrl;
+      if (_warrantyCardImage != null) {
+        warrantyCardUrl = await storageService.uploadWarrantyCard(
+          userId: userId,
+          imageFile: _warrantyCardImage!,
+        );
+      }
+
+      // Calculate warranty end date
+      // Priority: 1. Order item, 2. Selected catalog product, 3. Default 12 months
       int warrantyMonths = 12;
       if (widget.sourceOrderItem != null) {
         warrantyMonths = widget.sourceOrderItem!.warrantyMonths;
+      } else if (_selectedWarrantyMonths != null && _selectedWarrantyMonths! > 0) {
+        warrantyMonths = _selectedWarrantyMonths!;
       }
 
       final warrantyEndDate = DateTime(
@@ -231,6 +258,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         purchaseDate: _purchaseDate!,
         warrantyEndDate: warrantyEndDate,
         billImageUrl: billImageUrl,
+        warrantyCardUrl: warrantyCardUrl,
         // If it comes from an internal order, we can auto-validate or mark differently.
         // For now, keep as pending but with linked order ID.
         status:
@@ -360,6 +388,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             selection.images.isNotEmpty
                                 ? selection.images.first
                                 : null; // Auto-fill Image
+
+                        // Capture warranty months from catalog product
+                        _selectedWarrantyMonths = selection.warrantyMonths;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -704,6 +735,119 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             ),
                   ),
                 ),
+
+              // Warranty Card Upload (Optional, for manual registration)
+              if (!_isInternalOrder) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Warranty Card (Optional)',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: _showWarrantyCardSourcePicker,
+                  child: Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      border: Border.all(
+                        color: Theme.of(context).dividerColor.withAlpha(50),
+                        style: _warrantyCardImage == null
+                            ? BorderStyle.solid
+                            : BorderStyle.none,
+                      ),
+                    ),
+                    child: _warrantyCardImage != null
+                        ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                                child: kIsWeb
+                                    ? Image.network(
+                                        _warrantyCardImage!.path,
+                                        width: double.infinity,
+                                        height: 140,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          color: AppTheme.background(context),
+                                          child: const Center(
+                                            child: Icon(Icons.image, size: 48),
+                                          ),
+                                        ),
+                                      )
+                                    : Image.file(
+                                        File(_warrantyCardImage!.path),
+                                        width: double.infinity,
+                                        height: 140,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => Container(
+                                          color: AppTheme.background(context),
+                                          child: const Center(
+                                            child: Icon(Icons.image, size: 48),
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setState(() => _warrantyCardImage = null);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.verified_user_outlined,
+                                  color: AppTheme.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Upload Warranty Card',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap to upload warranty card image',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textSecondary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
 
               if (_errorMessage != null) ...[
                 const SizedBox(height: 24),

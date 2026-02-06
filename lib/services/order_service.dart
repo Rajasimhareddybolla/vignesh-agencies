@@ -13,6 +13,7 @@ class OrderService {
     required double totalAmount,
     required AddressModel address,
     String paymentMethod = 'COD',
+    double shippingFee = 0.0,
   }) async {
     // Use transaction to validate stock and create order atomically
     return await _firestore.runTransaction<String>((transaction) async {
@@ -89,6 +90,7 @@ class OrderService {
         orderedAt: DateTime.now(),
         paymentMethod: paymentMethod,
         version: 1,
+        shippingFee: shippingFee,
       );
 
       transaction.set(orderRef, order.toFirestore());

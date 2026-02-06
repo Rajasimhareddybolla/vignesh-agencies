@@ -1432,6 +1432,8 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
   bool _isInit = false;
+  bool _hasError = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -1440,6 +1442,11 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
   }
 
   Future<void> _initAudioPlayer() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     _audioPlayer.onPlayerStateChanged.listen((state) {
       if (mounted) {
         setState(() => _isPlaying = state == PlayerState.playing);
@@ -1460,10 +1467,25 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
 
     try {
       await _audioPlayer.setSourceUrl(widget.audioUrl);
-      setState(() => _isInit = true);
+      if (mounted) {
+        setState(() {
+          _isInit = true;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("Error loading audio: $e");
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  void _retryInit() {
+    _initAudioPlayer();
   }
 
   @override
@@ -1481,6 +1503,49 @@ class _AudioPlayerWidgetState extends State<_AudioPlayerWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading state
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Text('Loading audio...'),
+          ],
+        ),
+      );
+    }
+
+    // Show error state with retry
+    if (_hasError) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppTheme.error),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Failed to load audio',
+                style: TextStyle(color: AppTheme.error),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _retryInit,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Normal player UI
     return Column(
       children: [
         Row(

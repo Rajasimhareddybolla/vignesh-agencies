@@ -1603,11 +1603,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             PulsingDot(color: textColor, size: 6),
             const SizedBox(width: 6),
           ],
-          Text(
-            text,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
@@ -1770,7 +1773,7 @@ class _PremiumQuickActionCardState extends State<_PremiumQuickActionCard>
                       Text(
                         widget.title,
                         maxLines: 2,
-                        overflow: TextOverflow.visible,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color:
                               widget.isPrimary

@@ -26,7 +26,13 @@ service firebase.storage {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize();
     }
-    
+
+    // Warranty card images - users can only write to their own folder
+    match /warranty_cards/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId && isValidImageSize();
+    }
+
     // Evidence images for service requests
     match /evidence/{requestId}/{allPaths=**} {
       allow read: if isAuthenticated();

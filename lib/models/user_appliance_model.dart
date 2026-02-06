@@ -67,6 +67,7 @@ class UserApplianceModel {
   final DateTime purchaseDate;
   final DateTime warrantyEndDate;
   final String? billImageUrl;
+  final String? warrantyCardUrl;
   final ProductStatus status;
   final String? validatedBy;
   final DateTime? validatedAt;
@@ -87,6 +88,7 @@ class UserApplianceModel {
     required this.purchaseDate,
     required this.warrantyEndDate,
     this.billImageUrl,
+    this.warrantyCardUrl,
     this.status = ProductStatus.pendingValidation,
     this.validatedBy,
     this.validatedAt,
@@ -112,6 +114,7 @@ class UserApplianceModel {
       warrantyEndDate:
           (data['warrantyEndDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       billImageUrl: data['billImageUrl'],
+      warrantyCardUrl: data['warrantyCardUrl'],
       status: ProductStatusExtension.fromString(
         data['status'] ?? 'pending_validation',
       ),
@@ -136,6 +139,7 @@ class UserApplianceModel {
       'purchaseDate': Timestamp.fromDate(purchaseDate),
       'warrantyEndDate': Timestamp.fromDate(warrantyEndDate),
       'billImageUrl': billImageUrl,
+      'warrantyCardUrl': warrantyCardUrl,
       'status': status.firestoreValue,
       'validatedBy': validatedBy,
       'validatedAt':
@@ -157,6 +161,7 @@ class UserApplianceModel {
     DateTime? purchaseDate,
     DateTime? warrantyEndDate,
     String? billImageUrl,
+    String? warrantyCardUrl,
     ProductStatus? status,
     String? validatedBy,
     DateTime? validatedAt,
@@ -176,6 +181,7 @@ class UserApplianceModel {
       purchaseDate: purchaseDate ?? this.purchaseDate,
       warrantyEndDate: warrantyEndDate ?? this.warrantyEndDate,
       billImageUrl: billImageUrl ?? this.billImageUrl,
+      warrantyCardUrl: warrantyCardUrl ?? this.warrantyCardUrl,
       status: status ?? this.status,
       validatedBy: validatedBy ?? this.validatedBy,
       validatedAt: validatedAt ?? this.validatedAt,

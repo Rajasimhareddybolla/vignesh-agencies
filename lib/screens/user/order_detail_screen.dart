@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../app/theme.dart';
 import '../../models/order_model.dart';
 import '../../models/catalog_product_model.dart';
@@ -699,7 +701,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       0,
       (sum, item) => sum + (item.price * item.quantity),
     );
-    final shipping = 0.0; // Free shipping
+    final shipping = order.shippingFee;
     final total = order.totalAmount;
 
     return Container(
@@ -874,7 +876,82 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => context.pushNamed('add-product'),
+        onPressed: () {
+          if (order.items.isEmpty) return;
+
+          if (order.items.length == 1) {
+            // Single item - Go directly to registration
+            context.pushNamed(
+              'add-product',
+              extra: {
+                'sourceOrder': order,
+                'sourceOrderItem': order.items.first,
+              },
+            );
+          } else {
+            // Multiple items - Show selection bottom sheet
+            showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              builder: (context) => Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Item to Register',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: order.items.length,
+                        separatorBuilder: (ctx, i) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final item = order.items[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: CachedNetworkImage(
+                                imageUrl: item.productImage,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => const Icon(
+                                  Icons.image_not_supported,
+                                ),
+                              ),
+                            ),
+                            title: Text(item.productName),
+                            subtitle: Text(item.category),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () {
+                              Navigator.pop(context); // Close bottom sheet
+                              context.pushNamed(
+                                'add-product',
+                                extra: {
+                                  'sourceOrder': order,
+                                  'sourceOrderItem': item,
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        },
         icon: const Icon(Icons.verified_user_outlined),
         label: const Text('Register for Warranty'),
         style: ElevatedButton.styleFrom(
@@ -1111,23 +1188,98 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildDownloadInvoiceButton(BuildContext context, OrderModel order) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _downloadInvoice(context, order),
-        icon: const Icon(Icons.receipt_long_outlined),
-        label: const Text('Download Invoice'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _saveInvoice(context, order),
+            icon: const Icon(Icons.download, size: 18),
+            label: const Text('Download'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
         ),
-      ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () => _shareInvoice(context, order),
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text('Share'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  Future<void> _downloadInvoice(BuildContext context, OrderModel order) async {
+  Future<void> _saveInvoice(BuildContext context, OrderModel order) async {
+    try {
+      final pdf = await _generateInvoicePdf(order);
+      final bytes = await pdf.save();
+      final fileName =
+          'vignesh_agencies_invoice_${order.id.substring(order.id.length - 6).toUpperCase()}.pdf';
+
+      // Get downloads directory
+      Directory? directory;
+      if (Platform.isAndroid) {
+        // Android: Save to public Downloads folder
+        directory = Directory('/storage/emulated/0/Download');
+        if (!await directory.exists()) {
+          directory = await getExternalStorageDirectory();
+        }
+      } else {
+        // iOS: Save to app documents
+        directory = await getApplicationDocumentsDirectory();
+      }
+
+      if (directory == null) {
+        throw Exception('Could not access storage');
+      }
+
+      final filePath = '${directory.path}/$fileName';
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invoice saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'}'),
+            backgroundColor: AppTheme.success,
+            action: SnackBarAction(
+              label: 'Open',
+              textColor: Colors.white,
+              onPressed: () {
+                Printing.layoutPdf(
+                  onLayout: (_) => bytes,
+                  name: fileName,
+                );
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving invoice: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareInvoice(BuildContext context, OrderModel order) async {
     try {
       final pdf = await _generateInvoicePdf(order);
       await Printing.sharePdf(
@@ -1408,7 +1560,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             style: const pw.TextStyle(fontSize: 10),
                           ),
                           pw.Text(
-                            'FREE',
+                            order.shippingFee == 0
+                                ? 'FREE'
+                                : '₹${order.shippingFee.toStringAsFixed(0)}',
                             style: const pw.TextStyle(
                               fontSize: 10,
                               color: PdfColors.green700,

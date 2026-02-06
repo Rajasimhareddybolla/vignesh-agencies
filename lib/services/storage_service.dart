@@ -50,6 +50,46 @@ class StorageService {
     }
   }
 
+  // Upload warranty card image with compression
+  Future<String?> uploadWarrantyCard({
+    required String userId,
+    required XFile imageFile,
+  }) async {
+    try {
+      // Compress the image before upload
+      final compressedFile = await _compressionService.compressForBill(
+        imageFile,
+      );
+      debugPrint('Warranty card image prepared for upload');
+
+      String extension = compressedFile.path.split('.').last.toLowerCase();
+      // Fallback if extension is missing or too long (likely not an extension)
+      if (extension == compressedFile.path.toLowerCase() ||
+          extension.length > 4) {
+        extension = 'jpg';
+      }
+
+      final fileName = '${_uuid.v4()}.$extension';
+      final ref = _storage.ref().child('warranty_cards/$userId/$fileName');
+
+      final uploadTask = await ref.putFile(
+        File(compressedFile.path),
+        SettableMetadata(
+          contentType: 'image/$extension',
+          customMetadata: {
+            'uploadedBy': userId,
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading warranty card: $e');
+      return null;
+    }
+  }
+
   // Upload profile image (User & Admin) with compression
   Future<String?> uploadProfileImage({
     required String userId,

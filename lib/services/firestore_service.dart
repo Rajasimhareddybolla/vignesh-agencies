@@ -823,6 +823,7 @@ class FirestoreService {
       orderedAt: order.orderedAt,
       deliveredAt: order.deliveredAt,
       trackingNumber: order.trackingNumber,
+      shippingFee: order.shippingFee,
     );
 
     await docRef.set(orderWithId.toFirestore());
@@ -928,10 +929,12 @@ class FirestoreService {
       transaction.update(orderRef, updates);
     });
 
-    // If Delivered, Automatically Register Valid Appliances (outside transaction)
-    if (status == OrderStatus.delivered) {
-      await _autoRegisterAppliancesFromOrder(orderId);
-    }
+    // Note: Auto-registration removed. Users should manually register their
+    // appliances via the "Register for Warranty" button in order details,
+    // so they can upload their warranty/bill proof.
+    // if (status == OrderStatus.delivered) {
+    //   await _autoRegisterAppliancesFromOrder(orderId);
+    // }
   }
 
   // Update Order Expected Delivery Date (Admin)

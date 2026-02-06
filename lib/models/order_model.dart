@@ -87,6 +87,9 @@ class OrderModel {
   // Delivery
   final DateTime? expectedDeliveryDate;
 
+  // Shipping
+  final double shippingFee;
+
   OrderModel({
     required this.id,
     required this.userId,
@@ -106,6 +109,7 @@ class OrderModel {
     this.assignedTo,
     this.assignedAt,
     this.expectedDeliveryDate,
+    this.shippingFee = 0.0,
   });
 
   // Cancellation reasons list
@@ -146,6 +150,7 @@ class OrderModel {
       assignedAt: (data['assignedAt'] as Timestamp?)?.toDate(),
       expectedDeliveryDate:
           (data['expectedDeliveryDate'] as Timestamp?)?.toDate(),
+      shippingFee: (data['shippingFee'] ?? 0).toDouble(),
     );
   }
 
@@ -173,6 +178,7 @@ class OrderModel {
           expectedDeliveryDate != null
               ? Timestamp.fromDate(expectedDeliveryDate!)
               : null,
+      'shippingFee': shippingFee,
     };
   }
 }

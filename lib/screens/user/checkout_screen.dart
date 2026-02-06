@@ -8,6 +8,7 @@ import '../../models/order_model.dart'; // For AddressModel
 import '../../services/cart_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/order_service.dart';
+import '../../services/shipping_service.dart';
 import '../../widgets/common/profile_completion_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -32,6 +33,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoadingProfile = true;
   List<Map<String, dynamic>> _savedAddresses = [];
   String? _selectedAddressId;
+
+  // Shipping
+  ShippingInfo? _shippingInfo;
+  bool _isCalculatingShipping = false;
 
   @override
   void initState() {
@@ -93,6 +98,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _stateController.text = address['state'] ?? '';
       _pincodeController.text = address['pincode'] ?? '';
     });
+    // Recalculate shipping for the selected address pincode
+    _calculateShipping(address['pincode'] ?? '');
+  }
+
+  Future<void> _calculateShipping(String pincode) async {
+    if (pincode.length != 6) {
+      setState(() => _shippingInfo = null);
+      return;
+    }
+    setState(() => _isCalculatingShipping = true);
+    try {
+      final cart = context.read<CartService>();
+      final info = await ShippingService().calculateShipping(
+        pincode: pincode,
+        cartTotal: cart.totalAmount,
+        itemCount: cart.itemCount,
+      );
+      if (mounted) {
+        setState(() {
+          _shippingInfo = info;
+          _isCalculatingShipping = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isCalculatingShipping = false);
+      }
+    }
   }
 
   @override
@@ -376,7 +409,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         children: [
                           const Text('Total Amount:'),
                           Text(
-                            '₹${cart.totalAmount.toStringAsFixed(2)}',
+                            '₹${(cart.totalAmount + (_shippingInfo?.fee ?? 0)).toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -385,6 +418,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                         ],
                       ),
+                      if ((_shippingInfo?.fee ?? 0) > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '(incl. ₹${_shippingInfo!.fee.toStringAsFixed(0)} shipping)',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
                       const Divider(),
                       const SizedBox(height: 8),
@@ -456,8 +504,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final orderId = await orderService.placeOrder(
         userId: userId,
         cartItems: cartService.items,
-        totalAmount: cartService.totalAmount,
+        totalAmount: cartService.totalAmount + (_shippingInfo?.fee ?? 0),
         address: address,
+        shippingFee: _shippingInfo?.fee ?? 0,
       );
 
       if (mounted) {
@@ -918,6 +967,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildOrderSummary() {
     final cart = context.watch<CartService>();
+    final shippingFee = _shippingInfo?.fee ?? 0;
+    final grandTotal = cart.totalAmount + shippingFee;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -947,19 +998,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Delivery Fee'),
-              Text(
-                'Free',
-                style: TextStyle(
-                  color: AppTheme.success,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Text('Delivery Fee'),
+              _isCalculatingShipping
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : _shippingInfo == null
+                      ? Text(
+                          'Enter pincode',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary(context),
+                          ),
+                        )
+                      : _shippingInfo!.isFreeShipping
+                          ? const Text(
+                              'FREE',
+                              style: TextStyle(
+                                color: AppTheme.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )
+                          : Text(
+                              '₹${_shippingInfo!.fee.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
             ],
           ),
+          // Free shipping hint
+          if (_shippingInfo != null &&
+              !_shippingInfo!.isFreeShipping &&
+              _shippingInfo!.reason != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              _shippingInfo!.reason!,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.success,
+              ),
+            ),
+          ],
           const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -969,7 +1054,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                '₹${cart.totalAmount.toStringAsFixed(0)}',
+                '₹${grandTotal.toStringAsFixed(0)}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -1008,7 +1093,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '3-5 business days',
+                        _shippingInfo != null
+                            ? '${_shippingInfo!.estimatedDays} business days'
+                            : '3-7 business days',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
