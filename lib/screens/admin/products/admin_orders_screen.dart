@@ -209,18 +209,12 @@ class _AdminOrdersScreenState extends State<AdminOrdersScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Order Management',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                Text(
+                  'Order Management',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Padding(
@@ -361,7 +355,7 @@ class _OrderCard extends StatelessWidget {
     final firestoreService = context.read<FirestoreService>();
     final totalItems = order.items.fold(0, (sum, i) => sum + i.quantity);
 
-    return GestureDetector(
+    return PremiumCard(
       onTap: () {
         Navigator.push(
           context,
@@ -370,154 +364,152 @@ class _OrderCard extends StatelessWidget {
           ),
         );
       },
-      child: PremiumCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                _StatusBadge(status: order.status),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              DateFormat('MMM d, yyyy • h:mm a').format(order.orderedAt),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const Divider(height: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Order #${order.id.substring(order.id.length - 6).toUpperCase()}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              _StatusBadge(status: order.status),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            DateFormat('MMM d, yyyy • h:mm a').format(order.orderedAt),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const Divider(height: 24),
 
-            // Items Summary
-            Text(
-              '$totalItems Items • ₹${order.totalAmount.toStringAsFixed(0)}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          // Items Summary
+          Text(
+            '$totalItems Items • ₹${order.totalAmount.toStringAsFixed(0)}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 4),
+          // Customer Info
+          Row(
+            children: [
+              Icon(
+                Icons.person_outline,
+                size: 16,
+                color: AppTheme.textSecondary(context),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  order.address.name,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: AppTheme.textSecondary(context),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Phone
+          Row(
+            children: [
+              Icon(
+                Icons.phone_outlined,
+                size: 16,
+                color: AppTheme.textSecondary(context),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                order.address.phone,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Full Address
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor.withAlpha(20),
+              borderRadius: BorderRadius.circular(8),
             ),
-            const SizedBox(height: 4),
-            // Customer Info
-            Row(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Icons.person_outline,
+                  Icons.location_on_outlined,
                   size: 16,
                   color: AppTheme.textSecondary(context),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    order.address.name,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    '${order.address.street}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: AppTheme.textSecondary(context),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            // Phone
-            Row(
-              children: [
-                Icon(
-                  Icons.phone_outlined,
-                  size: 16,
-                  color: AppTheme.textSecondary(context),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  order.address.phone,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Full Address
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Theme.of(context).dividerColor.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.location_on_outlined,
-                    size: 16,
-                    color: AppTheme.textSecondary(context),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      '${order.address.street}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary(context),
-                      ),
-                    ),
-                  ),
-                ],
+          ),
+
+          const SizedBox(height: 16),
+          // Actions
+          if (order.status == OrderStatus.pending)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  firestoreService.updateOrderStatus(
+                    order.id,
+                    OrderStatus.confirmed,
+                  );
+                },
+                child: const Text('Confirm Order'),
               ),
             ),
 
-            const SizedBox(height: 16),
-            // Actions
-            if (order.status == OrderStatus.pending)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    firestoreService.updateOrderStatus(
-                      order.id,
-                      OrderStatus.confirmed,
-                    );
-                  },
-                  child: const Text('Confirm Order'),
+          if (order.status == OrderStatus.confirmed)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  _showShipOrderDialog(context, order, firestoreService);
+                },
+                icon: const Icon(Icons.local_shipping, size: 18),
+                label: const Text('Mark as Shipped'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                 ),
               ),
+            ),
 
-            if (order.status == OrderStatus.confirmed)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    _showShipOrderDialog(context, order, firestoreService);
-                  },
-                  icon: const Icon(Icons.local_shipping, size: 18),
-                  label: const Text('Mark as Shipped'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
+          if (order.status == OrderStatus.shipped)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  HapticFeedback.mediumImpact();
+                  _showDeliverOrderDialog(context, order, firestoreService);
+                },
+                icon: const Icon(Icons.check_circle, size: 18),
+                label: const Text('Mark as Delivered'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.success,
+                  foregroundColor: Colors.white,
                 ),
               ),
-
-            if (order.status == OrderStatus.shipped)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    HapticFeedback.mediumImpact();
-                    _showDeliverOrderDialog(context, order, firestoreService);
-                  },
-                  icon: const Icon(Icons.check_circle, size: 18),
-                  label: const Text('Mark as Delivered'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.success,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

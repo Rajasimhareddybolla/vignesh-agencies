@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../services/firestore_service.dart';
@@ -134,13 +133,6 @@ class _WarrantyValidationScreenState extends State<WarrantyValidationScreen>
               children: [
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => context.pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(

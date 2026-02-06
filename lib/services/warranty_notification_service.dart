@@ -11,7 +11,7 @@ class WarrantyNotificationService {
 
   static const String _scheduledNotificationsKey =
       'scheduled_warranty_notifications';
-  
+
   // Phase 3: Multiple reminder points
   static const List<int> _reminderDays = [30, 7, 3, 1];
 
@@ -20,7 +20,7 @@ class WarrantyNotificationService {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
 
     const DarwinInitializationSettings initializationSettingsDarwin =
         DarwinInitializationSettings(
@@ -78,7 +78,7 @@ class WarrantyNotificationService {
       // Schedule notifications for each reminder day
       for (final days in _reminderDays) {
         final notificationKey = '${appliance.id}_$days';
-        
+
         // Skip if already scheduled
         if (scheduledIds.contains(notificationKey)) {
           continue;
@@ -94,7 +94,10 @@ class WarrantyNotificationService {
           continue;
         }
 
-        final (title, body) = _getNotificationContent(days, appliance.productName);
+        final (title, body) = _getNotificationContent(
+          days,
+          appliance.productName,
+        );
 
         await _scheduleNotification(
           id: notificationKey.hashCode,
@@ -113,7 +116,10 @@ class WarrantyNotificationService {
   }
 
   /// Get notification content based on days remaining
-  static (String, String) _getNotificationContent(int daysRemaining, String productName) {
+  static (String, String) _getNotificationContent(
+    int daysRemaining,
+    String productName,
+  ) {
     switch (daysRemaining) {
       case 30:
         return (
@@ -144,43 +150,53 @@ class WarrantyNotificationService {
   }
 
   /// Get appliances with warranties expiring soon (Phase 3 - for UI alerts)
-  static List<WarrantyAlert> getWarrantyAlerts(List<UserApplianceModel> appliances) {
+  static List<WarrantyAlert> getWarrantyAlerts(
+    List<UserApplianceModel> appliances,
+  ) {
     final alerts = <WarrantyAlert>[];
     final now = DateTime.now();
 
     for (final appliance in appliances) {
       if (appliance.status != ProductStatus.active) continue;
-      
+
       final daysRemaining = appliance.warrantyEndDate.difference(now).inDays;
-      
+
       if (daysRemaining < 0) {
         // Expired
-        alerts.add(WarrantyAlert(
-          appliance: appliance,
-          daysRemaining: daysRemaining,
-          alertType: WarrantyAlertType.expired,
-        ));
+        alerts.add(
+          WarrantyAlert(
+            appliance: appliance,
+            daysRemaining: daysRemaining,
+            alertType: WarrantyAlertType.expired,
+          ),
+        );
       } else if (daysRemaining <= 3) {
         // Critical
-        alerts.add(WarrantyAlert(
-          appliance: appliance,
-          daysRemaining: daysRemaining,
-          alertType: WarrantyAlertType.critical,
-        ));
+        alerts.add(
+          WarrantyAlert(
+            appliance: appliance,
+            daysRemaining: daysRemaining,
+            alertType: WarrantyAlertType.critical,
+          ),
+        );
       } else if (daysRemaining <= 7) {
         // Warning
-        alerts.add(WarrantyAlert(
-          appliance: appliance,
-          daysRemaining: daysRemaining,
-          alertType: WarrantyAlertType.warning,
-        ));
+        alerts.add(
+          WarrantyAlert(
+            appliance: appliance,
+            daysRemaining: daysRemaining,
+            alertType: WarrantyAlertType.warning,
+          ),
+        );
       } else if (daysRemaining <= 30) {
         // Info
-        alerts.add(WarrantyAlert(
-          appliance: appliance,
-          daysRemaining: daysRemaining,
-          alertType: WarrantyAlertType.info,
-        ));
+        alerts.add(
+          WarrantyAlert(
+            appliance: appliance,
+            daysRemaining: daysRemaining,
+            alertType: WarrantyAlertType.info,
+          ),
+        );
       }
     }
 
@@ -206,7 +222,7 @@ class WarrantyNotificationService {
         channelDescription: 'Notifications for warranty expiry reminders',
         importance: Importance.high,
         priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
+        icon: '@drawable/ic_notification',
       ),
       iOS: DarwinNotificationDetails(
         presentAlert: true,
@@ -257,7 +273,7 @@ class WarrantyNotificationService {
   /// Cancel notification for a specific appliance
   static Future<void> cancelNotification(String applianceId) async {
     await _notifications.cancel(applianceId.hashCode);
-    
+
     // Cancel all reminder notifications for this appliance
     for (final days in _reminderDays) {
       await _notifications.cancel('${applianceId}_$days'.hashCode);
@@ -285,10 +301,10 @@ class WarrantyNotificationService {
 
 /// Warranty alert types for UI display
 enum WarrantyAlertType {
-  info,    // 30 days or less
+  info, // 30 days or less
   warning, // 7 days or less
   critical, // 3 days or less
-  expired,  // Already expired
+  expired, // Already expired
 }
 
 /// Warranty alert model for UI

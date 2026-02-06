@@ -633,7 +633,7 @@ class _AdminAvatar extends StatelessWidget {
             break;
           case 'settings':
             // Navigate to admin settings
-            context.goNamed('admin-settings');
+            context.pushNamed('admin-settings');
             break;
           case 'logout':
             await authService.signOut();

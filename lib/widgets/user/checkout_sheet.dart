@@ -116,7 +116,13 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   }
 
   Future<void> _placeOrder() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Check if address is selected
+    if (_selectedAddressId == null || _streetController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a delivery address')),
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -358,176 +364,179 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Saved Addresses',
+                            'Delivery Address',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                          TextButton(
+                          TextButton.icon(
                             onPressed: () {
                               Navigator.pop(context);
                               context.push('/saved-addresses');
                             },
-                            child: const Text('Manage'),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('Add New'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        height: 80,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _savedAddresses.length,
-                          itemBuilder: (context, index) {
-                            final address = _savedAddresses[index];
-                            final isSelected =
-                                _selectedAddressId == address['id'];
-                            return GestureDetector(
-                              onTap: () => _selectAddress(address),
-                              child: Container(
-                                width: 160,
-                                margin: const EdgeInsets.only(right: 10),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isSelected
-                                          ? AppTheme.primary.withOpacity(0.1)
-                                          : AppTheme.surface(context),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
+                      // Vertical list of address cards
+                      ...List.generate(_savedAddresses.length, (index) {
+                        final address = _savedAddresses[index];
+                        final isSelected = _selectedAddressId == address['id'];
+                        return GestureDetector(
+                          onTap: () => _selectAddress(address),
+                          child: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 10),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  isSelected
+                                      ? AppTheme.primary.withAlpha(20)
+                                      : AppTheme.surface(context),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    isSelected
+                                        ? AppTheme.primary
+                                        : AppTheme.border(context),
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                // Type Icon
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? AppTheme.primary.withAlpha(30)
+                                            : AppTheme.background(context),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    address['type'] == 'Home'
+                                        ? Icons.home
+                                        : address['type'] == 'Work'
+                                        ? Icons.work
+                                        : Icons.location_on,
+                                    size: 20,
                                     color:
                                         isSelected
                                             ? AppTheme.primary
-                                            : AppTheme.border(context),
-                                    width: isSelected ? 2 : 1,
+                                            : AppTheme.textSecondary(context),
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          address['type'] == 'Home'
-                                              ? Icons.home
-                                              : address['type'] == 'Work'
-                                              ? Icons.work
-                                              : Icons.location_on,
-                                          size: 14,
-                                          color:
-                                              isSelected
-                                                  ? AppTheme.primary
-                                                  : AppTheme.textSecondary(
-                                                    context,
-                                                  ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
+                                const SizedBox(width: 12),
+                                // Address Details
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
                                             address['type'] ?? 'Address',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              fontSize: 12,
                                               color:
                                                   isSelected
                                                       ? AppTheme.primary
                                                       : null,
                                             ),
-                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                        if (isSelected)
-                                          const Icon(
-                                            Icons.check_circle,
-                                            size: 14,
-                                            color: AppTheme.primary,
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Expanded(
-                                      child: Text(
-                                        '${address['address'] ?? ''}, ${address['city'] ?? ''}',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
+                                          if (isSelected) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: AppTheme.primary,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'Selected',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${address['address']}, ${address['city']}, ${address['state']} - ${address['pincode']}',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 12,
                                           color: AppTheme.textSecondary(
                                             context,
                                           ),
                                         ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
+                                // Radio
+                                Radio<String>(
+                                  value: address['id'],
+                                  groupValue: _selectedAddressId,
+                                  onChanged: (value) => _selectAddress(address),
+                                  activeColor: AppTheme.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    ] else ...[
+                      // No saved addresses
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.background(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.border(context)),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.location_off,
+                              size: 40,
+                              color: AppTheme.textSecondary(context),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No saved addresses',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                                color: AppTheme.textSecondary(context),
                               ),
-                            );
-                          },
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                context.push('/saved-addresses');
+                              },
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add Address'),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
                     ],
-
-                    // Shipping Address Form
-                    Text(
-                      'Shipping Address',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone Number',
-                        prefixIcon: Icon(Icons.phone_outlined),
-                      ),
-                      validator: (v) => v!.length < 10 ? 'Invalid Phone' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _streetController,
-                      decoration: const InputDecoration(
-                        labelText: 'Street / Area',
-                        prefixIcon: Icon(Icons.home_outlined),
-                      ),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _cityController,
-                            decoration: const InputDecoration(
-                              labelText: 'City',
-                            ),
-                            validator: (v) => v!.isEmpty ? 'Required' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _pincodeController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Pincode',
-                            ),
-                            validator:
-                                (v) => v!.length != 6 ? 'Invalid PIN' : null,
-                          ),
-                        ),
-                      ],
-                    ),
 
                     const SizedBox(height: 24),
                     // Payment Method

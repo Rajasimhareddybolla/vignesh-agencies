@@ -204,7 +204,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Saved Addresses'),
+        title: const Text('Delivery Address'),
       ),
       body: FutureBuilder<String>(
         future: authService.getResolvedUserId(),
@@ -246,148 +246,148 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No addresses saved',
+                        'No delivery address saved',
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(color: AppTheme.textSecondary(context)),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddAddressSheet(context),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Address'),
                       ),
                     ],
                   ),
                 );
               }
 
-              return ListView.separated(
+              // Single address model - only show the first (most recent) address
+              final doc = docs.first;
+              final data = doc.data() as Map<String, dynamic>;
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                itemCount: docs.length,
-                separatorBuilder:
-                    (context, index) => const SizedBox(height: 16),
-                itemBuilder: (context, index) {
-                  final doc = docs[index];
-                  final data = doc.data() as Map<String, dynamic>;
-
-                  return Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surface(context),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.border(context)),
-                      boxShadow: AppTheme.cardShadow,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your delivery address',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: AppTheme.textSecondary(context),
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                data['type'] ?? 'Home',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.bold,
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.border(context)),
+                        boxShadow: AppTheme.cardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
                                 ),
-                              ),
-                            ),
-                            PopupMenuButton(
-                              itemBuilder:
-                                  (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Edit'),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 14,
+                                      color: AppTheme.primary,
                                     ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Default',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall?.copyWith(
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ],
-                              onSelected: (value) async {
-                                if (value == 'edit') {
-                                  _showAddAddressSheet(
-                                    context,
-                                    existingAddress: data,
-                                    docId: doc.id,
-                                  );
-                                } else if (value == 'delete') {
-                                  await doc.reference.delete();
-                                }
-                              },
-                              child: Icon(
-                                Icons.more_vert,
-                                color: AppTheme.textSecondary(context),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          data['name'] ?? '',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          data['address'] ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppTheme.textSecondary(context),
+                              TextButton.icon(
+                                onPressed:
+                                    () => _showAddAddressSheet(
+                                      context,
+                                      existingAddress: data,
+                                      docId: doc.id,
+                                    ),
+                                icon: const Icon(Icons.edit, size: 18),
+                                label: const Text('Edit'),
+                              ),
+                            ],
                           ),
-                        ),
-                        Text(
-                          '${data['city'] ?? ''} - ${data['pincode'] ?? ''}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppTheme.textSecondary(context),
+                          const SizedBox(height: 12),
+                          Text(
+                            data['name'] ?? '',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.phone_outlined,
-                              size: 14,
+                          const SizedBox(height: 4),
+                          Text(
+                            data['address'] ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
                               color: AppTheme.textSecondary(context),
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                data['phone'] ?? '',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondary(context),
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                          ),
+                          Text(
+                            '${data['city'] ?? ''} - ${data['pincode'] ?? ''}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppTheme.textSecondary(context),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.phone_outlined,
+                                size: 14,
+                                color: AppTheme.textSecondary(context),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  data['phone'] ?? '',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textSecondary(context),
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  );
-                },
+                  ],
+                ),
               );
             },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddAddressSheet(context),
-        child: const Icon(Icons.add),
-      ),
+      // No FAB when address exists - single address model
     );
   }
 }

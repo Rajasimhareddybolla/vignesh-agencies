@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
@@ -244,13 +243,6 @@ class PayoutManagerScreen extends StatelessWidget {
             bottom: false,
             child: Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => context.pop(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
