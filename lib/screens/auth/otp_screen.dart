@@ -250,43 +250,48 @@ class _OTPScreenState extends State<OTPScreen> {
               const SizedBox(height: 40),
 
               // OTP Input Fields
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (index) {
-                  return Container(
-                    width: 48,
-                    height: 56,
-                    margin: EdgeInsets.only(
-                      left: index == 0 ? 0 : 8,
-                      right: index == 2 ? 16 : 0,
-                    ),
-                    child: RawKeyboardListener(
-                      focusNode: FocusNode(),
-                      onKey: (event) => _onKeyPressed(event, index),
-                      child: TextField(
-                        controller: _controllers[index],
-                        focusNode: _focusNodes[index],
-                        textAlign: TextAlign.center,
-                        keyboardType: TextInputType.number,
-                        maxLength: 1,
-                        style: Theme.of(context).textTheme.headlineMedium,
-                        decoration: InputDecoration(
-                          counterText: '',
-                          contentPadding: EdgeInsets.zero,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppTheme.radiusMd,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: List.generate(6, (index) {
+                    return Container(
+                      width: 45,
+                      height: 52,
+                      margin: EdgeInsets.only(
+                        left: index == 0 ? 0 : 6,
+                        right: index == 2 ? 12 : 0,
+                      ),
+                      child: RawKeyboardListener(
+                        focusNode: FocusNode(),
+                        onKey: (event) => _onKeyPressed(event, index),
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: Theme.of(context).textTheme.titleLarge,
+                          decoration: InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.zero,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusMd,
+                              ),
                             ),
                           ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onChanged:
+                              (value) => _onOTPDigitChanged(value, index),
                         ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        onChanged: (value) => _onOTPDigitChanged(value, index),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  }),
+                ),
               ),
 
               if (_errorMessage != null) ...[

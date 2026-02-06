@@ -160,7 +160,7 @@ class _AdminServiceRequestsScreenState
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,13 +213,10 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primary : Theme.of(context).cardColor,
+            color: isSelected ? AppTheme.primary : Colors.white,
             borderRadius: BorderRadius.circular(AppTheme.radiusFull),
             border: Border.all(
-              color:
-                  isSelected
-                      ? AppTheme.primary
-                      : Theme.of(context).dividerColor.withAlpha(50),
+              color: isSelected ? AppTheme.primary : AppTheme.borderLight,
             ),
           ),
           child: Text(
@@ -250,11 +247,9 @@ class _RequestRow extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-          border: Border.all(
-            color: Theme.of(context).dividerColor.withAlpha(50),
-          ),
+          border: Border.all(color: AppTheme.borderLight),
           boxShadow: AppTheme.cardShadow,
         ),
         child: Row(
@@ -323,7 +318,7 @@ class _RequestRow extends StatelessWidget {
                   Text(
                     request.issueType,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).textTheme.bodySmall?.color,
+                      color: AppTheme.textSecondary(context),
                     ),
                   ),
                   // Media Attachments Indicator
@@ -416,7 +411,7 @@ class _RequestRow extends StatelessWidget {
                 Text(
                   DateFormat('MMM d, h:mm a').format(request.createdAt),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).textTheme.bodySmall?.color,
+                    color: AppTheme.textSecondary(context),
                     fontSize: 11,
                   ),
                 ),

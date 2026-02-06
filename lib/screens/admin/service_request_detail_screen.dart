@@ -45,6 +45,7 @@ class _ServiceRequestDetailScreenState
   String? _adminVoiceNoteUrl; // URL from Firestore/Storage if already saved
 
   bool _isInitialized = false;
+  bool _isUpdatingStatus = false; // Loading state for status update button
 
   @override
   void initState() {
@@ -83,64 +84,74 @@ class _ServiceRequestDetailScreenState
   }
 
   Future<void> _updateStatus(ServiceRequestStatus newStatus) async {
-    final firestoreService = context.read<FirestoreService>();
-    final storageService = context.read<StorageService>();
+    if (_isUpdatingStatus) return; // Prevent double-tap
 
-    // Upload admin voice note if new one recorded
-    if (_adminVoiceNotePath != null && _adminVoiceNoteUrl == null) {
-      try {
-        _adminVoiceNoteUrl = await storageService.uploadAdminVoiceNote(
-          requestId: widget.requestId,
-          filePath: _adminVoiceNotePath!,
-        );
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to upload voice note: $e'),
-              backgroundColor: AppTheme.error,
-            ),
+    setState(() => _isUpdatingStatus = true);
+
+    try {
+      final firestoreService = context.read<FirestoreService>();
+      final storageService = context.read<StorageService>();
+
+      // Upload admin voice note if new one recorded
+      if (_adminVoiceNotePath != null && _adminVoiceNoteUrl == null) {
+        try {
+          _adminVoiceNoteUrl = await storageService.uploadAdminVoiceNote(
+            requestId: widget.requestId,
+            filePath: _adminVoiceNotePath!,
           );
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to upload voice note: $e'),
+                backgroundColor: AppTheme.error,
+              ),
+            );
+          }
         }
       }
-    }
 
-    await firestoreService.updateServiceRequestStatus(
-      requestId: widget.requestId,
-      status: newStatus,
-      assignedProvider: _selectedProvider,
-      technicianName:
-          _technicianController.text.isNotEmpty
-              ? _technicianController.text
-              : null,
-      technicianPhone:
-          _technicianPhoneController.text.isNotEmpty
-              ? _technicianPhoneController.text
-              : null,
-      technicianAddress:
-          _technicianAddressController.text.isNotEmpty
-              ? _technicianAddressController.text
-              : null,
-      resolutionNotes:
-          _notesController.text.isNotEmpty ? _notesController.text : null,
-      adminVoiceNoteUrl: _adminVoiceNoteUrl,
-    );
+      await firestoreService.updateServiceRequestStatus(
+        requestId: widget.requestId,
+        status: newStatus,
+        assignedProvider: _selectedProvider,
+        technicianName:
+            _technicianController.text.isNotEmpty
+                ? _technicianController.text
+                : null,
+        technicianPhone:
+            _technicianPhoneController.text.isNotEmpty
+                ? _technicianPhoneController.text
+                : null,
+        technicianAddress:
+            _technicianAddressController.text.isNotEmpty
+                ? _technicianAddressController.text
+                : null,
+        resolutionNotes:
+            _notesController.text.isNotEmpty ? _notesController.text : null,
+        adminVoiceNoteUrl: _adminVoiceNoteUrl,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Status updated to ${newStatus.displayName}'),
-        backgroundColor: AppTheme.success,
-      ),
-    );
-
-    // If assigning, trigger WhatsApp and update agent
-    if (newStatus == ServiceRequestStatus.assigned) {
-      // Update agent's last assigned  timestamp
-      if (_selectedAgent != null) {
-        await firestoreService.updateAgentLastAssigned(_selectedAgent!.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Status updated to ${newStatus.displayName}'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
       }
-      // Ask user if they want to share via WhatsApp
-      _showShareDialog();
+
+      // If assigning, trigger WhatsApp and update agent
+      if (newStatus == ServiceRequestStatus.assigned) {
+        // Update agent's last assigned timestamp
+        if (_selectedAgent != null) {
+          await firestoreService.updateAgentLastAssigned(_selectedAgent!.id);
+        }
+        // Ask user if they want to share via WhatsApp
+        _showShareDialog();
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdatingStatus = false);
     }
   }
 
@@ -1143,6 +1154,7 @@ class _ServiceRequestDetailScreenState
                           children: [
                             DropdownButtonFormField<String>(
                               value: _selectedProvider,
+                              isExpanded: true,
                               decoration: const InputDecoration(
                                 labelText: 'Service Provider',
                                 prefixIcon: Icon(Icons.business),
@@ -1153,7 +1165,10 @@ class _ServiceRequestDetailScreenState
                                   ) {
                                     return DropdownMenuItem(
                                       value: provider,
-                                      child: Text(provider),
+                                      child: Text(
+                                        provider,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     );
                                   }).toList(),
                               onChanged: (value) {
@@ -1469,11 +1484,30 @@ class _ServiceRequestDetailScreenState
                               Expanded(
                                 child: ElevatedButton.icon(
                                   onPressed:
-                                      () => _updateStatus(
-                                        ServiceRequestStatus.assigned,
-                                      ),
-                                  icon: const Icon(Icons.assignment_ind),
-                                  label: const Text('Assign & Notify Agent'),
+                                      _isUpdatingStatus
+                                          ? null
+                                          : () => _updateStatus(
+                                            ServiceRequestStatus.assigned,
+                                          ),
+                                  icon:
+                                      _isUpdatingStatus
+                                          ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
+                                          : const Icon(Icons.assignment_ind),
+                                  label: Text(
+                                    _isUpdatingStatus
+                                        ? 'Assigning...'
+                                        : 'Assign & Notify Agent',
+                                  ),
                                   style: ElevatedButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 16,
@@ -1866,6 +1900,8 @@ class _DetailRow extends StatelessWidget {
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 3,
             ),
           ),
         ],

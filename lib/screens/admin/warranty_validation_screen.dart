@@ -826,27 +826,32 @@ class _DetailRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            if (onEdit != null) ...[
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: onEdit,
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(Icons.edit, size: 16, color: AppTheme.primary),
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (onEdit != null) ...[
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: onEdit,
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(Icons.edit, size: 16, color: AppTheme.primary),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ],
     );

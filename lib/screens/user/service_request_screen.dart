@@ -145,14 +145,18 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
     });
 
     try {
+      print('DEBUG: Step 1 - Getting services from context');
       final authService = context.read<AuthService>();
       final firestoreService = context.read<FirestoreService>();
       final storageService = context.read<StorageService>();
 
       // Use resolved ID to ensure we create requests for the linked account
+      print('DEBUG: Step 2 - Getting resolved user ID');
       final userId = await authService.getResolvedUserId();
+      print('DEBUG: Step 2 complete - userId: $userId');
 
       // 🔒 SECURITY: Validate product ownership
+      print('DEBUG: Step 3 - Validating product ownership');
       if (_product!.userId != userId) {
         setState(() {
           _isLoading = false;
@@ -162,8 +166,11 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
         return;
       }
 
+      print('DEBUG: Step 4 - Getting user model');
       final user = await authService.getUserModel();
+      print('DEBUG: Step 4 complete - user: ${user?.displayName}');
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+      print('DEBUG: Step 5 - Generated requestId: $requestId');
 
       // Upload evidence images - continue even if upload fails
       List<String> imageUrls = [];
@@ -274,6 +281,22 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
             ),
           );
         }
+      }
+    } catch (e, stackTrace) {
+      // Catch any unexpected errors in the outer try block
+      print('DEBUG: Unexpected error during submission: $e');
+      print('DEBUG: Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'An unexpected error occurred: $e';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {

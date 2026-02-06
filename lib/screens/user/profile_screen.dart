@@ -279,6 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
+                    constraints: const BoxConstraints(maxWidth: 250),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 4,
@@ -288,14 +289,18 @@ class _ProfileScreenState extends State<ProfileScreen>
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.phone, color: Colors.white, size: 14),
                         const SizedBox(width: 6),
-                        Text(
-                          user?.phone ?? user?.email ?? '',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: Colors.white),
+                        Flexible(
+                          child: Text(
+                            user?.phone ?? user?.email ?? '',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: Colors.white),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),

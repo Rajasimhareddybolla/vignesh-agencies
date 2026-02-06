@@ -442,17 +442,27 @@ class _ApplianceDetailContent extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary(context),
+          Flexible(
+            flex: 2,
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary(context),
+              ),
             ),
           ),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          const SizedBox(width: 16),
+          Flexible(
+            flex: 3,
+            child: Text(
+              value,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
+            ),
           ),
         ],
       ),
@@ -571,6 +581,8 @@ class _ApplianceDetailContent extends StatelessWidget {
   void _showBillImage(BuildContext context) {
     if (appliance.billImageUrl == null) return;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showDialog(
       context: context,
       builder:
@@ -579,29 +591,96 @@ class _ApplianceDetailContent extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: appliance.billImageUrl!,
-                    fit: BoxFit.contain,
-                    placeholder:
-                        (_, __) => Container(
-                          height: 200,
-                          color: Colors.white,
-                          child: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.receipt_long,
+                              color: AppTheme.primary,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Purchase Bill',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(
+                                Icons.close,
+                                color: AppTheme.textSecondary(context),
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
                         ),
+                      ),
+                      // Image
+                      ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(16),
+                          bottomRight: Radius.circular(16),
+                        ),
+                        child: CachedNetworkImage(
+                          imageUrl: appliance.billImageUrl!,
+                          fit: BoxFit.contain,
+                          placeholder:
+                              (_, __) => Container(
+                                height: 200,
+                                color:
+                                    isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[100],
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                          errorWidget:
+                              (_, __, ___) => Container(
+                                height: 200,
+                                color:
+                                    isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[100],
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.broken_image,
+                                        size: 48,
+                                        color: AppTheme.textSecondary(context),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Failed to load image',
+                                        style: TextStyle(
+                                          color: AppTheme.textSecondary(
+                                            context,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppTheme.textPrimary(context),
-                  ),
-                  child: const Text('Close'),
                 ),
               ],
             ),
@@ -612,81 +691,94 @@ class _ApplianceDetailContent extends StatelessWidget {
   Widget _buildServiceHistorySection(BuildContext context) {
     final firestoreService = context.read<FirestoreService>();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.history, color: AppTheme.primary, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              'Service History',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        StreamBuilder<List<ServiceRequestModel>>(
-          stream: firestoreService.getProductServiceRequests(appliance.id),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(),
-                ),
-              );
-            }
-
-            final requests = snapshot.data ?? [];
-
-            if (requests.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppTheme.background(context),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppTheme.borderLight.withAlpha(100),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderLight.withAlpha(100)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history, color: AppTheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Service History',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          StreamBuilder<List<ServiceRequestModel>>(
+            stream: firestoreService.getProductServiceRequests(appliance.id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: CircularProgressIndicator(),
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline,
-                      size: 48,
-                      color: AppTheme.success.withAlpha(150),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No service requests yet',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Your appliance is running smoothly!',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textSecondary(context),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+                );
+              }
 
-            return Column(
-              children:
-                  requests.map((request) {
-                    return _ServiceHistoryCard(request: request);
-                  }).toList(),
-            );
-          },
-        ),
-      ],
+              final requests = snapshot.data ?? [];
+
+              if (requests.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withAlpha(10),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.success.withAlpha(30)),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        size: 48,
+                        color: AppTheme.success.withAlpha(150),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No service requests yet',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Your appliance is running smoothly!',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textSecondary(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              return Column(
+                children:
+                    requests.map((request) {
+                      return _ServiceHistoryCard(request: request);
+                    }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 

@@ -246,6 +246,8 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                     color: onTap != null ? AppTheme.primary : null,
                     decoration: onTap != null ? TextDecoration.underline : null,
                   ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ],
             ),

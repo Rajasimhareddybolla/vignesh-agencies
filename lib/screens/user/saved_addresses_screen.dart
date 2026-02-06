@@ -267,9 +267,9 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                   return Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppTheme.surface(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.borderLight),
+                      border: Border.all(color: AppTheme.border(context)),
                       boxShadow: AppTheme.cardShadow,
                     ),
                     child: Column(
@@ -337,9 +337,21 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 4),
-                        Text(data['address'] ?? ''),
+                        Text(
+                          data['address'] ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary(context),
+                          ),
+                        ),
                         Text(
                           '${data['city'] ?? ''} - ${data['pincode'] ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: AppTheme.textSecondary(context),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -350,12 +362,15 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                               color: AppTheme.textSecondary(context),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              data['phone'] ?? '',
-                              style: Theme.of(
-                                context,
-                              ).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textSecondary(context),
+                            Expanded(
+                              child: Text(
+                                data['phone'] ?? '',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textSecondary(context),
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],

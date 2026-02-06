@@ -115,7 +115,12 @@ class _AgentCard extends StatelessWidget {
                   color: AppTheme.textSecondary(context),
                 ),
                 const SizedBox(width: 4),
-                Text(agent.phone),
+                Expanded(
+                  child: Text(
+                    agent.phone,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ],
             ),
             if (agent.specialization != null) ...[
@@ -128,7 +133,12 @@ class _AgentCard extends StatelessWidget {
                     color: AppTheme.textSecondary(context),
                   ),
                   const SizedBox(width: 4),
-                  Text(agent.specialization!),
+                  Expanded(
+                    child: Text(
+                      agent.specialization!,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ],

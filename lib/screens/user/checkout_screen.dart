@@ -710,13 +710,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             color:
                                 isSelected
                                     ? AppTheme.primary.withOpacity(0.1)
-                                    : Colors.grey.shade50,
+                                    : AppTheme.surface(context),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color:
                                   isSelected
                                       ? AppTheme.primary
-                                      : Colors.grey.shade300,
+                                      : AppTheme.border(context),
                               width: isSelected ? 2 : 1,
                             ),
                           ),
@@ -735,21 +735,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                     color:
                                         isSelected
                                             ? AppTheme.primary
-                                            : Colors.grey,
+                                            : AppTheme.textSecondary(context),
                                   ),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    address['type'] ?? 'Address',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          isSelected
-                                              ? AppTheme.primary
-                                              : Colors.black87,
+                                  Expanded(
+                                    child: Text(
+                                      address['type'] ?? 'Address',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            isSelected
+                                                ? AppTheme.primary
+                                                : null,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   if (isSelected) ...[
-                                    const Spacer(),
+                                    const SizedBox(width: 4),
                                     const Icon(
                                       Icons.check_circle,
                                       size: 16,
@@ -759,13 +762,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              Text(
-                                '${address['address']}, ${address['city']}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
+                              Expanded(
+                                child: Text(
+                                  '${address['address']}, ${address['city']}',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary(context),
+                                  ),
                                 ),
                               ),
                             ],
@@ -931,7 +936,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Subtotal (${cart.itemCount} items)'),
+              Flexible(
+                child: Text(
+                  'Subtotal (${cart.itemCount} items)',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 16),
               Text('₹${cart.totalAmount.toStringAsFixed(0)}'),
             ],
           ),
@@ -1035,6 +1046,7 @@ class _OrderConfirmRow extends StatelessWidget {
         Icon(icon, size: 18, color: AppTheme.primary),
         const SizedBox(width: 10),
         Expanded(
+          flex: 2,
           child: Text(
             label,
             style: TextStyle(
@@ -1043,9 +1055,16 @@ class _OrderConfirmRow extends StatelessWidget {
             ),
           ),
         ),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 3,
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+          ),
         ),
       ],
     );

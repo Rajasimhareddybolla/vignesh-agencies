@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../app/theme.dart';
 import '../../models/catalog_product_model.dart';
 import '../../models/order_model.dart'; // For AddressModel and OrderModel
@@ -38,6 +39,9 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   final _stateController = TextEditingController(text: 'Tamil Nadu');
 
   bool _isLoading = false;
+  bool _isLoadingAddresses = true;
+  List<Map<String, dynamic>> _savedAddresses = [];
+  String? _selectedAddressId;
 
   @override
   void initState() {
@@ -46,14 +50,58 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
   }
 
   Future<void> _prefillUserData() async {
-    final user = await context.read<AuthService>().getUserModel();
+    final authService = context.read<AuthService>();
+    final user = await authService.getUserModel();
     if (user != null && mounted) {
       setState(() {
         _nameController.text = user.displayName;
         _phoneController.text = user.phone ?? '';
       });
-      // If we had saved addresses, we'd prefill here
     }
+
+    // Fetch saved addresses
+    try {
+      final userId = await authService.getResolvedUserId();
+      final addressesSnapshot =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('addresses')
+              .orderBy('updatedAt', descending: true)
+              .get();
+
+      if (mounted) {
+        setState(() {
+          _savedAddresses =
+              addressesSnapshot.docs
+                  .map((doc) => {'id': doc.id, ...doc.data()})
+                  .toList();
+
+          // Auto-select first address if available
+          if (_savedAddresses.isNotEmpty) {
+            _selectAddress(_savedAddresses.first);
+          }
+
+          _isLoadingAddresses = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingAddresses = false);
+      }
+    }
+  }
+
+  void _selectAddress(Map<String, dynamic> address) {
+    setState(() {
+      _selectedAddressId = address['id'];
+      _nameController.text = address['name'] ?? _nameController.text;
+      _phoneController.text = address['phone'] ?? _phoneController.text;
+      _streetController.text = address['address'] ?? '';
+      _cityController.text = address['city'] ?? '';
+      _stateController.text = address['state'] ?? 'Tamil Nadu';
+      _pincodeController.text = address['pincode'] ?? '';
+    });
   }
 
   @override
@@ -182,9 +230,10 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               ElevatedButton(
                 onPressed: () {
                   context.pop();
-                  // context.push('/orders'); // TODO: Create user orders screen if separate from requests
-                  // For now simpler to go home
-                  context.go('/home');
+                  context.pushNamed(
+                    'order-detail',
+                    pathParameters: {'orderId': orderId},
+                  );
                 },
                 child: const Text('View Orders'),
               ),
@@ -295,6 +344,128 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
+
+                    // Saved Addresses Section
+                    if (_isLoadingAddresses)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (_savedAddresses.isNotEmpty) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Saved Addresses',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              context.push('/saved-addresses');
+                            },
+                            child: const Text('Manage'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 80,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _savedAddresses.length,
+                          itemBuilder: (context, index) {
+                            final address = _savedAddresses[index];
+                            final isSelected =
+                                _selectedAddressId == address['id'];
+                            return GestureDetector(
+                              onTap: () => _selectAddress(address),
+                              child: Container(
+                                width: 160,
+                                margin: const EdgeInsets.only(right: 10),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? AppTheme.primary.withOpacity(0.1)
+                                          : AppTheme.surface(context),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? AppTheme.primary
+                                            : AppTheme.border(context),
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          address['type'] == 'Home'
+                                              ? Icons.home
+                                              : address['type'] == 'Work'
+                                              ? Icons.work
+                                              : Icons.location_on,
+                                          size: 14,
+                                          color:
+                                              isSelected
+                                                  ? AppTheme.primary
+                                                  : AppTheme.textSecondary(
+                                                    context,
+                                                  ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            address['type'] ?? 'Address',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                              color:
+                                                  isSelected
+                                                      ? AppTheme.primary
+                                                      : null,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            size: 14,
+                                            color: AppTheme.primary,
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Expanded(
+                                      child: Text(
+                                        '${address['address'] ?? ''}, ${address['city'] ?? ''}',
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.textSecondary(
+                                            context,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Shipping Address Form
                     Text(

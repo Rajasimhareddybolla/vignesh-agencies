@@ -9,13 +9,14 @@ class ProfileCompletionService {
   /// Check if user profile is complete for checkout/registration
   static bool isProfileComplete(UserModel? user) {
     if (user == null) return false;
-    
+
     // Check required fields
-    final hasName = user.displayName.isNotEmpty && 
-                   user.displayName != 'User' && 
-                   user.displayName != 'New User';
+    final hasName =
+        user.displayName.isNotEmpty &&
+        user.displayName != 'User' &&
+        user.displayName != 'New User';
     final hasPhone = user.phone != null && user.phone!.isNotEmpty;
-    
+
     return hasName && hasPhone;
   }
 
@@ -24,10 +25,11 @@ class ProfileCompletionService {
   static Future<bool> checkAndPromptCompletion(
     BuildContext context,
     AuthService authService, {
-    required String action, // e.g., "place your order" or "register your appliance"
+    required String
+    action, // e.g., "place your order" or "register your appliance"
   }) async {
     final userModel = await authService.getUserModel();
-    
+
     if (isProfileComplete(userModel)) {
       return true; // Profile is already complete
     }
@@ -36,10 +38,9 @@ class ProfileCompletionService {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _ProfileCompletionDialog(
-        user: userModel,
-        action: action,
-      ),
+      builder:
+          (context) =>
+              _ProfileCompletionDialog(user: userModel, action: action),
     );
 
     return result ?? false;
@@ -50,13 +51,11 @@ class _ProfileCompletionDialog extends StatefulWidget {
   final UserModel? user;
   final String action;
 
-  const _ProfileCompletionDialog({
-    required this.user,
-    required this.action,
-  });
+  const _ProfileCompletionDialog({required this.user, required this.action});
 
   @override
-  State<_ProfileCompletionDialog> createState() => _ProfileCompletionDialogState();
+  State<_ProfileCompletionDialog> createState() =>
+      _ProfileCompletionDialogState();
 }
 
 class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
@@ -69,9 +68,11 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(
-      text: widget.user?.displayName != 'User' && widget.user?.displayName != 'New User'
-          ? widget.user?.displayName
-          : '',
+      text:
+          widget.user?.displayName != 'User' &&
+                  widget.user?.displayName != 'New User'
+              ? widget.user?.displayName
+              : '',
     );
     _emailController = TextEditingController(text: widget.user?.email ?? '');
   }
@@ -93,7 +94,7 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
       await authService.updateUserProfile(
         displayName: _nameController.text.trim(),
       );
-      
+
       if (mounted) {
         Navigator.of(context).pop(true);
       }
@@ -116,9 +117,7 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Column(
         children: [
           Container(
@@ -134,10 +133,7 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Complete Your Profile',
-            textAlign: TextAlign.center,
-          ),
+          const Text('Complete Your Profile', textAlign: TextAlign.center),
         ],
       ),
       content: Form(
@@ -189,7 +185,9 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
                 if (value != null && value.isNotEmpty) {
-                  final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                  final emailRegex = RegExp(
+                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                  );
                   if (!emailRegex.hasMatch(value)) {
                     return 'Please enter a valid email';
                   }
@@ -200,18 +198,18 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(
-                  Icons.phone,
-                  size: 16,
-                  color: AppTheme.success,
-                ),
+                Icon(Icons.phone, size: 16, color: AppTheme.success),
                 const SizedBox(width: 8),
-                Text(
-                  'Phone: ${widget.user?.phone ?? 'Verified'}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.success,
+                Expanded(
+                  child: Text(
+                    'Phone: ${widget.user?.phone ?? 'Verified'}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: AppTheme.success),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 4),
                 const Icon(
                   Icons.check_circle,
                   size: 14,
@@ -229,13 +227,14 @@ class _ProfileCompletionDialogState extends State<_ProfileCompletionDialog> {
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _saveProfile,
-          child: _isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text('Save & Continue'),
+          child:
+              _isLoading
+                  ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                  : const Text('Save & Continue'),
         ),
       ],
     );

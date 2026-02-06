@@ -1,21 +1,31 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
+import 'image_compression_service.dart';
 
 class StorageService {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final _uuid = const Uuid();
+  final _compressionService = ImageCompressionService();
 
-  // Upload bill/warranty image
+  // Upload bill/warranty image with compression
   Future<String?> uploadBillImage({
     required String userId,
     required XFile imageFile,
   }) async {
     try {
-      String extension = imageFile.path.split('.').last.toLowerCase();
+      // Compress the image before upload
+      final compressedFile = await _compressionService.compressForBill(
+        imageFile,
+      );
+      debugPrint('Bill image prepared for upload');
+
+      String extension = compressedFile.path.split('.').last.toLowerCase();
       // Fallback if extension is missing or too long (likely not an extension)
-      if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
+      if (extension == compressedFile.path.toLowerCase() ||
+          extension.length > 4) {
         extension = 'jpg';
       }
 
@@ -23,7 +33,7 @@ class StorageService {
       final ref = _storage.ref().child('bills/$userId/$fileName');
 
       final uploadTask = await ref.putFile(
-        File(imageFile.path),
+        File(compressedFile.path),
         SettableMetadata(
           contentType: 'image/$extension',
           customMetadata: {
@@ -35,20 +45,27 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading bill image: $e');
+      debugPrint('Error uploading bill image: $e');
       return null;
     }
   }
 
-  // Upload profile image (User & Admin)
+  // Upload profile image (User & Admin) with compression
   Future<String?> uploadProfileImage({
     required String userId,
     required XFile imageFile,
   }) async {
     try {
-      String extension = imageFile.path.split('.').last.toLowerCase();
+      // Compress the image before upload
+      final compressedFile = await _compressionService.compressForProfile(
+        imageFile,
+      );
+      debugPrint('Profile image prepared for upload');
+
+      String extension = compressedFile.path.split('.').last.toLowerCase();
       // Fallback if extension is missing or too long (likely not an extension)
-      if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
+      if (extension == compressedFile.path.toLowerCase() ||
+          extension.length > 4) {
         extension = 'jpg';
       }
 
@@ -57,7 +74,7 @@ class StorageService {
       final ref = _storage.ref().child('profiles/$userId/$fileName');
 
       final uploadTask = await ref.putFile(
-        File(imageFile.path),
+        File(compressedFile.path),
         SettableMetadata(
           contentType: 'image/$extension',
           customMetadata: {
@@ -70,21 +87,27 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading profile image: $e');
+      debugPrint('Error uploading profile image: $e');
       return null;
     }
   }
 
-  // Upload product image (Admin)
+  // Upload product image (Admin) with compression
   Future<String?> uploadProductImage({required XFile imageFile}) async {
     try {
-      final fileName = '${_uuid.v4()}.${imageFile.path.split('.').last}';
+      // Compress the image before upload
+      final compressedFile = await _compressionService.compressForProduct(
+        imageFile,
+      );
+      debugPrint('Product image prepared for upload');
+
+      final fileName = '${_uuid.v4()}.${compressedFile.path.split('.').last}';
       final ref = _storage.ref().child('products/$fileName');
 
       final uploadTask = await ref.putFile(
-        File(imageFile.path),
+        File(compressedFile.path),
         SettableMetadata(
-          contentType: 'image/${imageFile.path.split('.').last}',
+          contentType: 'image/${compressedFile.path.split('.').last}',
           customMetadata: {
             'uploadedBy': 'ADMIN',
             'uploadedAt': DateTime.now().toIso8601String(),
@@ -94,25 +117,32 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading product image: $e');
+      debugPrint('Error uploading product image: $e');
       return null;
     }
   }
 
-  // Upload service request evidence image
+  // Upload service request evidence image with compression
   Future<String?> uploadEvidenceImage({
     required String userId,
     required String requestId,
     required XFile imageFile,
   }) async {
     try {
-      final file = File(imageFile.path);
+      // Compress the image before upload
+      final compressedFile = await _compressionService.compressForEvidence(
+        imageFile,
+      );
+      debugPrint('Evidence image prepared for upload');
+
+      final file = File(compressedFile.path);
       if (!await file.exists()) {
-        throw Exception('Source file does not exist: ${imageFile.path}');
+        throw Exception('Source file does not exist: ${compressedFile.path}');
       }
 
-      String extension = imageFile.path.split('.').last.toLowerCase();
-      if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
+      String extension = compressedFile.path.split('.').last.toLowerCase();
+      if (extension == compressedFile.path.toLowerCase() ||
+          extension.length > 4) {
         extension = 'jpg';
       }
 
@@ -120,7 +150,7 @@ class StorageService {
       final ref = _storage.ref().child('evidence/$requestId/$fileName');
 
       final uploadTask = await ref.putFile(
-        File(imageFile.path),
+        File(compressedFile.path),
         SettableMetadata(
           contentType: 'image/$extension',
           customMetadata: {
@@ -133,11 +163,11 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading evidence image: $e');
+      debugPrint('Error uploading evidence image: $e');
       // If it's a storage exception, print code
       if (e is FirebaseException) {
-        print('Firebase Exception Code: ${e.code}');
-        print('Firebase Exception Message: ${e.message}');
+        debugPrint('Firebase Exception Code: ${e.code}');
+        debugPrint('Firebase Exception Message: ${e.message}');
       }
       rethrow;
     }
@@ -172,9 +202,9 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading audio: $e');
+      debugPrint('Error uploading audio: $e');
       if (e is FirebaseException) {
-        print('Firebase Exception: ${e.code} - ${e.message}');
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
       }
       rethrow;
     }
@@ -211,15 +241,15 @@ class StorageService {
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading admin voice note: $e');
+      debugPrint('Error uploading admin voice note: $e');
       if (e is FirebaseException) {
-        print('Firebase Exception: ${e.code} - ${e.message}');
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
       }
       rethrow;
     }
   }
 
-  // Upload multiple evidence images
+  // Upload multiple evidence images with parallel compression
   Future<List<String>> uploadMultipleImages({
     required String userId,
     required String requestId,
@@ -227,25 +257,97 @@ class StorageService {
   }) async {
     final urls = <String>[];
 
-    for (final file in imageFiles) {
+    // Compress all images in parallel first for faster processing
+    debugPrint('Compressing ${imageFiles.length} images in parallel...');
+    final compressedFiles = await _compressionService.compressMultiple(
+      imageFiles,
+    );
+    debugPrint('Compression complete, uploading...');
+
+    for (int i = 0; i < compressedFiles.length; i++) {
       try {
-        final url = await uploadEvidenceImage(
+        // Upload directly without additional compression since already compressed
+        final url = await _uploadEvidenceImageDirect(
           userId: userId,
           requestId: requestId,
-          imageFile: file,
+          imageFile: compressedFiles[i],
         );
         if (url != null) {
           urls.add(url);
         }
+        debugPrint('Uploaded image ${i + 1}/${compressedFiles.length}');
       } catch (e) {
-        print('One image failed to upload: $e');
+        debugPrint('Image ${i + 1} failed to upload: $e');
         // If one fails, we should probably stop and notify the user
         // or we could continue. Given the "systematic" instruction, let's fail fast.
-        throw e;
+        rethrow;
       }
     }
 
+    // Cleanup temp files after upload
+    await _compressionService.cleanupTempFiles();
+
     return urls;
+  }
+
+  // Internal method to upload evidence image without compression (for already compressed files)
+  Future<String?> _uploadEvidenceImageDirect({
+    required String userId,
+    required String requestId,
+    required XFile imageFile,
+  }) async {
+    try {
+      debugPrint(
+        '_uploadEvidenceImageDirect: Starting upload for ${imageFile.path}',
+      );
+      final file = File(imageFile.path);
+
+      if (!await file.exists()) {
+        debugPrint('_uploadEvidenceImageDirect: ERROR - File does not exist');
+        throw Exception('Source file does not exist: ${imageFile.path}');
+      }
+
+      final fileSize = await file.length();
+      debugPrint(
+        '_uploadEvidenceImageDirect: File exists, size: ${fileSize ~/ 1024} KB',
+      );
+
+      String extension = imageFile.path.split('.').last.toLowerCase();
+      if (extension == imageFile.path.toLowerCase() || extension.length > 4) {
+        extension = 'jpg';
+      }
+
+      final fileName = '${_uuid.v4()}.$extension';
+      final ref = _storage.ref().child('evidence/$requestId/$fileName');
+      debugPrint(
+        '_uploadEvidenceImageDirect: Uploading to evidence/$requestId/$fileName',
+      );
+
+      final uploadTask = await ref.putFile(
+        file,
+        SettableMetadata(
+          contentType: 'image/$extension',
+          customMetadata: {
+            'uploadedBy': userId,
+            'requestId': requestId,
+            'uploadedAt': DateTime.now().toIso8601String(),
+          },
+        ),
+      );
+
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      debugPrint(
+        '_uploadEvidenceImageDirect: Upload complete, URL: $downloadUrl',
+      );
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error uploading evidence image: $e');
+      if (e is FirebaseException) {
+        debugPrint('Firebase Exception Code: ${e.code}');
+        debugPrint('Firebase Exception Message: ${e.message}');
+      }
+      rethrow;
+    }
   }
 
   // Delete a file by URL
@@ -255,7 +357,7 @@ class StorageService {
       await ref.delete();
       return true;
     } catch (e) {
-      print('Error deleting file: $e');
+      debugPrint('Error deleting file: $e');
       return false;
     }
   }
