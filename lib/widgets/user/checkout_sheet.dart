@@ -571,7 +571,6 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ),
                     ],
 
-<<<<<<< HEAD
                     // Shipping Address Form
                     Text(
                       'Shipping Address',
@@ -635,8 +634,6 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
                       ],
                     ),
 
-=======
->>>>>>> fabbecf7a321ea30444b4d151c5800ed70948e75
                     const SizedBox(height: 24),
                     // Payment Method
                     Text(
