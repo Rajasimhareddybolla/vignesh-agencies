@@ -657,7 +657,7 @@ class _PremiumOrderCard extends StatelessWidget {
                         ),
                       ),
                       builder:
-                          (context) => Container(
+                          (context) => Padding(
                             padding: const EdgeInsets.all(20),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -666,6 +666,7 @@ class _PremiumOrderCard extends StatelessWidget {
                                 Text(
                                   'Select Item to Register',
                                   style: Theme.of(context).textTheme.titleLarge,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 16),
                                 Flexible(
@@ -693,8 +694,14 @@ class _PremiumOrderCard extends StatelessWidget {
                                                 ),
                                           ),
                                         ),
-                                        title: Text(item.productName),
-                                        subtitle: Text(item.category),
+                                        title: Text(
+                                          item.productName,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        subtitle: Text(
+                                          item.category,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                         trailing: const Icon(
                                           Icons.chevron_right,
                                         ),
