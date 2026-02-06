@@ -329,9 +329,35 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
     );
     if (picked != null) {
       await firestoreService.updateOrderExpectedDeliveryDate(_order.id, picked);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Expected delivery date updated')),
-      );
+      // Update local state to refresh UI immediately
+      setState(() {
+        _order = OrderModel(
+          id: _order.id,
+          userId: _order.userId,
+          items: _order.items,
+          totalAmount: _order.totalAmount,
+          status: _order.status,
+          paymentMethod: _order.paymentMethod,
+          address: _order.address,
+          orderedAt: _order.orderedAt,
+          deliveredAt: _order.deliveredAt,
+          trackingNumber: _order.trackingNumber,
+          version: _order.version,
+          cancellationReason: _order.cancellationReason,
+          cancelledAt: _order.cancelledAt,
+          cancelledBy: _order.cancelledBy,
+          adminNotes: _order.adminNotes,
+          assignedTo: _order.assignedTo,
+          assignedAt: _order.assignedAt,
+          expectedDeliveryDate: picked, // Updated value
+          shippingFee: _order.shippingFee,
+        );
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expected delivery date updated')),
+        );
+      }
     }
   }
 

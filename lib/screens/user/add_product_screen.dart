@@ -92,7 +92,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  forWarrantyCard ? 'Upload Warranty Card' : 'Upload Bill / Warranty Card',
+                  forWarrantyCard
+                      ? 'Upload Warranty Card'
+                      : 'Upload Bill / Warranty Card',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 24),
@@ -104,7 +106,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       label: 'Camera',
                       onTap: () {
                         Navigator.pop(context);
-                        _pickImageFor(ImageSource.camera, forWarrantyCard: forWarrantyCard);
+                        _pickImageFor(
+                          ImageSource.camera,
+                          forWarrantyCard: forWarrantyCard,
+                        );
                       },
                     ),
                     _ImageSourceOption(
@@ -112,7 +117,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       label: 'Gallery',
                       onTap: () {
                         Navigator.pop(context);
-                        _pickImageFor(ImageSource.gallery, forWarrantyCard: forWarrantyCard);
+                        _pickImageFor(
+                          ImageSource.gallery,
+                          forWarrantyCard: forWarrantyCard,
+                        );
                       },
                     ),
                   ],
@@ -126,7 +134,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Future<void> _pickImageFor(ImageSource source, {required bool forWarrantyCard}) async {
+  Future<void> _pickImageFor(
+    ImageSource source, {
+    required bool forWarrantyCard,
+  }) async {
     try {
       final image = await _imagePicker.pickImage(
         source: source,
@@ -144,9 +155,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -183,6 +194,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
     if (_purchaseDate == null) {
       setState(() => _errorMessage = 'Please select purchase date');
+      return;
+    }
+
+    // Bill image is always required
+    if (_billImage == null) {
+      setState(() => _errorMessage = 'Please upload a photo of your bill');
       return;
     }
 
@@ -231,7 +248,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       int warrantyMonths = 12;
       if (widget.sourceOrderItem != null) {
         warrantyMonths = widget.sourceOrderItem!.warrantyMonths;
-      } else if (_selectedWarrantyMonths != null && _selectedWarrantyMonths! > 0) {
+      } else if (_selectedWarrantyMonths != null &&
+          _selectedWarrantyMonths! > 0) {
         warrantyMonths = _selectedWarrantyMonths!;
       }
 
@@ -566,7 +584,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 style: Theme.of(context).textTheme.labelLarge,
               ),
               const SizedBox(height: 8),
-              if (_isInternalOrder)
+              if (_isInternalOrder) ...[
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -583,7 +601,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Verified by Order #${widget.sourceOrder?.id.substring(0, 8) ?? ""}',
+                              'Linked to Order #${widget.sourceOrder?.id.substring(0, 8) ?? ""}',
                               style: Theme.of(
                                 context,
                               ).textTheme.titleSmall?.copyWith(
@@ -592,7 +610,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ),
                             ),
                             Text(
-                              'Proof of purchase automatically linked.',
+                              'Please upload a photo of your bill for verification.',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmall?.copyWith(
@@ -604,25 +622,169 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       ),
                     ],
                   ),
-                )
-              else
+                ),
+                const SizedBox(height: 16),
+              ],
+              // Bill upload is ALWAYS required
+              GestureDetector(
+                onTap: _showImageSourcePicker,
+                child: Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                    border: Border.all(
+                      color:
+                          _billImage == null
+                              ? AppTheme.warning.withAlpha(
+                                150,
+                              ) // Highlight required
+                              : Colors.transparent,
+                      width: _billImage == null ? 2 : 1,
+                    ),
+                  ),
+                  child:
+                      _billImage != null
+                          ? Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  AppTheme.radiusMd,
+                                ),
+                                child:
+                                    kIsWeb
+                                        ? Image.network(
+                                          _billImage!.path,
+                                          width: double.infinity,
+                                          height: 180,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: AppTheme.background(
+                                                context,
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 48,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                        : Image.file(
+                                          File(_billImage!.path),
+                                          width: double.infinity,
+                                          height: 180,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (
+                                            context,
+                                            error,
+                                            stackTrace,
+                                          ) {
+                                            return Container(
+                                              color: AppTheme.background(
+                                                context,
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.image,
+                                                  size: 48,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                              ),
+                              Positioned(
+                                top: 8,
+                                right: 8,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.6),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      setState(() => _billImage = null);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                          : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.warning.withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: AppTheme.warning,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Upload Bill Photo (Required)',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Tap to take a photo or upload document',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textSecondary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                ),
+              ),
+
+              // Warranty Card Upload (Optional, for manual registration)
+              if (!_isInternalOrder) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Warranty Card (Optional)',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: _showImageSourcePicker,
+                  onTap: _showWarrantyCardSourcePicker,
                   child: Container(
-                    height: 180,
+                    height: 140,
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                       border: Border.all(
                         color: Theme.of(context).dividerColor.withAlpha(50),
                         style:
-                            _billImage == null
+                            _warrantyCardImage == null
                                 ? BorderStyle.solid
                                 : BorderStyle.none,
                       ),
                     ),
                     child:
-                        _billImage != null
+                        _warrantyCardImage != null
                             ? Stack(
                               children: [
                                 ClipRRect(
@@ -632,50 +794,40 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                   child:
                                       kIsWeb
                                           ? Image.network(
-                                            _billImage!.path,
+                                            _warrantyCardImage!.path,
                                             width: double.infinity,
-                                            height: 180,
+                                            height: 140,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              return Container(
-                                                color: AppTheme.background(
-                                                  context,
-                                                ),
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.image,
-                                                    size: 48,
+                                            errorBuilder:
+                                                (_, __, ___) => Container(
+                                                  color: AppTheme.background(
+                                                    context,
+                                                  ),
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.image,
+                                                      size: 48,
+                                                    ),
                                                   ),
                                                 ),
-                                              );
-                                            },
                                           )
                                           : Image.file(
-                                            File(_billImage!.path),
+                                            File(_warrantyCardImage!.path),
                                             width: double.infinity,
-                                            height: 180,
+                                            height: 140,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              return Container(
-                                                color: AppTheme.background(
-                                                  context,
-                                                ),
-                                                child: const Center(
-                                                  child: Icon(
-                                                    Icons.image,
-                                                    size: 48,
+                                            errorBuilder:
+                                                (_, __, ___) => Container(
+                                                  color: AppTheme.background(
+                                                    context,
+                                                  ),
+                                                  child: const Center(
+                                                    child: Icon(
+                                                      Icons.image,
+                                                      size: 48,
+                                                    ),
                                                   ),
                                                 ),
-                                              );
-                                            },
                                           ),
                                 ),
                                 Positioned(
@@ -693,7 +845,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         size: 20,
                                       ),
                                       onPressed: () {
-                                        setState(() => _billImage = null);
+                                        setState(
+                                          () => _warrantyCardImage = null,
+                                        );
                                       },
                                     ),
                                   ),
@@ -704,27 +858,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
-                                  width: 56,
-                                  height: 56,
+                                  width: 48,
+                                  height: 48,
                                   decoration: BoxDecoration(
                                     color: AppTheme.primary.withOpacity(0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
-                                    Icons.camera_alt,
+                                    Icons.verified_user_outlined,
                                     color: AppTheme.primary,
-                                    size: 28,
+                                    size: 24,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
+                                const SizedBox(height: 8),
                                 Text(
-                                  'Upload Photo',
-                                  style: Theme.of(context).textTheme.titleMedium
+                                  'Upload Warranty Card',
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Tap to take a photo or upload document',
+                                  'Tap to upload warranty card image',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodySmall?.copyWith(
@@ -733,118 +887,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 ),
                               ],
                             ),
-                  ),
-                ),
-
-              // Warranty Card Upload (Optional, for manual registration)
-              if (!_isInternalOrder) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Warranty Card (Optional)',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: _showWarrantyCardSourcePicker,
-                  child: Container(
-                    height: 140,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                      border: Border.all(
-                        color: Theme.of(context).dividerColor.withAlpha(50),
-                        style: _warrantyCardImage == null
-                            ? BorderStyle.solid
-                            : BorderStyle.none,
-                      ),
-                    ),
-                    child: _warrantyCardImage != null
-                        ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                                child: kIsWeb
-                                    ? Image.network(
-                                        _warrantyCardImage!.path,
-                                        width: double.infinity,
-                                        height: 140,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          color: AppTheme.background(context),
-                                          child: const Center(
-                                            child: Icon(Icons.image, size: 48),
-                                          ),
-                                        ),
-                                      )
-                                    : Image.file(
-                                        File(_warrantyCardImage!.path),
-                                        width: double.infinity,
-                                        height: 140,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          color: AppTheme.background(context),
-                                          child: const Center(
-                                            child: Icon(Icons.image, size: 48),
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: IconButton(
-                                    icon: const Icon(
-                                      Icons.close,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      setState(() => _warrantyCardImage = null);
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.verified_user_outlined,
-                                  color: AppTheme.primary,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Upload Warranty Card',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Tap to upload warranty card image',
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: AppTheme.textSecondary(context),
-                                ),
-                              ),
-                            ],
-                          ),
                   ),
                 ),
               ],

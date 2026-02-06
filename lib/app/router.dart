@@ -123,7 +123,11 @@ class AppRouter {
         path: '/privacy',
         builder: (context, state) => const PrivacyScreen(),
       ),
-      GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
+      GoRoute(
+        path: '/cart',
+        name: 'cart',
+        builder: (context, state) => const CartScreen(),
+      ),
       GoRoute(
         path: '/checkout',
         builder: (context, state) => const CheckoutScreen(),

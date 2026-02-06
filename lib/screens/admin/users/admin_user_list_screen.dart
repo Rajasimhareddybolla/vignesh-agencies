@@ -73,6 +73,9 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
 
                 var users = snapshot.data ?? [];
 
+                // Filter out admin users - they shouldn't appear in user list
+                users = users.where((user) => !user.isAdmin).toList();
+
                 if (_searchQuery.isNotEmpty) {
                   users =
                       users.where((user) {
