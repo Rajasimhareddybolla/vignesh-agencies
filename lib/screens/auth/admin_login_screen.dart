@@ -35,14 +35,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     });
 
     final email = _emailController.text.trim().toLowerCase();
-    final password = _passwordController.text.toLowerCase();
+    final password = _passwordController.text;
 
-    // Bypass admin login - accept admin emails (including typos)
-    final isAdminEmail = email.contains('admin') && email.contains('@');
-    final isAdminPassword =
-        password.contains('admin') || password.contains('123');
+    // Strict admin credential validation - only one unique admin account
+    const adminEmail = 'admin@vigneshagencies.in';
+    const adminPassword = 'Admin@123';
 
-    if (isAdminEmail && isAdminPassword) {
+    final isValidAdmin = email == adminEmail && password == adminPassword;
+
+    if (isValidAdmin) {
       try {
         final authService = context.read<AuthService>();
         // Sign in anonymously and set up as admin

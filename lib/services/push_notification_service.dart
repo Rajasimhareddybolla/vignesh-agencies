@@ -39,8 +39,8 @@ class PushNotificationService {
     // 3. Initialize Local Notifications (for Android Foreground)
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings(
-          '@mipmap/ic_launcher',
-        ); // Verify icon name
+          '@drawable/ic_notification',
+        ); // Use custom notification icon
 
     // Note: iOS initialization is handled differently, often defaults work with FCM plugin,
     // but explicit setup for local notifications needed for foreground heads-up on Android often.
@@ -101,7 +101,7 @@ class PushNotificationService {
               kNotificationChannelName,
               channelDescription:
                   'This channel is used for important notifications.',
-              icon: '@mipmap/ic_launcher', // Maintain consistent icon
+              icon: '@drawable/ic_notification', // Custom notification icon
               // other properties...
             ),
           ),

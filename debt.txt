@@ -1,0 +1,12 @@
+1. admin user name and passsword ( unique  only one )
+2. lazy uploading ( async )
+3. address fixes
+4. Another exception was thrown: A RenderFlex overflowed by 42 pixels on the bottom.
+5. show full order details to the user including all the details 
+6. admin services in white mode
+7. back buttons not working in the admin top widget 
+8. shipping free 
+9. renmae download invoice to share 
+10. here we are adding the product directly to the my applicances no we should.nt add but give a option to add where ti navigate to the adding applicatine but with filled details necessary user uploads his warrenty or bill thats it 
+11. validate that the warrenty expriy is functional by using the real product months
+13. audio in services req is not working 

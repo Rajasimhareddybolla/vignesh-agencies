@@ -148,10 +148,6 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWarrantyActive = product.warrantyEndDate.isAfter(DateTime.now());
-    final daysRemaining =
-        product.warrantyEndDate.difference(DateTime.now()).inDays;
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -226,7 +222,7 @@ class _ProductCard extends StatelessWidget {
 
           const Divider(height: 1),
 
-          // Warranty Info
+          // Product Info
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -259,7 +255,7 @@ class _ProductCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Warranty Status',
+                          'Service Status',
                           style: Theme.of(
                             context,
                           ).textTheme.bodySmall?.copyWith(
@@ -270,28 +266,18 @@ class _ProductCard extends StatelessWidget {
                         Row(
                           children: [
                             Icon(
-                              isWarrantyActive
-                                  ? Icons.check_circle
-                                  : Icons.cancel,
+                              Icons.check_circle,
                               size: 16,
-                              color:
-                                  isWarrantyActive
-                                      ? AppTheme.success
-                                      : AppTheme.error,
+                              color: AppTheme.success,
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              isWarrantyActive
-                                  ? '$daysRemaining days left'
-                                  : 'Expired',
+                              'Ready for Service',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.w500,
-                                color:
-                                    isWarrantyActive
-                                        ? AppTheme.success
-                                        : AppTheme.error,
+                                color: AppTheme.success,
                               ),
                             ),
                           ],

@@ -482,14 +482,17 @@ class _TypeButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : AppTheme.textSecondary(context),
+                color:
+                    isSelected ? Colors.white : AppTheme.textSecondary(context),
               ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color:
-                      isSelected ? Colors.white : AppTheme.textSecondary(context),
+                      isSelected
+                          ? Colors.white
+                          : AppTheme.textSecondary(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),

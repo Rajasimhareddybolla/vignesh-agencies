@@ -96,11 +96,31 @@ class MarketingManagerScreen extends StatelessWidget {
                         if (!banner.isActive)
                           Positioned.fill(
                             child: Container(
-                              color: Colors.black.withOpacity(0.5),
-                              child: const Center(
-                                child: Chip(
-                                  label: Text('INACTIVE'),
-                                  backgroundColor: Colors.white,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withAlpha(150),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(12),
+                                ),
+                              ),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withAlpha(220),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'INACTIVE',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
