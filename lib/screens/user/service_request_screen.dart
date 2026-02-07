@@ -172,46 +172,59 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
       print('DEBUG: Step 5 - Generated requestId: $requestId');
 
-      // Upload evidence images - continue even if upload fails
+      // Upload evidence images and audio in PARALLEL for speed
       List<String> imageUrls = [];
+      String? audioUrl;
       bool imageUploadFailed = false;
+      bool audioUploadFailed = false;
       print('DEBUG: Starting submission - requestId: $requestId');
       print('DEBUG: Evidence images count: ${_evidenceImages.length}');
       print('DEBUG: Audio path: $_audioPath');
 
-      if (_evidenceImages.isNotEmpty) {
-        try {
-          imageUrls = await storageService.uploadMultipleImages(
-            userId: userId,
-            requestId: requestId,
-            imageFiles: _evidenceImages,
-          );
-          print('DEBUG: Uploaded image URLs: $imageUrls');
-        } catch (e) {
-          print('DEBUG: Image upload failed: $e');
-          imageUploadFailed = true;
-          // Continue without images - don't fail the whole request
-        }
-      }
+      final uploadStopwatch = Stopwatch()..start();
 
-      // Upload audio recording - continue even if upload fails
-      String? audioUrl;
-      bool audioUploadFailed = false;
-      if (_audioPath != null) {
-        try {
-          print('DEBUG: Uploading audio from path: $_audioPath');
-          audioUrl = await storageService.uploadAudioRecording(
-            userId: userId,
-            requestId: requestId,
-            filePath: _audioPath!,
-          );
-          print('DEBUG: Uploaded audio URL: $audioUrl');
-        } catch (e) {
-          print('DEBUG: Audio upload failed: $e');
-          audioUploadFailed = true;
-          // Continue without audio - don't fail the whole request
-        }
-      }
+      // Launch both uploads simultaneously
+      final imageUploadFuture =
+          _evidenceImages.isNotEmpty
+              ? storageService
+                  .uploadMultipleImages(
+                    userId: userId,
+                    requestId: requestId,
+                    imageFiles: _evidenceImages,
+                  )
+                  .catchError((e) {
+                    print('DEBUG: Image upload failed: $e');
+                    imageUploadFailed = true;
+                    return <String>[];
+                  })
+              : Future.value(<String>[]);
+
+      final audioUploadFuture =
+          _audioPath != null
+              ? storageService
+                  .uploadAudioRecording(
+                    userId: userId,
+                    requestId: requestId,
+                    filePath: _audioPath!,
+                  )
+                  .catchError((e) {
+                    print('DEBUG: Audio upload failed: $e');
+                    audioUploadFailed = true;
+                    return null;
+                  })
+              : Future.value(null);
+
+      // Wait for both to complete simultaneously
+      final results = await Future.wait([imageUploadFuture, audioUploadFuture]);
+      imageUrls = results[0] as List<String>;
+      audioUrl = results[1] as String?;
+
+      uploadStopwatch.stop();
+      print(
+        'DEBUG: All uploads completed in ${uploadStopwatch.elapsedMilliseconds}ms',
+      );
+      print('DEBUG: Uploaded image URLs: $imageUrls');
+      print('DEBUG: Uploaded audio URL: $audioUrl');
 
       // Create service request (even if media uploads failed)
       print('DEBUG: Creating ServiceRequestModel with:');

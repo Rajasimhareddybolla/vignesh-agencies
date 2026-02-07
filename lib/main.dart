@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'app/theme.dart';
 import 'app/router.dart';
@@ -19,6 +23,17 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Firebase App Check (non-blocking — falls back to placeholder token)
+  // Register your app in Firebase Console > App Check to eliminate the warning
+  FirebaseAppCheck.instance
+      .activate(
+        androidProvider:
+            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        appleProvider:
+            kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+      )
+      .catchError((e) => debugPrint('App Check activation failed: $e'));
 
   // Initialize Push Notifications
   final pushService = PushNotificationService();

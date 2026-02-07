@@ -44,6 +44,12 @@ service firebase.storage {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && isValidAudioSize();
     }
+
+    // Admin voice note audio recordings
+    match /admin_audio/{requestId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isValidAudioSize();
+    }
     
     // Profile images
     match /profiles/{userId}/{allPaths=**} {

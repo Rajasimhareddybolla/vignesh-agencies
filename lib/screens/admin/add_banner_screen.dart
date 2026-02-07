@@ -455,36 +455,28 @@ class _AddBannerScreenState extends State<AddBannerScreen> {
         imageFile: _selectedImage!,
       );
 
-      if (imageUrl != null) {
-        final banner = MarketingBannerModel(
-          id: '',
-          imageUrl: imageUrl,
-          title: _titleController.text.trim(),
-          targetRoute:
-              _routeController.text.trim().isEmpty
-                  ? null
-                  : _routeController.text.trim(),
-          priority: _priority.toInt(),
-          createdAt: DateTime.now(),
-          isActive: _isActive,
-        );
+      final banner = MarketingBannerModel(
+        id: '',
+        imageUrl: imageUrl!,
+        title: _titleController.text.trim(),
+        targetRoute:
+            _routeController.text.trim().isEmpty
+                ? null
+                : _routeController.text.trim(),
+        priority: _priority.toInt(),
+        createdAt: DateTime.now(),
+        isActive: _isActive,
+      );
 
-        if (mounted) {
-          await context.read<FirestoreService>().addMarketingBanner(banner);
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Campaign launched successfully!'),
-              backgroundColor: AppTheme.success,
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload image')),
-          );
-        }
+      if (mounted) {
+        await context.read<FirestoreService>().addMarketingBanner(banner);
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Campaign launched successfully!'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
       }
     } catch (e) {
       print('Error creating banner: $e');

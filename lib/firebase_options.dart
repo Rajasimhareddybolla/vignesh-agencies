@@ -55,7 +55,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '683528535970',
     projectId: 'freelancing-c82c1',
     authDomain: 'freelancing-c82c1.firebaseapp.com',
-    storageBucket: 'freelancing-c82c1.firebasestorage.app',
+    storageBucket: 'freelancing-mumbai',
     measurementId: 'G-NJTFF535EW',
   );
 
@@ -64,6 +64,6 @@ class DefaultFirebaseOptions {
     appId: '1:683528535970:android:cf3ab0982ab0b885b53cfb',
     messagingSenderId: '683528535970',
     projectId: 'freelancing-c82c1',
-    storageBucket: 'freelancing-c82c1.firebasestorage.app',
+    storageBucket: 'freelancing-mumbai',
   );
 }

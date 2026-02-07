@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// A centralized image compression service for optimizing images before upload.
-/// Uses native compression to reduce file sizes while maintaining quality.
+/// Uses flutter_image_compress for native-speed compression.
 class ImageCompressionService {
   // Singleton pattern
   static final ImageCompressionService _instance =
@@ -106,9 +107,8 @@ class ImageCompressionService {
     return results;
   }
 
-  /// Core compression method using native dart:io resize.
-  /// This avoids the need for additional packages while still providing
-  /// meaningful file size reduction through quality adjustment.
+  /// Core compression method using flutter_image_compress for native-speed
+  /// image resizing and quality reduction.
   Future<XFile> _compressImage({
     required XFile file,
     required int maxDimension,
@@ -116,20 +116,17 @@ class ImageCompressionService {
     required String prefix,
   }) async {
     try {
-      final bytes = await file.readAsBytes();
-      final originalSize = bytes.length;
+      final stopwatch = Stopwatch()..start();
+      final originalFile = File(file.path);
+      final originalSize = await originalFile.length();
 
       // If file is already small enough (< 100KB), return as-is
       if (originalSize < 100 * 1024) {
         debugPrint(
-          'Image already small ($originalSize bytes), skipping compression',
+          'Image already small (${originalSize ~/ 1024}KB), skipping compression',
         );
         return file;
       }
-
-      // For now, we rely on ImagePicker's built-in compression
-      // The file has already been compressed by ImagePicker when picked
-      // This method serves as a validation step and future extension point
 
       // Calculate target quality based on file size
       // Larger files get more aggressive compression
@@ -140,12 +137,35 @@ class ImageCompressionService {
         targetQuality = (quality * 0.85).round(); // Large files
       }
 
-      debugPrint(
-        'Image compression: ${originalSize ~/ 1024}KB, quality: $targetQuality',
+      // Get temp directory for output
+      final tempDir = await getTemporaryDirectory();
+      final targetPath =
+          '${tempDir.path}/${prefix}${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      // Compress using native APIs via flutter_image_compress
+      final XFile? result = await FlutterImageCompress.compressAndGetFile(
+        file.path,
+        targetPath,
+        minWidth: maxDimension,
+        minHeight: maxDimension,
+        quality: targetQuality,
+        format: CompressFormat.jpeg,
       );
 
-      // Return the file as-is since ImagePicker already did the compression
-      // This service is here for future enhancements with flutter_image_compress
+      stopwatch.stop();
+
+      if (result != null) {
+        final compressedSize = await File(result.path).length();
+        final savings = ((1 - compressedSize / originalSize) * 100)
+            .toStringAsFixed(1);
+        debugPrint(
+          'Compression: ${originalSize ~/ 1024}KB → ${compressedSize ~/ 1024}KB '
+          '($savings% saved) in ${stopwatch.elapsedMilliseconds}ms',
+        );
+        return result;
+      }
+
+      debugPrint('Compression returned null, using original');
       return file;
     } catch (e) {
       debugPrint('Error compressing image: $e');
@@ -157,8 +177,7 @@ class ImageCompressionService {
   /// Useful for showing users expected upload sizes.
   Future<int> getEstimatedCompressedSize(XFile file, int quality) async {
     try {
-      final bytes = await file.readAsBytes();
-      final originalSize = bytes.length;
+      final originalSize = await File(file.path).length();
 
       // Estimate based on quality ratio
       // This is approximate - actual compression varies by image content
@@ -172,8 +191,8 @@ class ImageCompressionService {
   /// Check if an image needs compression based on size threshold.
   Future<bool> needsCompression(XFile file, {int thresholdKB = 500}) async {
     try {
-      final bytes = await file.readAsBytes();
-      return bytes.length > thresholdKB * 1024;
+      final size = await File(file.path).length();
+      return size > thresholdKB * 1024;
     } catch (e) {
       return false;
     }

@@ -6,9 +6,47 @@ import 'package:uuid/uuid.dart';
 import 'image_compression_service.dart';
 
 class StorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  /// Use the Mumbai (asia-south1) bucket for lower latency in India.
+  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
+    bucket: 'gs://freelancing-mumbai',
+  );
   final _uuid = const Uuid();
   final _compressionService = ImageCompressionService();
+
+  /// Retry helper with exponential backoff for transient upload failures.
+  /// Retries up to [maxRetries] times with delays of 1s, 2s, 4s, etc.
+  Future<T> _retryUpload<T>(
+    Future<T> Function() action, {
+    int maxRetries = 3,
+  }) async {
+    int attempt = 0;
+    while (true) {
+      try {
+        return await action();
+      } catch (e) {
+        attempt++;
+        final isRetryable =
+            e is FirebaseException &&
+            (e.code == 'unknown' ||
+                e.code == 'canceled' ||
+                e.code == 'retry-limit-exceeded' ||
+                e.code == 'unavailable' ||
+                e.code == 'deadline-exceeded');
+        final isNetworkError =
+            e is SocketException || e.toString().contains('SocketException');
+
+        if ((isRetryable || isNetworkError) && attempt < maxRetries) {
+          final delay = Duration(seconds: 1 << (attempt - 1)); // 1s, 2s, 4s
+          debugPrint(
+            'Upload attempt $attempt failed, retrying in ${delay.inSeconds}s...',
+          );
+          await Future.delayed(delay);
+          continue;
+        }
+        rethrow;
+      }
+    }
+  }
 
   // Upload bill/warranty image with compression
   Future<String?> uploadBillImage({
@@ -17,10 +55,14 @@ class StorageService {
   }) async {
     try {
       // Compress the image before upload
+      final compressStopwatch = Stopwatch()..start();
       final compressedFile = await _compressionService.compressForBill(
         imageFile,
       );
-      debugPrint('Bill image prepared for upload');
+      compressStopwatch.stop();
+      debugPrint(
+        'Bill image compressed in ${compressStopwatch.elapsedMilliseconds}ms',
+      );
 
       String extension = compressedFile.path.split('.').last.toLowerCase();
       // Fallback if extension is missing or too long (likely not an extension)
@@ -32,21 +74,31 @@ class StorageService {
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('bills/$userId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(compressedFile.path),
-        SettableMetadata(
-          contentType: 'image/$extension',
-          customMetadata: {
-            'uploadedBy': userId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadStopwatch = Stopwatch()..start();
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/$extension',
+            customMetadata: {
+              'uploadedBy': userId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
+      );
+      uploadStopwatch.stop();
+      debugPrint(
+        'Bill image uploaded in ${uploadStopwatch.elapsedMilliseconds}ms',
       );
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading bill image: $e');
-      return null;
+      if (e is FirebaseException) {
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
+      }
+      rethrow;
     }
   }
 
@@ -72,21 +124,26 @@ class StorageService {
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('warranty_cards/$userId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(compressedFile.path),
-        SettableMetadata(
-          contentType: 'image/$extension',
-          customMetadata: {
-            'uploadedBy': userId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/$extension',
+            customMetadata: {
+              'uploadedBy': userId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
       );
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading warranty card: $e');
-      return null;
+      if (e is FirebaseException) {
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
+      }
+      rethrow;
     }
   }
 
@@ -113,22 +170,27 @@ class StorageService {
       // Store in profiles/{userId}/{fileName}
       final ref = _storage.ref().child('profiles/$userId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(compressedFile.path),
-        SettableMetadata(
-          contentType: 'image/$extension',
-          customMetadata: {
-            'uploadedBy': userId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-            'type': 'profile_picture',
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/$extension',
+            customMetadata: {
+              'uploadedBy': userId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+              'type': 'profile_picture',
+            },
+          ),
         ),
       );
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading profile image: $e');
-      return null;
+      if (e is FirebaseException) {
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
+      }
+      rethrow;
     }
   }
 
@@ -144,21 +206,26 @@ class StorageService {
       final fileName = '${_uuid.v4()}.${compressedFile.path.split('.').last}';
       final ref = _storage.ref().child('products/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(compressedFile.path),
-        SettableMetadata(
-          contentType: 'image/${compressedFile.path.split('.').last}',
-          customMetadata: {
-            'uploadedBy': 'ADMIN',
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/${compressedFile.path.split('.').last}',
+            customMetadata: {
+              'uploadedBy': 'ADMIN',
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
       );
 
       return await uploadTask.ref.getDownloadURL();
     } catch (e) {
       debugPrint('Error uploading product image: $e');
-      return null;
+      if (e is FirebaseException) {
+        debugPrint('Firebase Exception: ${e.code} - ${e.message}');
+      }
+      rethrow;
     }
   }
 
@@ -189,15 +256,17 @@ class StorageService {
       final fileName = '${_uuid.v4()}.$extension';
       final ref = _storage.ref().child('evidence/$requestId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(compressedFile.path),
-        SettableMetadata(
-          contentType: 'image/$extension',
-          customMetadata: {
-            'uploadedBy': userId,
-            'requestId': requestId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/$extension',
+            customMetadata: {
+              'uploadedBy': userId,
+              'requestId': requestId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
       );
 
@@ -228,16 +297,24 @@ class StorageService {
       final fileName = '${_uuid.v4()}.m4a';
       final ref = _storage.ref().child('audio/$requestId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(filePath),
-        SettableMetadata(
-          contentType: 'audio/mp4',
-          customMetadata: {
-            'uploadedBy': userId,
-            'requestId': requestId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadStopwatch = Stopwatch()..start();
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(filePath),
+          SettableMetadata(
+            contentType: 'audio/mp4',
+            customMetadata: {
+              'uploadedBy': userId,
+              'requestId': requestId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
+      );
+      uploadStopwatch.stop();
+      final fileSize = await file.length();
+      debugPrint(
+        'Audio uploaded: ${fileSize ~/ 1024}KB in ${uploadStopwatch.elapsedMilliseconds}ms',
       );
 
       return await uploadTask.ref.getDownloadURL();
@@ -266,16 +343,18 @@ class StorageService {
       // Store in admin_audio/{requestId}/{fileName}
       final ref = _storage.ref().child('admin_audio/$requestId/$fileName');
 
-      final uploadTask = await ref.putFile(
-        File(filePath),
-        SettableMetadata(
-          contentType: 'audio/mp4',
-          customMetadata: {
-            'uploadedBy': 'ADMIN',
-            'requestId': requestId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-            'type': 'admin_instruction',
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(filePath),
+          SettableMetadata(
+            contentType: 'audio/mp4',
+            customMetadata: {
+              'uploadedBy': 'ADMIN',
+              'requestId': requestId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+              'type': 'admin_instruction',
+            },
+          ),
         ),
       );
 
@@ -298,31 +377,34 @@ class StorageService {
     final urls = <String>[];
 
     // Compress all images in parallel first for faster processing
+    final compressionStopwatch = Stopwatch()..start();
     debugPrint('Compressing ${imageFiles.length} images in parallel...');
     final compressedFiles = await _compressionService.compressMultiple(
       imageFiles,
     );
-    debugPrint('Compression complete, uploading...');
+    compressionStopwatch.stop();
+    debugPrint(
+      'Compression complete in ${compressionStopwatch.elapsedMilliseconds}ms, uploading in parallel...',
+    );
 
-    for (int i = 0; i < compressedFiles.length; i++) {
-      try {
-        // Upload directly without additional compression since already compressed
-        final url = await _uploadEvidenceImageDirect(
-          userId: userId,
-          requestId: requestId,
-          imageFile: compressedFiles[i],
-        );
-        if (url != null) {
-          urls.add(url);
-        }
-        debugPrint('Uploaded image ${i + 1}/${compressedFiles.length}');
-      } catch (e) {
-        debugPrint('Image ${i + 1} failed to upload: $e');
-        // If one fails, we should probably stop and notify the user
-        // or we could continue. Given the "systematic" instruction, let's fail fast.
-        rethrow;
-      }
-    }
+    // Upload all images in parallel instead of sequentially
+    final uploadStopwatch = Stopwatch()..start();
+    final uploadFutures =
+        compressedFiles.map((file) {
+          return _uploadEvidenceImageDirect(
+            userId: userId,
+            requestId: requestId,
+            imageFile: file,
+          );
+        }).toList();
+
+    final results = await Future.wait(uploadFutures);
+    uploadStopwatch.stop();
+
+    urls.addAll(results.whereType<String>());
+    debugPrint(
+      'Uploaded ${urls.length}/${compressedFiles.length} images in ${uploadStopwatch.elapsedMilliseconds}ms',
+    );
 
     // Cleanup temp files after upload
     await _compressionService.cleanupTempFiles();
@@ -363,15 +445,17 @@ class StorageService {
         '_uploadEvidenceImageDirect: Uploading to evidence/$requestId/$fileName',
       );
 
-      final uploadTask = await ref.putFile(
-        file,
-        SettableMetadata(
-          contentType: 'image/$extension',
-          customMetadata: {
-            'uploadedBy': userId,
-            'requestId': requestId,
-            'uploadedAt': DateTime.now().toIso8601String(),
-          },
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          file,
+          SettableMetadata(
+            contentType: 'image/$extension',
+            customMetadata: {
+              'uploadedBy': userId,
+              'requestId': requestId,
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
         ),
       );
 
