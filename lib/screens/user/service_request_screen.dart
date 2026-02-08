@@ -6,6 +6,7 @@ import 'package:record/record.dart';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../app/theme.dart';
 import '../../models/user_appliance_model.dart';
 import '../../models/service_request_model.dart';
@@ -169,6 +170,35 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
       print('DEBUG: Step 4 - Getting user model');
       final user = await authService.getUserModel();
       print('DEBUG: Step 4 complete - user: ${user?.displayName}');
+
+      // Fetch user's default/saved address for the service request
+      String? customerAddress;
+      try {
+        final addressSnapshot =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .collection('addresses')
+                .limit(1)
+                .get();
+        if (addressSnapshot.docs.isNotEmpty) {
+          final addr = addressSnapshot.docs.first.data();
+          final parts = <String>[
+            if (addr['address'] != null &&
+                (addr['address'] as String).isNotEmpty)
+              addr['address'],
+            if (addr['city'] != null && (addr['city'] as String).isNotEmpty)
+              addr['city'],
+            if (addr['pincode'] != null &&
+                (addr['pincode'] as String).isNotEmpty)
+              addr['pincode'],
+          ];
+          if (parts.isNotEmpty) customerAddress = parts.join(', ');
+        }
+      } catch (e) {
+        print('DEBUG: Error fetching address: $e');
+      }
+
       final requestId = DateTime.now().millisecondsSinceEpoch.toString();
       print('DEBUG: Step 5 - Generated requestId: $requestId');
 
@@ -246,6 +276,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
           createdAt: DateTime.now(),
           customerName: user?.displayName,
           customerPhone: user?.phone,
+          customerAddress: customerAddress,
           productName: _product?.productName,
           productModel: _product?.modelNumber,
         );

@@ -336,6 +336,7 @@ class FirestoreService {
     String? technicianAddress,
     String? resolutionNotes,
     String? adminVoiceNoteUrl,
+    double? deliveryFee,
   }) async {
     final updates = <String, dynamic>{'status': status.firestoreValue};
 
@@ -348,6 +349,8 @@ class FirestoreService {
     if (resolutionNotes != null) updates['resolutionNotes'] = resolutionNotes;
     if (adminVoiceNoteUrl != null)
       updates['adminVoiceNoteUrl'] = adminVoiceNoteUrl;
+    if (deliveryFee != null)
+      updates['deliveryFee'] = deliveryFee;
 
     if (status == ServiceRequestStatus.assigned) {
       updates['assignedAt'] = Timestamp.now();
@@ -474,14 +477,26 @@ class FirestoreService {
     });
   }
 
-  // Approve referral and set reward coins
+  // Approve referral and set reward coins - credits coins to the referee
   Future<void> approveReferral(String referralId, int rewardCoins) async {
+    final referralDoc = await _firestore.collection('referrals').doc(referralId).get();
+    if (!referralDoc.exists) return;
+    
+    final refereeId = referralDoc.data()?['refereeId'] as String?;
+    
     await _firestore.collection('referrals').doc(referralId).update({
       'status': 'approved',
       'adminApproved': true,
       'rewardCoins': rewardCoins,
       'approvedAt': FieldValue.serverTimestamp(),
     });
+    
+    // Credit coins to the referee (the person who was referred)
+    if (refereeId != null && rewardCoins > 0) {
+      await _firestore.collection('users').doc(refereeId).update({
+        'digitalCoins': FieldValue.increment(rewardCoins),
+      });
+    }
   }
 
   // Create a referral when new user signs up with code
@@ -705,16 +720,20 @@ class FirestoreService {
         .map((snapshot) => snapshot.size);
   }
 
-  // Stream for Total Users Count (Note: .count() is not streamable efficiently in all SDKs, so we use snapshots size or polling if needed. 
-  // For standard admin, snapshots of empty query is expensive. 
-  // We will stream the metadata or just return a repeated polling stream if needed, 
+  // Stream for Total Users Count (Note: .count() is not streamable efficiently in all SDKs, so we use snapshots size or polling if needed.
+  // For standard admin, snapshots of empty query is expensive.
+  // We will stream the metadata or just return a repeated polling stream if needed,
   // but for now, simple snapshot.size is acceptable for normal scale or we use Future in UI.
   // Actually, let's use a stream that listens to user collection metadata if possible? No.
-  // We'll stick to a periodical stream or just snapshot map. 
-  // Warning: large collection cost. But user request "dynamically update". 
+  // We'll stick to a periodical stream or just snapshot map.
+  // Warning: large collection cost. But user request "dynamically update".
   // We'll use snapshot.size but keep in mind cost.)
   Stream<int> getTotalUsersCountStream() {
-    return _firestore.collection('users').snapshots().map((s) => s.size);
+    return _firestore
+        .collection('users')
+        .where('isAdmin', isEqualTo: false)
+        .snapshots()
+        .map((s) => s.size);
   }
 
   // Stream for Pending Payouts (Active Calculation)
@@ -724,12 +743,12 @@ class FirestoreService {
         .where('pendingPayout', isGreaterThan: 0)
         .snapshots()
         .map((snapshot) {
-      double total = 0;
-      for (final doc in snapshot.docs) {
-        total += (doc.data()['pendingPayout'] ?? 0).toDouble();
-      }
-      return total;
-    });
+          double total = 0;
+          for (final doc in snapshot.docs) {
+            total += (doc.data()['pendingPayout'] ?? 0).toDouble();
+          }
+          return total;
+        });
   }
 
   // Get recent activity for dashboard
@@ -855,28 +874,52 @@ class FirestoreService {
 
   // Place a new Order
   Future<String> placeOrder(OrderModel order) async {
-    // 1. Create Order
-    final docRef = _firestore.collection('orders').doc();
-    final orderWithId = OrderModel(
-      id: docRef.id,
-      userId: order.userId,
-      items: order.items,
-      totalAmount: order.totalAmount,
-      status: order.status,
-      paymentMethod: order.paymentMethod,
-      address: order.address,
-      orderedAt: order.orderedAt,
-      deliveredAt: order.deliveredAt,
-      trackingNumber: order.trackingNumber,
-      shippingFee: order.shippingFee,
-    );
+    // Use transaction to create order and decrement stock atomically
+    return await _firestore.runTransaction<String>((transaction) async {
+      // Step 1: Validate and prepare stock updates
+      for (final item in order.items) {
+        final productRef = _firestore
+            .collection('catalog_products')
+            .doc(item.productId);
+        final productDoc = await transaction.get(productRef);
 
-    await docRef.set(orderWithId.toFirestore());
+        if (productDoc.exists) {
+          final data = productDoc.data() as Map<String, dynamic>;
+          final trackInventory = data['trackInventory'] ?? true;
+          final stockQuantity = data['stockQuantity'] ?? 0;
 
-    // 2. (Optional) Auto-register appliances if warranty starts immediately?
-    // Usually warranty starts from delivery. So we handle that on 'delivered' status.
+          if (trackInventory) {
+            if (stockQuantity < item.quantity) {
+              throw Exception('${item.productName} is out of stock');
+            }
+            // Step 2: Decrement stock
+            transaction.update(productRef, {
+              'stockQuantity': FieldValue.increment(-item.quantity),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+      }
 
-    return docRef.id;
+      // Step 3: Create Order
+      final docRef = _firestore.collection('orders').doc();
+      final orderWithId = OrderModel(
+        id: docRef.id,
+        userId: order.userId,
+        items: order.items,
+        totalAmount: order.totalAmount,
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        address: order.address,
+        orderedAt: order.orderedAt,
+        deliveredAt: order.deliveredAt,
+        trackingNumber: order.trackingNumber,
+        shippingFee: order.shippingFee,
+      );
+
+      transaction.set(docRef, orderWithId.toFirestore());
+      return docRef.id;
+    });
   }
 
   // Get User Orders
@@ -954,16 +997,30 @@ class FirestoreService {
       if (status == OrderStatus.delivered) {
         updates['deliveredAt'] = Timestamp.now();
 
-        // Calculate and credit 5% digital coins
+        // Credit product-specific reward coins on delivery
         final orderData = orderDoc.data()!;
-        final totalAmount = (orderData['totalAmount'] ?? 0).toDouble();
         final userId = orderData['userId'] as String;
-        final coins = (totalAmount * 0.05).round();
+        final items = orderData['items'] as List<dynamic>? ?? [];
+        
+        int totalRewardCoins = 0;
+        for (final item in items) {
+          final productId = item['productId'] as String?;
+          if (productId != null) {
+            final productDoc = await transaction.get(
+              _firestore.collection('catalog_products').doc(productId),
+            );
+            if (productDoc.exists) {
+              final productRewardCoins = (productDoc.data()?['rewardCoins'] ?? 0) as int;
+              final quantity = (item['quantity'] ?? 1) as int;
+              totalRewardCoins += productRewardCoins * quantity;
+            }
+          }
+        }
 
-        if (coins > 0) {
+        if (totalRewardCoins > 0) {
           final userRef = _firestore.collection('users').doc(userId);
           transaction.update(userRef, {
-            'digitalCoins': FieldValue.increment(coins),
+            'digitalCoins': FieldValue.increment(totalRewardCoins),
           });
         }
       }
@@ -989,6 +1046,26 @@ class FirestoreService {
   ) async {
     await _firestore.collection('orders').doc(orderId).update({
       'expectedDeliveryDate': Timestamp.fromDate(date),
+    });
+  }
+
+  // Update delivery/shipping fee for an order (Admin)
+  // Also recalculates totalAmount = items subtotal + new fee
+  Future<void> updateOrderDeliveryFee(String orderId, double fee) async {
+    final doc = await _firestore.collection('orders').doc(orderId).get();
+    if (!doc.exists) throw Exception('Order not found');
+    final data = doc.data()!;
+    final items = (data['items'] as List<dynamic>?) ?? [];
+    double subtotal = 0;
+    for (final item in items) {
+      final price = (item['price'] ?? 0).toDouble();
+      final qty = (item['quantity'] ?? 1).toInt();
+      subtotal += price * qty;
+    }
+    final newTotal = subtotal + fee;
+    await _firestore.collection('orders').doc(orderId).update({
+      'shippingFee': fee,
+      'totalAmount': newTotal,
     });
   }
 
@@ -1065,8 +1142,10 @@ class FirestoreService {
       for (int i = 0; i < item.quantity; i++) {
         final newApplianceRef = _firestore.collection('products').doc();
 
-        final warrantyEndDate = DateTime.now().add(
-          Duration(days: item.warrantyMonths * 30),
+        final warrantyEndDate = DateTime(
+          DateTime.now().year,
+          DateTime.now().month + item.warrantyMonths,
+          DateTime.now().day,
         );
 
         final appliance = UserApplianceModel(
@@ -1434,6 +1513,70 @@ class FirestoreService {
       transaction.set(orderRef, orderWithId.toFirestore());
 
       return orderRef.id;
+    });
+  }
+
+  // ============== COINS MANAGEMENT ==============
+
+  // Get admin coin-to-rupee rate from app_config
+  Future<double> getCoinToRupeeRate() async {
+    final doc = await _firestore.collection('app_config').doc('coins').get();
+    if (doc.exists) {
+      return (doc.data()?['coinToRupeeRate'] ?? 1.0).toDouble();
+    }
+    return 1.0; // Default: 1 coin = ₹1
+  }
+
+  // Stream coin rate for real-time updates
+  Stream<double> coinToRupeeRateStream() {
+    return _firestore.collection('app_config').doc('coins').snapshots().map((doc) {
+      if (doc.exists) {
+        return (doc.data()?['coinToRupeeRate'] ?? 1.0).toDouble();
+      }
+      return 1.0;
+    });
+  }
+
+  // Set coin-to-rupee rate (Admin)
+  Future<void> setCoinToRupeeRate(double rate) async {
+    await _firestore.collection('app_config').doc('coins').set({
+      'coinToRupeeRate': rate,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  // Get all users with coins > 0
+  Stream<List<UserModel>> getUsersWithCoins() {
+    return _firestore
+        .collection('users')
+        .where('digitalCoins', isGreaterThan: 0)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+    });
+  }
+
+  // Deduct coins from a user (Admin manual redemption)
+  Future<void> deductUserCoins(String userId, int coins) async {
+    await _firestore.collection('users').doc(userId).update({
+      'digitalCoins': FieldValue.increment(-coins),
+    });
+  }
+
+  // Add coins to a user
+  Future<void> addUserCoins(String userId, int coins) async {
+    await _firestore.collection('users').doc(userId).update({
+      'digitalCoins': FieldValue.increment(coins),
+    });
+  }
+
+  // Update delivery fee for a service request
+  Future<void> updateServiceRequestDeliveryFee(
+    String requestId,
+    double deliveryFee,
+  ) async {
+    await _firestore.collection('service_requests').doc(requestId).update({
+      'deliveryFee': deliveryFee,
     });
   }
 }

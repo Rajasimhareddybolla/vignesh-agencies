@@ -37,6 +37,7 @@ class _ServiceRequestDetailScreenState
   final _technicianPhoneController = TextEditingController();
   final _technicianAddressController = TextEditingController();
   final _notesController = TextEditingController();
+  final _deliveryFeeController = TextEditingController();
 
   // Admin Voice Note
   late final AudioRecorder _audioRecorder;
@@ -59,6 +60,7 @@ class _ServiceRequestDetailScreenState
     _technicianPhoneController.dispose();
     _technicianAddressController.dispose();
     _notesController.dispose();
+    _deliveryFeeController.dispose();
     _audioRecorder.dispose();
     super.dispose();
   }
@@ -70,6 +72,9 @@ class _ServiceRequestDetailScreenState
       _technicianPhoneController.text = request.technicianPhone ?? '';
       _technicianAddressController.text = request.technicianAddress ?? '';
       _adminVoiceNoteUrl = request.adminVoiceNoteUrl;
+      _deliveryFeeController.text = request.deliveryFee > 0 
+          ? request.deliveryFee.toStringAsFixed(0) 
+          : '0';
       _isInitialized = true;
     }
   }
@@ -130,6 +135,7 @@ class _ServiceRequestDetailScreenState
         resolutionNotes:
             _notesController.text.isNotEmpty ? _notesController.text : null,
         adminVoiceNoteUrl: _adminVoiceNoteUrl,
+        deliveryFee: double.tryParse(_deliveryFeeController.text),
       );
 
       if (mounted) {
@@ -1253,30 +1259,37 @@ class _ServiceRequestDetailScreenState
                                           child: const Text('Clear'),
                                         ),
                                       ),
+                                      selectedItemBuilder: (context) {
+                                        return agents.map((agent) {
+                                          return Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              '${agent.name} - ${agent.phone}',
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                          );
+                                        }).toList();
+                                      },
                                       items:
                                           agents.map((agent) {
                                             return DropdownMenuItem(
                                               value: agent.id,
                                               child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisSize: MainAxisSize.min,
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     agent.name,
                                                     style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w500,
+                                                      fontWeight: FontWeight.w500,
                                                     ),
                                                   ),
                                                   Text(
                                                     agent.phone,
                                                     style: TextStyle(
                                                       fontSize: 12,
-                                                      color:
-                                                          AppTheme.textSecondary(
-                                                            context,
-                                                          ),
+                                                      color: AppTheme.textSecondary(context),
                                                     ),
                                                   ),
                                                 ],
@@ -1472,6 +1485,80 @@ class _ServiceRequestDetailScreenState
                             prefixIcon: Padding(
                               padding: EdgeInsets.only(bottom: 48),
                               child: Icon(Icons.notes),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Delivery Fee
+                        TextFormField(
+                          controller: _deliveryFeeController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Delivery / Visit Fee (₹)',
+                            hintText: '0',
+                            prefixIcon: const Icon(Icons.delivery_dining, color: Colors.orange),
+                            suffixText: '₹',
+                            helperText: request.deliveryFee > 0
+                                ? 'Current: ₹${request.deliveryFee.toStringAsFixed(0)} (visible to user)'
+                                : 'Default: ₹0 — Set fee based on distance/product',
+                            helperStyle: TextStyle(
+                              color: request.deliveryFee > 0 ? AppTheme.success : Colors.grey,
+                            ),
+                          ),
+                        ),
+                        if (request.deliveryFee > 0)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.success.withAlpha(20),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.success.withAlpha(50)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: AppTheme.success, size: 18),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Delivery fee of ₹${request.deliveryFee.toStringAsFixed(0)} is set and visible to user',
+                                  style: const TextStyle(color: AppTheme.success, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                          ),
+                        
+                        const SizedBox(height: 8),
+                        // Quick save delivery fee button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final fee = double.tryParse(_deliveryFeeController.text) ?? 0;
+                              await context.read<FirestoreService>().updateServiceRequestDeliveryFee(
+                                widget.requestId, fee,
+                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(fee > 0
+                                        ? 'Delivery fee updated to ₹${fee.toStringAsFixed(0)}'
+                                        : 'Delivery fee removed'),
+                                    backgroundColor: AppTheme.success,
+                                  ),
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.save, size: 18),
+                            label: const Text('Save Delivery Fee'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.orange,
+                              side: const BorderSide(color: Colors.orange),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                           ),
                         ),

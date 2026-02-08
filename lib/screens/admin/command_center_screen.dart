@@ -109,7 +109,9 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                       children: [
                         Expanded(
                           child: StreamBuilder<int>(
-                            stream: firestoreService.getPendingRequestsCountStream(),
+                            stream:
+                                firestoreService
+                                    .getPendingRequestsCountStream(),
                             builder: (context, snapshot) {
                               return StaggeredFadeIn(
                                 index: 0,
@@ -118,16 +120,19 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   value: snapshot.data ?? 0,
                                   icon: Icons.build_circle,
                                   color: AppTheme.warning,
-                                  onTap: () => context.goNamed('admin-requests'),
+                                  onTap:
+                                      () => context.goNamed('admin-requests'),
                                 ),
                               );
-                            }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: StreamBuilder<int>(
-                            stream: firestoreService.getPendingRegistrationsCountStream(),
+                            stream:
+                                firestoreService
+                                    .getPendingRegistrationsCountStream(),
                             builder: (context, snapshot) {
                               return StaggeredFadeIn(
                                 index: 1,
@@ -136,10 +141,11 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   value: snapshot.data ?? 0,
                                   icon: Icons.verified,
                                   color: AppTheme.primary,
-                                  onTap: () => context.goNamed('admin-warranty'),
+                                  onTap:
+                                      () => context.goNamed('admin-warranty'),
                                 ),
                               );
-                            }
+                            },
                           ),
                         ),
                       ],
@@ -159,16 +165,11 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   icon: Icons.people,
                                   color: AppTheme.success,
                                   onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const AdminUserListScreen(),
-                                      ),
-                                    );
+                                    context.push('/admin/users');
                                   },
                                 ),
                               );
-                            }
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -187,7 +188,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   onTap: () => context.goNamed('admin-payouts'),
                                 ),
                               );
-                            }
+                            },
                           ),
                         ),
                       ],
@@ -480,12 +481,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
             color: Colors.teal,
             onTap: () {
               HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AdminFeedbackScreen(),
-                ),
-              );
+              context.push('/admin/feedback');
             },
           ),
           const SizedBox(width: 12),
@@ -495,12 +491,17 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
             color: Colors.indigo,
             onTap: () {
               HapticFeedback.lightImpact();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AdminReferralsScreen(),
-                ),
-              );
+              context.push('/admin/referrals');
+            },
+          ),
+          const SizedBox(width: 12),
+          _PremiumQuickAction(
+            icon: Icons.monetization_on,
+            label: 'Coins\nManagement',
+            color: Colors.amber,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.push('/admin/coins');
             },
           ),
           const SizedBox(width: 12),

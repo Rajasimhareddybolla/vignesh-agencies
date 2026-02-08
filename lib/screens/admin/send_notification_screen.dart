@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'dart:io';
 import '../../app/theme.dart';
 import '../../models/promo_notification_model.dart';
 import '../../services/notification_service.dart';
+import '../../services/storage_service.dart';
 
 class SendNotificationScreen extends StatefulWidget {
   const SendNotificationScreen({super.key});
@@ -21,6 +25,8 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
 
   String _selectedType = 'offer';
   bool _isSending = false;
+  XFile? _notificationImage;
+  final _imagePicker = ImagePicker();
   late AnimationController _headerController;
 
   final List<Map<String, dynamic>> _templates = [
@@ -103,6 +109,26 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
     });
   }
 
+  Future<void> _pickNotificationImage() async {
+    try {
+      final image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+      if (image != null) {
+        setState(() => _notificationImage = image);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
+    }
+  }
+
   Future<void> _sendNotification() async {
     if (!_formKey.currentState!.validate()) {
       HapticFeedback.heavyImpact();
@@ -113,11 +139,26 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
     HapticFeedback.mediumImpact();
 
     try {
+      // Upload notification image if selected
+      String? imageUrl;
+      if (_notificationImage != null) {
+        try {
+          final storageService = context.read<StorageService>();
+          imageUrl = await storageService.uploadNotificationImage(
+            imageFile: _notificationImage!,
+          );
+        } catch (e) {
+          print('Error uploading notification image: $e');
+          // Continue without image
+        }
+      }
+
       final notification = PromoNotification(
         id: '',
         title: _titleController.text.trim(),
         body: _bodyController.text.trim(),
         type: _selectedType,
+        imageUrl: imageUrl,
         discountPercent:
             _discountController.text.isNotEmpty
                 ? double.tryParse(_discountController.text)
@@ -156,6 +197,7 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
       _titleController.clear();
       _bodyController.clear();
       _discountController.clear();
+      setState(() => _notificationImage = null);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -323,6 +365,106 @@ class _SendNotificationScreenState extends State<SendNotificationScreen>
                       hint: 'e.g., 20',
                       icon: Icons.percent,
                       keyboardType: TextInputType.number,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Notification Image
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Notification Image (Optional)',
+                          style: Theme.of(
+                            context,
+                          ).textTheme.labelMedium?.copyWith(
+                            color: AppTheme.textSecondary(context),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: _pickNotificationImage,
+                          child: Container(
+                            width: double.infinity,
+                            height: 150,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).dividerColor.withAlpha(50),
+                              ),
+                            ),
+                            child:
+                                _notificationImage != null
+                                    ? Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          child: Image.file(
+                                            File(_notificationImage!.path),
+                                            width: double.infinity,
+                                            height: 150,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 8,
+                                          right: 8,
+                                          child: GestureDetector(
+                                            onTap:
+                                                () => setState(
+                                                  () =>
+                                                      _notificationImage = null,
+                                                ),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withAlpha(
+                                                  150,
+                                                ),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                    : Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.add_photo_alternate_outlined,
+                                          size: 40,
+                                          color: AppTheme.textSecondary(
+                                            context,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Tap to add image',
+                                          style: TextStyle(
+                                            color: AppTheme.textSecondary(
+                                              context,
+                                            ),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 32),

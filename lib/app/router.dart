@@ -38,6 +38,11 @@ import '../screens/admin/products/admin_orders_screen.dart';
 import '../screens/admin/marketing_manager_screen.dart';
 import '../screens/admin/add_banner_screen.dart';
 import '../screens/admin/agents_management_screen.dart';
+import '../screens/admin/users/admin_user_list_screen.dart';
+import '../screens/admin/users/admin_user_profile_screen.dart';
+import '../screens/admin/admin_feedback_screen.dart';
+import '../screens/admin/admin_referrals_screen.dart';
+import '../screens/admin/coins_management_screen.dart';
 import '../models/catalog_product_model.dart';
 import '../services/auth_service.dart';
 import '../screens/user/checkout_screen.dart';
@@ -355,6 +360,35 @@ class AppRouter {
           final product = state.extra as CatalogProductModel?;
           return AddEditProductScreen(product: product);
         },
+      ),
+      GoRoute(
+        path: '/admin/users',
+        name: 'admin-users',
+        builder: (context, state) => const AdminUserListScreen(),
+      ),
+      GoRoute(
+        path: '/admin/users/:userId',
+        name: 'admin-user-profile',
+        builder: (context, state) {
+          final userId = state.pathParameters['userId'] ?? '';
+          final userName = state.extra as String? ?? '';
+          return AdminUserProfileScreen(userId: userId, userName: userName);
+        },
+      ),
+      GoRoute(
+        path: '/admin/feedback',
+        name: 'admin-feedback',
+        builder: (context, state) => const AdminFeedbackScreen(),
+      ),
+      GoRoute(
+        path: '/admin/referrals',
+        name: 'admin-referrals',
+        builder: (context, state) => const AdminReferralsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/coins',
+        name: 'admin-coins',
+        builder: (context, state) => const CoinsManagementScreen(),
       ),
     ],
     errorBuilder:

@@ -893,62 +893,62 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             showModalBottomSheet(
               context: context,
               shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              builder: (context) => Container(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Select Item to Register',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    Flexible(
-                      child: ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: order.items.length,
-                        separatorBuilder: (ctx, i) => const Divider(),
-                        itemBuilder: (context, index) {
-                          final item = order.items[index];
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CachedNetworkImage(
-                                imageUrl: item.productImage,
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => const Icon(
-                                  Icons.image_not_supported,
+              builder:
+                  (context) => Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Select Item to Register',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 16),
+                        Flexible(
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: order.items.length,
+                            separatorBuilder: (ctx, i) => const Divider(),
+                            itemBuilder: (context, index) {
+                              final item = order.items[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: CachedNetworkImage(
+                                    imageUrl: item.productImage,
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.cover,
+                                    errorWidget:
+                                        (_, __, ___) => const Icon(
+                                          Icons.image_not_supported,
+                                        ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            title: Text(item.productName),
-                            subtitle: Text(item.category),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () {
-                              Navigator.pop(context); // Close bottom sheet
-                              context.pushNamed(
-                                'add-product',
-                                extra: {
-                                  'sourceOrder': order,
-                                  'sourceOrderItem': item,
+                                title: Text(item.productName),
+                                subtitle: Text(item.category),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  Navigator.pop(context); // Close bottom sheet
+                                  context.pushNamed(
+                                    'add-product',
+                                    extra: {
+                                      'sourceOrder': order,
+                                      'sourceOrderItem': item,
+                                    },
+                                  );
                                 },
                               );
                             },
-                          );
-                        },
-                      ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
             );
           }
         },
@@ -1252,16 +1252,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Invoice saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'}'),
+            content: Text(
+              'Invoice saved to ${Platform.isAndroid ? 'Downloads' : 'Documents'}',
+            ),
             backgroundColor: AppTheme.success,
             action: SnackBarAction(
               label: 'Open',
               textColor: Colors.white,
               onPressed: () {
-                Printing.layoutPdf(
-                  onLayout: (_) => bytes,
-                  name: fileName,
-                );
+                Printing.layoutPdf(onLayout: (_) => bytes, name: fileName);
               },
             ),
           ),
@@ -1518,9 +1517,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         ),
                       ),
                       _pdfTableCell('${item.quantity}'),
-                      _pdfTableCell('₹${item.price.toStringAsFixed(0)}'),
+                      _pdfTableCell('Rs.${item.price.toStringAsFixed(0)}'),
                       _pdfTableCell(
-                        '₹${(item.price * item.quantity).toStringAsFixed(0)}',
+                        'Rs.${(item.price * item.quantity).toStringAsFixed(0)}',
                       ),
                     ],
                   ),
@@ -1546,7 +1545,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             style: const pw.TextStyle(fontSize: 10),
                           ),
                           pw.Text(
-                            '₹${subtotal.toStringAsFixed(0)}',
+                            'Rs.${subtotal.toStringAsFixed(0)}',
                             style: const pw.TextStyle(fontSize: 10),
                           ),
                         ],
@@ -1562,7 +1561,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           pw.Text(
                             order.shippingFee == 0
                                 ? 'FREE'
-                                : '₹${order.shippingFee.toStringAsFixed(0)}',
+                                : 'Rs.${order.shippingFee.toStringAsFixed(0)}',
                             style: const pw.TextStyle(
                               fontSize: 10,
                               color: PdfColors.green700,
@@ -1584,7 +1583,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                           ),
                           pw.Text(
-                            '₹${order.totalAmount.toStringAsFixed(0)}',
+                            'Rs.${order.totalAmount.toStringAsFixed(0)}',
                             style: pw.TextStyle(
                               fontSize: 12,
                               fontWeight: pw.FontWeight.bold,

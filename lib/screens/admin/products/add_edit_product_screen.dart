@@ -32,6 +32,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _stockQuantityController = TextEditingController();
   final _lowStockThresholdController = TextEditingController();
   final _estimatedDeliveryDaysController = TextEditingController();
+  final _rewardCoinsController = TextEditingController();
 
   // State
   String? _selectedCategory;
@@ -56,6 +57,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       _stockQuantityController.text = '0';
       _lowStockThresholdController.text = '5';
       _estimatedDeliveryDaysController.text = '3';
+      _rewardCoinsController.text = '0';
     }
   }
 
@@ -70,6 +72,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _stockQuantityController.text = p.stockQuantity.toString();
     _lowStockThresholdController.text = p.lowStockThreshold.toString();
     _estimatedDeliveryDaysController.text = p.estimatedDeliveryDays.toString();
+    _rewardCoinsController.text = p.rewardCoins.toString();
     _selectedCategory = p.categoryId;
     _images = List.from(p.images);
     _isActive = p.isActive;
@@ -90,6 +93,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _stockQuantityController.dispose();
     _lowStockThresholdController.dispose();
     _estimatedDeliveryDaysController.dispose();
+    _rewardCoinsController.dispose();
     super.dispose();
   }
 
@@ -164,6 +168,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         trackInventory: _trackInventory,
         estimatedDeliveryDays:
             int.tryParse(_estimatedDeliveryDaysController.text) ?? 3,
+        rewardCoins: int.tryParse(_rewardCoinsController.text) ?? 0,
         variations: _variations,
         specifications: _specifications,
         highlights: _highlights,
@@ -220,6 +225,37 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     if (confirm == true) {
       setState(() => _isActive = false);
       // _saveProduct will handle the update
+      await _saveProduct();
+    }
+  }
+
+  Future<void> _confirmUnarchive() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Unarchive Product'),
+            content: const Text(
+              'Are you sure you want to unarchive this product? It will be visible to customers again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Unarchive',
+                  style: TextStyle(color: AppTheme.success),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isActive = true);
       await _saveProduct();
     }
   }
@@ -403,6 +439,19 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           labelText: 'Warranty (Months)',
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _rewardCoinsController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Reward Coins on Purchase',
+                          hintText: 'Coins credited when user buys this product',
+                          prefixIcon: Icon(Icons.monetization_on, color: Colors.amber),
+                        ),
+                      ),
 
                       const SizedBox(height: 24),
                       _buildSectionHeader('Stock Management'),
@@ -558,21 +607,46 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         const SizedBox(height: 32),
                         SizedBox(
                           width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _confirmArchive,
-                            icon: const Icon(
-                              Icons.archive,
-                              color: AppTheme.error,
-                            ),
-                            label: const Text(
-                              'Archive Product',
-                              style: TextStyle(color: AppTheme.error),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppTheme.error),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                          ),
+                          child:
+                              _isActive
+                                  ? OutlinedButton.icon(
+                                    onPressed: _confirmArchive,
+                                    icon: const Icon(
+                                      Icons.archive,
+                                      color: AppTheme.error,
+                                    ),
+                                    label: const Text(
+                                      'Archive Product',
+                                      style: TextStyle(color: AppTheme.error),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: AppTheme.error,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                    ),
+                                  )
+                                  : OutlinedButton.icon(
+                                    onPressed: _confirmUnarchive,
+                                    icon: const Icon(
+                                      Icons.unarchive,
+                                      color: AppTheme.success,
+                                    ),
+                                    label: const Text(
+                                      'Unarchive Product',
+                                      style: TextStyle(color: AppTheme.success),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: AppTheme.success,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                    ),
+                                  ),
                         ),
                       ],
                     ],

@@ -60,6 +60,7 @@ dependencies:
   url_launcher: ^6.3.2
   mobile_scanner: ^7.1.4
   timezone: ^0.10.1
+  http: ^1.2.1
 
 dev_dependencies:
   flutter_test:

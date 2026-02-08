@@ -284,17 +284,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 width: 2,
                               ),
                             ),
-                            child: Center(
-                              child: Text(
-                                displayName.isNotEmpty
-                                    ? displayName[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
+                            child: ClipOval(
+                              child:
+                                  user?.photoUrl != null &&
+                                          user!.photoUrl!.isNotEmpty
+                                      ? Image.network(
+                                        user.photoUrl!,
+                                        width: 44,
+                                        height: 44,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Center(
+                                                  child: Text(
+                                                    displayName.isNotEmpty
+                                                        ? displayName[0]
+                                                            .toUpperCase()
+                                                        : 'U',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 18,
+                                                    ),
+                                                  ),
+                                                ),
+                                      )
+                                      : Center(
+                                        child: Text(
+                                          displayName.isNotEmpty
+                                              ? displayName[0].toUpperCase()
+                                              : 'U',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                        ),
+                                      ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -482,9 +509,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 16),
                   Text(
                     'Earn Rewards with Referrals!',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(

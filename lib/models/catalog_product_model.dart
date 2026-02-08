@@ -25,6 +25,9 @@ class CatalogProductModel {
   final bool trackInventory;        // Whether to track stock for this product
   final int estimatedDeliveryDays;  // Delivery estimation
 
+  // Coins reward for buying this product
+  final int rewardCoins;
+
   CatalogProductModel({
     required this.id,
     required this.name,
@@ -47,6 +50,7 @@ class CatalogProductModel {
     this.lowStockThreshold = 5,
     this.trackInventory = true,
     this.estimatedDeliveryDays = 5,
+    this.rewardCoins = 0,
   });
 
   // Computed stock properties
@@ -104,6 +108,7 @@ class CatalogProductModel {
       lowStockThreshold: data['lowStockThreshold'] ?? 5,
       trackInventory: data['trackInventory'] ?? true,
       estimatedDeliveryDays: data['estimatedDeliveryDays'] ?? 5,
+      rewardCoins: data['rewardCoins'] ?? 0,
     );
   }
 
@@ -130,6 +135,7 @@ class CatalogProductModel {
       'lowStockThreshold': lowStockThreshold,
       'trackInventory': trackInventory,
       'estimatedDeliveryDays': estimatedDeliveryDays,
+      'rewardCoins': rewardCoins,
     };
   }
 
@@ -154,6 +160,7 @@ class CatalogProductModel {
     int? lowStockThreshold,
     bool? trackInventory,
     int? estimatedDeliveryDays,
+    int? rewardCoins,
   }) {
     return CatalogProductModel(
       id: id ?? this.id,
@@ -177,6 +184,7 @@ class CatalogProductModel {
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       trackInventory: trackInventory ?? this.trackInventory,
       estimatedDeliveryDays: estimatedDeliveryDays ?? this.estimatedDeliveryDays,
+      rewardCoins: rewardCoins ?? this.rewardCoins,
     );
   }
 }

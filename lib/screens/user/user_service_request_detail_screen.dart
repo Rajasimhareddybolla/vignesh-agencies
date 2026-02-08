@@ -211,6 +211,69 @@ class _UserServiceRequestDetailScreenState
                     request.status != ServiceRequestStatus.pending)
                   const SizedBox(height: 16),
 
+                // Delivery Fee Card - show when admin has set a delivery fee
+                if (request.deliveryFee > 0) ...[
+                  _SectionCard(
+                    title: 'Delivery / Visit Fee',
+                    icon: Icons.delivery_dining,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withAlpha(20),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.orange.withAlpha(50)),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withAlpha(30),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.delivery_dining,
+                                color: Colors.orange,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Delivery/Visit Fee Applied',
+                                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'This fee has been added by the admin for this service visit',
+                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: AppTheme.textSecondary(context),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '₹${request.deliveryFee.toStringAsFixed(0)}',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange[800],
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 // Assignment Information (Read-Only)
                 _SectionCard(
                   title: 'Service Assignment',

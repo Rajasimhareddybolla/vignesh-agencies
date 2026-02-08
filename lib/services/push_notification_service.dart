@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
@@ -84,13 +86,35 @@ class PushNotificationService {
     }
 
     // 6. Listen for Foreground Messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
 
       // If `onMessage` is triggered with a notification, construct our own
       // local notification to show it as a heads-up display.
       if (notification != null && android != null) {
+        // Try to load notification image if available
+        StyleInformation? styleInfo;
+        final imageUrl =
+            notification.android?.imageUrl ??
+            message.data['imageUrl'] as String?;
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            final response = await http.get(Uri.parse(imageUrl));
+            if (response.statusCode == 200) {
+              final Uint8List imageBytes = response.bodyBytes;
+              final bigPicture = ByteArrayAndroidBitmap(imageBytes);
+              styleInfo = BigPictureStyleInformation(
+                bigPicture,
+                contentTitle: notification.title,
+                summaryText: notification.body,
+              );
+            }
+          } catch (e) {
+            debugPrint('Error loading notification image: $e');
+          }
+        }
+
         _localNotifications.show(
           notification.hashCode,
           notification.title,
@@ -101,8 +125,8 @@ class PushNotificationService {
               kNotificationChannelName,
               channelDescription:
                   'This channel is used for important notifications.',
-              icon: '@drawable/ic_notification', // Custom notification icon
-              // other properties...
+              icon: '@drawable/ic_notification',
+              styleInformation: styleInfo,
             ),
           ),
           payload: jsonEncode(message.data),

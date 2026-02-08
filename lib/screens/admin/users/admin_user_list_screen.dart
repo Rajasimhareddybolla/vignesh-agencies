@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../app/theme.dart';
 import '../../../models/user_model.dart';
 import '../../../services/firestore_service.dart';
-import 'admin_user_profile_screen.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -138,28 +138,28 @@ class _UserListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => AdminUserProfileScreen(
-                  userId: user.id,
-                  userName: user.displayName,
-                ),
-          ),
-        );
+        context.push('/admin/users/${user.id}', extra: user.displayName);
       },
       tileColor: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       leading: CircleAvatar(
         backgroundColor: AppTheme.getAvatarColor(user.displayName),
-        child: Text(
-          user.displayName.isNotEmpty ? user.displayName[0].toUpperCase() : 'U',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        backgroundImage:
+            user.photoUrl != null && user.photoUrl!.isNotEmpty
+                ? NetworkImage(user.photoUrl!)
+                : null,
+        child:
+            user.photoUrl == null || user.photoUrl!.isEmpty
+                ? Text(
+                  user.displayName.isNotEmpty
+                      ? user.displayName[0].toUpperCase()
+                      : 'U',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+                : null,
       ),
       title: Text(
         user.displayName,

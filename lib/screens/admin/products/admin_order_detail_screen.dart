@@ -137,36 +137,12 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                 ..._order.items.map((item) => _buildOrderItem(context, item)),
 
                 const SizedBox(height: 12),
-                // Order Summary within Items card? Or separate?
-                // Let's verify Total Amount
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.primary.withAlpha(50)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total Amount',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        '₹${_order.totalAmount.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Delivery Fee Section
+                _buildDeliveryFeeSection(context, firestoreService),
+
+                const SizedBox(height: 12),
+                // Order Summary
+                _buildOrderSummary(context),
 
                 const SizedBox(height: 32),
                 // Action Buttons
@@ -463,6 +439,291 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
       backgroundColor: color.withAlpha(30),
       side: BorderSide.none,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    );
+  }
+
+  Widget _buildDeliveryFeeSection(
+    BuildContext context,
+    FirestoreService firestoreService,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(10),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.delivery_dining, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Delivery Fee',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary(context),
+                ),
+              ),
+              const Spacer(),
+              if (_order.shippingFee > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.success.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '₹${_order.shippingFee.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppTheme.success,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withAlpha(30),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Not set',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showDeliveryFeeDialog(context, firestoreService),
+              icon: const Icon(Icons.edit, size: 16, color: Colors.orange),
+              label: Text(
+                _order.shippingFee > 0 ? 'Update Delivery Fee' : 'Set Delivery Fee',
+                style: const TextStyle(color: Colors.orange),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.orange),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderSummary(BuildContext context) {
+    final subtotal = _order.items.fold<double>(
+      0,
+      (sum, item) => sum + (item.price * item.quantity),
+    );
+    final deliveryFee = _order.shippingFee;
+    final grandTotal = _order.totalAmount;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withAlpha(15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.primary.withAlpha(50)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Subtotal',
+                style: TextStyle(
+                  color: AppTheme.textSecondary(context),
+                ),
+              ),
+              Text('₹${subtotal.toStringAsFixed(0)}'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.delivery_dining, size: 16, color: Colors.orange),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Delivery Fee',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary(context),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                deliveryFee > 0
+                    ? '₹${deliveryFee.toStringAsFixed(0)}'
+                    : 'FREE',
+                style: TextStyle(
+                  color: deliveryFee > 0 ? Colors.orange : AppTheme.success,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Amount',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                '₹${grandTotal.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeliveryFeeDialog(
+    BuildContext context,
+    FirestoreService firestoreService,
+  ) {
+    final controller = TextEditingController(
+      text: _order.shippingFee > 0 ? _order.shippingFee.toStringAsFixed(0) : '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withAlpha(30),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.delivery_dining, color: Colors.orange),
+            ),
+            const SizedBox(width: 12),
+            const Text('Delivery Fee'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Set the delivery fee for this order. Customer: ${_order.address.name}',
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Delivery Fee (₹)',
+                prefixText: '₹ ',
+                hintText: '0',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Set to 0 for free delivery',
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              final fee = double.tryParse(controller.text) ?? 0;
+              await firestoreService.updateOrderDeliveryFee(_order.id, fee);
+              final subtotal = _order.items.fold<double>(
+                0,
+                (sum, item) => sum + (item.price * item.quantity),
+              );
+              final newTotal = subtotal + fee;
+              setState(() {
+                _order = OrderModel(
+                  id: _order.id,
+                  userId: _order.userId,
+                  items: _order.items,
+                  totalAmount: newTotal,
+                  status: _order.status,
+                  paymentMethod: _order.paymentMethod,
+                  address: _order.address,
+                  orderedAt: _order.orderedAt,
+                  deliveredAt: _order.deliveredAt,
+                  trackingNumber: _order.trackingNumber,
+                  version: _order.version,
+                  cancellationReason: _order.cancellationReason,
+                  cancelledAt: _order.cancelledAt,
+                  cancelledBy: _order.cancelledBy,
+                  adminNotes: _order.adminNotes,
+                  assignedTo: _order.assignedTo,
+                  assignedAt: _order.assignedAt,
+                  expectedDeliveryDate: _order.expectedDeliveryDate,
+                  shippingFee: fee,
+                );
+              });
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      fee > 0
+                          ? 'Delivery fee set to ₹${fee.toStringAsFixed(0)}'
+                          : 'Delivery fee removed',
+                    ),
+                    backgroundColor: AppTheme.success,
+                  ),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
     );
   }
 

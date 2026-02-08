@@ -162,6 +162,9 @@ class ServiceRequestModel {
   final DateTime? feedbackSubmittedAt;
   final bool feedbackRequested;
 
+  // Delivery fee set by admin
+  final double deliveryFee;
+
   ServiceRequestModel({
     required this.id,
     required this.userId,
@@ -197,6 +200,7 @@ class ServiceRequestModel {
     this.feedbackComment,
     this.feedbackSubmittedAt,
     this.feedbackRequested = false,
+    this.deliveryFee = 0.0,
   });
 
   factory ServiceRequestModel.fromFirestore(DocumentSnapshot doc) {
@@ -277,6 +281,7 @@ class ServiceRequestModel {
               ? (data['feedbackSubmittedAt'] as Timestamp).toDate()
               : null,
       feedbackRequested: data['feedbackRequested'] ?? false,
+      deliveryFee: (data['deliveryFee'] ?? 0).toDouble(),
     );
   }
 
@@ -320,6 +325,7 @@ class ServiceRequestModel {
       'feedbackSubmittedAt': feedbackSubmittedAt != null 
           ? Timestamp.fromDate(feedbackSubmittedAt!) : null,
       'feedbackRequested': feedbackRequested,
+      'deliveryFee': deliveryFee,
     };
   }
 
@@ -353,6 +359,7 @@ class ServiceRequestModel {
     String? feedbackComment,
     DateTime? feedbackSubmittedAt,
     bool? feedbackRequested,
+    double? deliveryFee,
   }) {
     return ServiceRequestModel(
       id: id,
@@ -389,6 +396,7 @@ class ServiceRequestModel {
       feedbackComment: feedbackComment ?? this.feedbackComment,
       feedbackSubmittedAt: feedbackSubmittedAt ?? this.feedbackSubmittedAt,
       feedbackRequested: feedbackRequested ?? this.feedbackRequested,
+      deliveryFee: deliveryFee ?? this.deliveryFee,
     );
   }
 

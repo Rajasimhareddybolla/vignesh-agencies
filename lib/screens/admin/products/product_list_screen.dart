@@ -21,6 +21,7 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
   late AnimationController _headerController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _showArchived = false;
 
   @override
   void initState() {
@@ -62,7 +63,7 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
               // Search Bar
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   child: GlassContainer(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: TextField(
@@ -73,6 +74,32 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                         icon: Icon(Icons.search, color: AppTheme.primary),
                       ),
                     ),
+                  ),
+                ),
+              ),
+
+              // Archive Filter Toggle
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Row(
+                    children: [
+                      FilterChip(
+                        label: Text(
+                          _showArchived ? 'Showing Archived' : 'Show Archived',
+                        ),
+                        selected: _showArchived,
+                        onSelected:
+                            (val) => setState(() => _showArchived = val),
+                        avatar: Icon(
+                          _showArchived
+                              ? Icons.archive
+                              : Icons.archive_outlined,
+                          size: 18,
+                        ),
+                        selectedColor: AppTheme.warning.withAlpha(40),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -88,6 +115,13 @@ class _AdminProductListScreenState extends State<AdminProductListScreen>
                   }
 
                   var products = snapshot.data ?? [];
+
+                  // Filter by archive status
+                  if (_showArchived) {
+                    products = products.where((p) => !p.isActive).toList();
+                  } else {
+                    products = products.where((p) => p.isActive).toList();
+                  }
 
                   // Filter locally for smoother experience
                   if (_searchQuery.isNotEmpty) {

@@ -25,8 +25,6 @@ exports.sendPromoNotification = functions.firestore
       notification: {
         title: title,
         body: body,
-        // Optional: Add image if available
-        // image: data.imageUrl 
       },
       data: {
         promoId: context.params.notificationId,
@@ -35,6 +33,12 @@ exports.sendPromoNotification = functions.firestore
       },
       topic: 'promo_notifications'
     };
+
+    // Add image if available
+    if (data.imageUrl) {
+      payload.notification.image = data.imageUrl;
+      payload.data.imageUrl = data.imageUrl;
+    }
 
     try {
       const response = await admin.messaging().send(payload);

@@ -486,6 +486,37 @@ class StorageService {
     }
   }
 
+  // Upload notification image
+  Future<String?> uploadNotificationImage({required XFile imageFile}) async {
+    try {
+      final compressedFile = await _compressionService.compressForProduct(
+        imageFile,
+      );
+      debugPrint('Notification image prepared for upload');
+
+      final fileName = '${_uuid.v4()}.${compressedFile.path.split('.').last}';
+      final ref = _storage.ref().child('notifications/$fileName');
+
+      final uploadTask = await _retryUpload(
+        () => ref.putFile(
+          File(compressedFile.path),
+          SettableMetadata(
+            contentType: 'image/${compressedFile.path.split('.').last}',
+            customMetadata: {
+              'uploadedBy': 'ADMIN',
+              'uploadedAt': DateTime.now().toIso8601String(),
+            },
+          ),
+        ),
+      );
+
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      debugPrint('Error uploading notification image: $e');
+      return null;
+    }
+  }
+
   // Get upload progress stream
   Stream<TaskSnapshot> uploadWithProgress({
     required String path,

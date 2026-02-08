@@ -244,7 +244,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       }
 
       // Calculate warranty end date
-      // Priority: 1. Order item, 2. Selected catalog product, 3. Default 12 months
+      // Priority: 1. Order item warranty, 2. Selected catalog product warranty, 3. Default 12 months
       int warrantyMonths = 12;
       if (widget.sourceOrderItem != null) {
         warrantyMonths = widget.sourceOrderItem!.warrantyMonths;
@@ -252,6 +252,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _selectedWarrantyMonths! > 0) {
         warrantyMonths = _selectedWarrantyMonths!;
       }
+      // Ensure we never use 0 or negative warranty
+      if (warrantyMonths <= 0) warrantyMonths = 12;
 
       final warrantyEndDate = DateTime(
         _purchaseDate!.year,
@@ -408,7 +410,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 : null; // Auto-fill Image
 
                         // Capture warranty months from catalog product
-                        _selectedWarrantyMonths = selection.warrantyMonths;
+                        // Check variation-specific warranty first, then base product warranty
+                        if (selection.variations.isNotEmpty &&
+                            selection.variations.first.warrantyMonths != null &&
+                            selection.variations.first.warrantyMonths! > 0) {
+                          _selectedWarrantyMonths =
+                              selection.variations.first.warrantyMonths;
+                        } else {
+                          _selectedWarrantyMonths = selection.warrantyMonths;
+                        }
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(

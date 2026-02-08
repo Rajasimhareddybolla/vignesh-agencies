@@ -60,6 +60,7 @@ class UserModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'lastLoginAt':
           lastLoginAt != null ? Timestamp.fromDate(lastLoginAt!) : null,
+      'digitalCoins': digitalCoins,
     };
   }
 
@@ -73,6 +74,7 @@ class UserModel {
     double? pendingPayout,
     bool? isAdmin,
     DateTime? lastLoginAt,
+    int? digitalCoins,
   }) {
     return UserModel(
       id: id,
@@ -86,6 +88,7 @@ class UserModel {
       isAdmin: isAdmin ?? this.isAdmin,
       createdAt: createdAt,
       lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      digitalCoins: digitalCoins ?? this.digitalCoins,
     );
   }
 
