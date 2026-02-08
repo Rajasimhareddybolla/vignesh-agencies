@@ -1229,9 +1229,11 @@ class _ServiceRequestDetailScreenState
                                 }
 
                                 return Column(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     DropdownButtonFormField<String>(
                                       value: _selectedAgent?.id,
+                                      isExpanded: true,
                                       decoration: InputDecoration(
                                         labelText: 'Select Saved Agent',
                                         prefixIcon: const Icon(

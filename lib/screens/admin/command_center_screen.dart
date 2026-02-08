@@ -64,137 +64,136 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
 
             // Stats Grid
             SliverToBoxAdapter(
-              child: FutureBuilder<Map<String, dynamic>>(
-                future: firestoreService.getDashboardStats(),
-                builder: (context, snapshot) {
-                  final stats = snapshot.data ?? {};
-                  return Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Dashboard',
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.success.withAlpha(30),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  PulsingDot(color: AppTheme.success, size: 6),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'LIVE',
-                                    style: TextStyle(
-                                      color: AppTheme.success,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        Text(
+                          'Dashboard',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: StaggeredFadeIn(
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.success.withAlpha(30),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              PulsingDot(color: AppTheme.success, size: 6),
+                              SizedBox(width: 4),
+                              Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  color: AppTheme.success,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StreamBuilder<int>(
+                            stream: firestoreService.getPendingRequestsCountStream(),
+                            builder: (context, snapshot) {
+                              return StaggeredFadeIn(
                                 index: 0,
                                 child: _PremiumStatCard(
                                   title: 'Pending Requests',
-                                  value:
-                                      (stats['pendingRequests'] as num?)
-                                          ?.toInt() ??
-                                      0,
+                                  value: snapshot.data ?? 0,
                                   icon: Icons.build_circle,
                                   color: AppTheme.warning,
-                                  onTap:
-                                      () => context.goNamed('admin-requests'),
+                                  onTap: () => context.goNamed('admin-requests'),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: StaggeredFadeIn(
+                              );
+                            }
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StreamBuilder<int>(
+                            stream: firestoreService.getPendingRegistrationsCountStream(),
+                            builder: (context, snapshot) {
+                              return StaggeredFadeIn(
                                 index: 1,
                                 child: _PremiumStatCard(
                                   title: 'Registrations',
-                                  value:
-                                      (stats['pendingRegistrations'] as num?)
-                                          ?.toInt() ??
-                                      0,
+                                  value: snapshot.data ?? 0,
                                   icon: Icons.verified,
                                   color: AppTheme.primary,
-                                  onTap:
-                                      () => context.goNamed('admin-warranty'),
+                                  onTap: () => context.goNamed('admin-warranty'),
                                 ),
-                              ),
-                            ),
-                          ],
+                              );
+                            }
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: StaggeredFadeIn(
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: StreamBuilder<int>(
+                            stream: firestoreService.getTotalUsersCountStream(),
+                            builder: (context, snapshot) {
+                              return StaggeredFadeIn(
                                 index: 2,
                                 child: _PremiumStatCard(
                                   title: 'Total Users',
-                                  value:
-                                      (stats['totalUsers'] as num?)?.toInt() ??
-                                      0,
+                                  value: snapshot.data ?? 0,
                                   icon: Icons.people,
                                   color: AppTheme.success,
                                   onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder:
-                                            (context) =>
-                                                const AdminUserListScreen(),
+                                        builder: (context) => const AdminUserListScreen(),
                                       ),
                                     );
                                   },
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: StaggeredFadeIn(
+                              );
+                            }
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: StreamBuilder<double>(
+                            stream: firestoreService.getPendingPayoutsStream(),
+                            builder: (context, snapshot) {
+                              return StaggeredFadeIn(
                                 index: 3,
                                 child: _PremiumStatCard(
                                   title: 'Payouts',
-                                  value:
-                                      (stats['pendingPayouts'] as num?)
-                                          ?.toInt() ??
-                                      0,
+                                  value: (snapshot.data ?? 0).toInt(),
                                   prefix: '₹',
                                   icon: Icons.payments,
                                   color: AppTheme.accent1,
                                   onTap: () => context.goNamed('admin-payouts'),
                                 ),
-                              ),
-                            ),
-                          ],
+                              );
+                            }
+                          ),
                         ),
                       ],
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
 

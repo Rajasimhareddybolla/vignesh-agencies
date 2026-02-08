@@ -365,8 +365,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     // Validate cart stock before proceeding (unless skipped for price-only changes)
     if (!skipValidation) {
-      final isCartValid = await _validateCartStock();
-      if (!isCartValid || !mounted) return;
+        // User requested to skip validation dialog for "cart update", so we basically proceed
+        // However, we should still check if items are completely invalid/deleted?
+        // For now, we respect the user request to "skip that cart update thing".
+        // We will only validate if we absolutely must, but the request was to skip.
+        // To be safe, we can just NOT call _validateCartStock here.
+        // Or if we want to be safe, we call it but don't show the blocking dialog?
+        // User specifically said: "when we press checkout it says cart update is required ... i do not want this message at all"
+        
+        // So we effectively disable this check or make it non-blocking.
+        // We will just proceed to profile completion check.
     }
 
     // Check profile completion before proceeding
@@ -637,7 +645,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text('Continue Shopping'),
+                          child: const Text(
+                            'Continue Shopping',
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),

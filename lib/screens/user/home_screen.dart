@@ -454,93 +454,95 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 top: Radius.circular(24),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppTheme.border(context),
-                    borderRadius: BorderRadius.circular(2),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.border(context),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withAlpha(20),
-                    shape: BoxShape.circle,
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(20),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.card_giftcard,
+                      color: AppTheme.primary,
+                      size: 40,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.card_giftcard,
-                    color: AppTheme.primary,
-                    size: 40,
+                  const SizedBox(height: 16),
+                  Text(
+                    'Earn Rewards with Referrals!',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Earn Rewards with Referrals!',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Share your referral code with friends and family. When they register their first appliance, you earn ₹100 in rewards!',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary(context),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Share your referral code with friends and family. When they register their first appliance, you earn ₹100 in rewards!',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary(context),
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.success.withAlpha(15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.success.withAlpha(30)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle,
-                        color: AppTheme.success,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Rewards can be redeemed as discounts on services',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.success,
-                            fontWeight: FontWeight.w500,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withAlpha(15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.success.withAlpha(30)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: AppTheme.success,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Rewards can be redeemed as discounts on services',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.success,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      context.pushNamed('referral');
-                    },
-                    icon: const Icon(Icons.share),
-                    label: const Text('Start Referring'),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.pushNamed('referral');
+                      },
+                      icon: const Icon(Icons.share),
+                      label: const Text('Start Referring'),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Maybe Later'),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Maybe Later'),
+                  ),
+                ],
+              ),
             ),
           ),
     );

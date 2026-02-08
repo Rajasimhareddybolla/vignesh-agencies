@@ -687,6 +687,51 @@ class FirestoreService {
     }
   }
 
+  // Stream for Pending Requests Count
+  Stream<int> getPendingRequestsCountStream() {
+    return _firestore
+        .collection('service_requests')
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) => snapshot.size);
+  }
+
+  // Stream for Pending Registrations Count
+  Stream<int> getPendingRegistrationsCountStream() {
+    return _firestore
+        .collection('products')
+        .where('status', isEqualTo: 'pending_validation')
+        .snapshots()
+        .map((snapshot) => snapshot.size);
+  }
+
+  // Stream for Total Users Count (Note: .count() is not streamable efficiently in all SDKs, so we use snapshots size or polling if needed. 
+  // For standard admin, snapshots of empty query is expensive. 
+  // We will stream the metadata or just return a repeated polling stream if needed, 
+  // but for now, simple snapshot.size is acceptable for normal scale or we use Future in UI.
+  // Actually, let's use a stream that listens to user collection metadata if possible? No.
+  // We'll stick to a periodical stream or just snapshot map. 
+  // Warning: large collection cost. But user request "dynamically update". 
+  // We'll use snapshot.size but keep in mind cost.)
+  Stream<int> getTotalUsersCountStream() {
+    return _firestore.collection('users').snapshots().map((s) => s.size);
+  }
+
+  // Stream for Pending Payouts (Active Calculation)
+  Stream<double> getPendingPayoutsStream() {
+    return _firestore
+        .collection('users')
+        .where('pendingPayout', isGreaterThan: 0)
+        .snapshots()
+        .map((snapshot) {
+      double total = 0;
+      for (final doc in snapshot.docs) {
+        total += (doc.data()['pendingPayout'] ?? 0).toDouble();
+      }
+      return total;
+    });
+  }
+
   // Get recent activity for dashboard
   Stream<List<Map<String, dynamic>>> getRecentActivity({int limit = 10}) {
     return _firestore

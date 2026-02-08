@@ -708,7 +708,13 @@ class _NotificationSettingsDialogState
             child: const Icon(Icons.notifications, color: AppTheme.warning),
           ),
           const SizedBox(width: 12),
-          const Text('Notification Settings'),
+          const Expanded(
+            child: Text(
+              'Notification Settings',
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
       content: Column(
@@ -773,41 +779,31 @@ class _NotificationSettingsDialogState
     ValueChanged<bool> onChanged,
   ) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Theme.of(context).dividerColor.withAlpha(50)),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textSecondary(context),
-                  ),
-                ),
-              ],
-            ),
+      child: ListTile(
+        leading: Icon(icon, color: AppTheme.primary, size: 24),
+        title: Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppTheme.textSecondary(context),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppTheme.primary,
-          ),
-        ],
+        ),
+        trailing: Switch(
+          value: value,
+          onChanged: onChanged,
+          activeColor: AppTheme.primary,
+        ),
       ),
     );
   }
