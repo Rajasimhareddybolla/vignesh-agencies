@@ -167,25 +167,25 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   onTap: () {
                                     context.push('/admin/users');
                                   },
-                                ),
+
+\\                                ),
                               );
                             },
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: StreamBuilder<double>(
-                            stream: firestoreService.getPendingPayoutsStream(),
+                          child: StreamBuilder<int>(
+                            stream: firestoreService.getTotalCoinsStream(),
                             builder: (context, snapshot) {
                               return StaggeredFadeIn(
                                 index: 3,
                                 child: _PremiumStatCard(
-                                  title: 'Payouts',
-                                  value: (snapshot.data ?? 0).toInt(),
-                                  prefix: '₹',
-                                  icon: Icons.payments,
-                                  color: AppTheme.accent1,
-                                  onTap: () => context.goNamed('admin-payouts'),
+                                  title: 'Total Coins',
+                                  value: snapshot.data ?? 0,
+                                  icon: Icons.monetization_on,
+                                  color: Colors.amber,
+                                  onTap: () => context.push('/admin/coins'),
                                 ),
                               );
                             },
@@ -456,12 +456,12 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
           ),
           const SizedBox(width: 12),
           _PremiumQuickAction(
-            icon: Icons.payments,
-            label: 'Payout\nManager',
-            color: const Color(0xFF8B5CF6),
+            icon: Icons.monetization_on,
+            label: 'Coins\nManagement',
+            color: Colors.amber,
             onTap: () {
               HapticFeedback.lightImpact();
-              context.goNamed('admin-payouts');
+              context.push('/admin/coins');
             },
           ),
           const SizedBox(width: 12),
@@ -492,16 +492,6 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
             onTap: () {
               HapticFeedback.lightImpact();
               context.push('/admin/referrals');
-            },
-          ),
-          const SizedBox(width: 12),
-          _PremiumQuickAction(
-            icon: Icons.monetization_on,
-            label: 'Coins\nManagement',
-            color: Colors.amber,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              context.push('/admin/coins');
             },
           ),
           const SizedBox(width: 12),

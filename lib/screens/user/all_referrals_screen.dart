@@ -162,13 +162,24 @@ class _ReferralCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (referral.status != ReferralStatus.pending)
-                Text(
-                  '+ ₹ ${NumberFormat('#,##0').format(referral.commission)}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.success,
-                  ),
+              if (referral.rewardCoins > 0)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.amber,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ ${referral.rewardCoins}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber.shade700,
+                      ),
+                    ),
+                  ],
                 )
               else
                 Text(

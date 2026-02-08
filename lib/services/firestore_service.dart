@@ -187,43 +187,10 @@ class FirestoreService {
     });
   }
 
-  /// Process referral commission when a user's first product is validated
+  /// Process referral when a user's product is validated (warranty becomes active)
+  /// This no longer credits money - referral rewards are purely coins-based now.
   Future<void> _processReferralForProduct(UserApplianceModel product) async {
-    try {
-      // Find pending referral for this user (where they are the referee)
-      final referralsQuery =
-          await _firestore
-              .collection('referrals')
-              .where('refereeId', isEqualTo: product.userId)
-              .where('status', isEqualTo: 'pending')
-              .limit(1)
-              .get();
-
-      if (referralsQuery.docs.isNotEmpty) {
-        final referralDoc = referralsQuery.docs.first;
-        const commission = 100.0; // Fixed commission reward
-
-        // 1. Update Referral Status
-        await referralDoc.reference.update({
-          'status': 'purchased',
-          'commission': commission,
-          'purchaseAmount': product.purchaseAmount ?? 0,
-          'purchasedAt': FieldValue.serverTimestamp(),
-        });
-
-        // 2. Update Referrer's Wallet
-        final referrerId = referralDoc.data()['referrerId'];
-        if (referrerId != null) {
-          await _firestore.collection('users').doc(referrerId).update({
-            'totalEarnings': FieldValue.increment(commission),
-            'pendingPayout': FieldValue.increment(commission),
-          });
-        }
-      }
-    } catch (e) {
-      print('Error processing referral: $e');
-      // Non-blocking error
-    }
+    // No-op: Commission system removed. Coins are awarded via admin referral approval.
   }
 
   // Get products pending validation (admin)
@@ -350,8 +317,7 @@ class FirestoreService {
     if (resolutionNotes != null) updates['resolutionNotes'] = resolutionNotes;
     if (adminVoiceNoteUrl != null)
       updates['adminVoiceNoteUrl'] = adminVoiceNoteUrl;
-    if (deliveryFee != null)
-      updates['deliveryFee'] = deliveryFee;
+    if (deliveryFee != null) updates['deliveryFee'] = deliveryFee;
 
     if (status == ServiceRequestStatus.assigned) {
       updates['assignedAt'] = Timestamp.now();
@@ -480,18 +446,19 @@ class FirestoreService {
 
   // Approve referral and set reward coins - credits coins to the referee
   Future<void> approveReferral(String referralId, int rewardCoins) async {
-    final referralDoc = await _firestore.collection('referrals').doc(referralId).get();
+    final referralDoc =
+        await _firestore.collection('referrals').doc(referralId).get();
     if (!referralDoc.exists) return;
-    
+
     final refereeId = referralDoc.data()?['refereeId'] as String?;
-    
+
     await _firestore.collection('referrals').doc(referralId).update({
       'status': 'approved',
       'adminApproved': true,
       'rewardCoins': rewardCoins,
       'approvedAt': FieldValue.serverTimestamp(),
     });
-    
+
     // Credit coins to the referee (the person who was referred)
     if (refereeId != null && rewardCoins > 0) {
       await _firestore.collection('users').doc(refereeId).update({
@@ -525,97 +492,34 @@ class FirestoreService {
     return docRef.id;
   }
 
-  // Update referral status when purchase is made
+  // Update referral status when purchase is made (legacy - no longer credits money)
   Future<void> updateReferralToPurchased({
     required String referralId,
     required double purchaseAmount,
   }) async {
-    final commission =
-        ReferralModel.fixedCommission; // or calculate based on purchase
-
     await _firestore.collection('referrals').doc(referralId).update({
       'status': 'purchased',
       'purchaseAmount': purchaseAmount,
-      'commission': commission,
       'purchasedAt': Timestamp.now(),
     });
-
-    // Update referrer's pending payout
-    final referral =
-        await _firestore.collection('referrals').doc(referralId).get();
-    final referrerId = referral.data()?['referrerId'];
-    if (referrerId != null) {
-      await _firestore.collection('users').doc(referrerId).update({
-        'pendingPayout': FieldValue.increment(commission),
-      });
-    }
   }
 
-  // Mark referral as paid (admin)
+  // Mark referral as paid (legacy - kept for data integrity)
   Future<void> markReferralPaid(String referralId) async {
-    final referral =
-        await _firestore.collection('referrals').doc(referralId).get();
-    final referralData = referral.data();
-
-    if (referralData != null) {
-      final commission = referralData['commission'] ?? 0.0;
-      final referrerId = referralData['referrerId'];
-
-      await _firestore.collection('referrals').doc(referralId).update({
-        'status': 'paid',
-        'paidAt': Timestamp.now(),
-      });
-
-      // Update user's earnings and pending payout
-      if (referrerId != null) {
-        await _firestore.collection('users').doc(referrerId).update({
-          'totalEarnings': FieldValue.increment(commission),
-          'pendingPayout': FieldValue.increment(-commission),
-        });
-      }
-    }
-  }
-
-  // Get users with pending payouts (admin)
-  Stream<List<UserModel>> getUsersWithPendingPayouts() {
-    return _firestore
-        .collection('users')
-        .where('pendingPayout', isGreaterThan: 0)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList(),
-        );
-  }
-
-  // Mark user payout as complete (admin)
-  Future<void> markUserPayoutComplete(String userId) async {
-    final userDoc = await _firestore.collection('users').doc(userId).get();
-    final pendingPayout = userDoc.data()?['pendingPayout'] ?? 0.0;
-
-    // Mark all pending referrals for this user as paid
-    final pendingReferrals =
-        await _firestore
-            .collection('referrals')
-            .where('referrerId', isEqualTo: userId)
-            .where('status', isEqualTo: 'purchased')
-            .get();
-
-    final batch = _firestore.batch();
-    for (final doc in pendingReferrals.docs) {
-      batch.update(doc.reference, {
-        'status': 'paid',
-        'paidAt': Timestamp.now(),
-      });
-    }
-
-    // Update user's totals
-    batch.update(_firestore.collection('users').doc(userId), {
-      'totalEarnings': FieldValue.increment(pendingPayout),
-      'pendingPayout': 0,
+    await _firestore.collection('referrals').doc(referralId).update({
+      'status': 'paid',
+      'paidAt': Timestamp.now(),
     });
+  }
 
-    await batch.commit();
+  // Get users with pending payouts (legacy - no longer used)
+  Stream<List<UserModel>> getUsersWithPendingPayouts() {
+    return Stream.value([]);
+  }
+
+  // Mark user payout as complete (legacy - no longer used)
+  Future<void> markUserPayoutComplete(String userId) async {
+    // No-op: old payout system removed
   }
 
   // Update user profile
@@ -657,18 +561,18 @@ class FirestoreService {
               .get();
 
       // Count ALL users for now to ensure numbers show up
-      // The 'isProxy' query requires a composite index and might exclude docs where the field is missing
       final totalUsers = await _firestore.collection('users').count().get();
 
-      final usersWithPayouts =
+      // Count total coins across all users
+      final usersWithCoins =
           await _firestore
               .collection('users')
-              .where('pendingPayout', isGreaterThan: 0)
+              .where('digitalCoins', isGreaterThan: 0)
               .get();
 
-      double totalPendingPayouts = 0;
-      for (final doc in usersWithPayouts.docs) {
-        totalPendingPayouts += (doc.data()['pendingPayout'] ?? 0).toDouble();
+      int totalCoins = 0;
+      for (final doc in usersWithCoins.docs) {
+        totalCoins += (doc.data()['digitalCoins'] ?? 0) as int;
       }
 
       // Count total and resolved service requests
@@ -686,7 +590,7 @@ class FirestoreService {
         'pendingRequests': pendingRequests.count ?? 0,
         'pendingRegistrations': pendingRegistrations.count ?? 0,
         'totalUsers': totalUsers.count ?? 0,
-        'pendingPayouts': totalPendingPayouts,
+        'totalCoins': totalCoins,
         'totalRequests': totalRequests.count ?? 0,
         'resolvedRequests': resolvedRequests.count ?? 0,
       };
@@ -696,7 +600,7 @@ class FirestoreService {
         'pendingRequests': 0,
         'pendingRegistrations': 0,
         'totalUsers': 0,
-        'pendingPayouts': 0.0,
+        'totalCoins': 0,
         'totalRequests': 0,
         'resolvedRequests': 0,
       };
@@ -730,26 +634,26 @@ class FirestoreService {
   // Warning: large collection cost. But user request "dynamically update".
   // We'll use snapshot.size but keep in mind cost.)
   Stream<int> getTotalUsersCountStream() {
-    return _firestore
-        .collection('users')
-        .where('isAdmin', isEqualTo: false)
-        .snapshots()
-        .map((s) => s.size);
-  }
-
-  // Stream for Pending Payouts (Active Calculation)
-  Stream<double> getPendingPayoutsStream() {
-    return _firestore
-        .collection('users')
-        .where('pendingPayout', isGreaterThan: 0)
-        .snapshots()
-        .map((snapshot) {
-          double total = 0;
-          for (final doc in snapshot.docs) {
-            total += (doc.data()['pendingPayout'] ?? 0).toDouble();
-          }
-          return total;
-        });
+    return _firestore.collection('users').snapshots().map((snapshot) {
+      // Count unique phone numbers, excluding admin and proxy accounts
+      final uniquePhones = <String>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        // Skip proxy/linked accounts
+        if (data['isProxy'] == true || data['linkedAccountId'] != null)
+          continue;
+        // Skip admin accounts (isAdmin flag or admin email)
+        final isAdmin = data['isAdmin'] ?? false;
+        final email = (data['email'] ?? '').toString().toLowerCase().trim();
+        if (isAdmin == true || email.contains('vguardagencies')) continue;
+        // Only count users with a phone number (all real users have one)
+        final phone = (data['phone'] ?? '').toString().trim();
+        if (phone.isNotEmpty) {
+          uniquePhones.add(phone);
+        }
+      }
+      return uniquePhones.length;
+    });
   }
 
   // Get recent activity for dashboard
@@ -876,7 +780,9 @@ class FirestoreService {
   // Place a new Order
   Future<String> placeOrder(OrderModel order) async {
     // Use transaction to create order and decrement stock atomically
-    return await _firestore.runTransaction<String>((transaction) async {
+    final orderId = await _firestore.runTransaction<String>((
+      transaction,
+    ) async {
       // Step 1: Validate and prepare stock updates
       for (final item in order.items) {
         final productRef = _firestore
@@ -921,6 +827,8 @@ class FirestoreService {
       transaction.set(docRef, orderWithId.toFirestore());
       return docRef.id;
     });
+
+    return orderId;
   }
 
   // Get User Orders
@@ -930,13 +838,14 @@ class FirestoreService {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final orders = snapshot.docs
-          .map((doc) => OrderModel.fromFirestore(doc))
-          .toList();
-      // Sort client-side to avoid composite index requirements
-      orders.sort((a, b) => b.orderedAt.compareTo(a.orderedAt));
-      return orders;
-    });
+          final orders =
+              snapshot.docs
+                  .map((doc) => OrderModel.fromFirestore(doc))
+                  .toList();
+          // Sort client-side to avoid composite index requirements
+          orders.sort((a, b) => b.orderedAt.compareTo(a.orderedAt));
+          return orders;
+        });
   }
 
   // Get Single Order by ID
@@ -945,10 +854,31 @@ class FirestoreService {
     return doc.exists ? OrderModel.fromFirestore(doc) : null;
   }
 
-  // Get all users (Admin)
+  // Get all users (Admin) - unique phone numbers only, no admins/proxies
   Stream<List<UserModel>> getAllUsers() {
     return _firestore.collection('users').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
+      // Deduplicate by phone number — one entry per unique phone
+      final uniqueByPhone = <String, UserModel>{};
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        // Skip proxy/linked accounts
+        if (data['isProxy'] == true || data['linkedAccountId'] != null)
+          continue;
+        final user = UserModel.fromFirestore(doc);
+        // Skip admin accounts
+        final email = user.email.toLowerCase().trim();
+        if (user.isAdmin || email.contains('vguardagencies')) continue;
+        // Only include users with a phone number
+        final phone = (user.phone ?? '').trim();
+        if (phone.isEmpty) continue;
+        // Keep the most recent account per phone number
+        if (!uniqueByPhone.containsKey(phone) ||
+            user.createdAt.isAfter(uniqueByPhone[phone]!.createdAt)) {
+          uniqueByPhone[phone] = user;
+        }
+      }
+
+      return uniqueByPhone.values.toList();
     });
   }
 
@@ -1003,7 +933,7 @@ class FirestoreService {
         final orderData = orderDoc.data()!;
         final userId = orderData['userId'] as String;
         final items = orderData['items'] as List<dynamic>? ?? [];
-        
+
         int totalRewardCoins = 0;
         for (final item in items) {
           final productId = item['productId'] as String?;
@@ -1012,7 +942,8 @@ class FirestoreService {
               _firestore.collection('catalog_products').doc(productId),
             );
             if (productDoc.exists) {
-              final productRewardCoins = (productDoc.data()?['rewardCoins'] ?? 0) as int;
+              final productRewardCoins =
+                  (productDoc.data()?['rewardCoins'] ?? 0) as int;
               final quantity = (item['quantity'] ?? 1) as int;
               totalRewardCoins += productRewardCoins * quantity;
             }
@@ -1433,7 +1364,9 @@ class FirestoreService {
     required OrderModel order,
     required List<Map<String, dynamic>> cartItems,
   }) async {
-    final orderId = await _firestore.runTransaction<String>((transaction) async {
+    final orderId = await _firestore.runTransaction<String>((
+      transaction,
+    ) async {
       // First, validate and collect all product docs
       final productDocs = <String, DocumentSnapshot>{};
 
@@ -1521,8 +1454,8 @@ class FirestoreService {
     try {
       final user = await getUser(order.userId);
       await PushNotificationService().sendAdminOrderNotification(
-        orderId, 
-        user?.displayName ?? 'Unknown User'
+        orderId,
+        user?.displayName ?? 'Unknown User',
       );
     } catch (e) {
       print('Error sending admin notification: $e');
@@ -1532,6 +1465,21 @@ class FirestoreService {
   }
 
   // ============== COINS MANAGEMENT ==============
+
+  // Stream total coins across all users
+  Stream<int> getTotalCoinsStream() {
+    return _firestore
+        .collection('users')
+        .where('digitalCoins', isGreaterThan: 0)
+        .snapshots()
+        .map((snapshot) {
+          int total = 0;
+          for (final doc in snapshot.docs) {
+            total += (doc.data()['digitalCoins'] ?? 0) as int;
+          }
+          return total;
+        });
+  }
 
   // Get admin coin-to-rupee rate from app_config
   Future<double> getCoinToRupeeRate() async {
@@ -1544,7 +1492,9 @@ class FirestoreService {
 
   // Stream coin rate for real-time updates
   Stream<double> coinToRupeeRateStream() {
-    return _firestore.collection('app_config').doc('coins').snapshots().map((doc) {
+    return _firestore.collection('app_config').doc('coins').snapshots().map((
+      doc,
+    ) {
       if (doc.exists) {
         return (doc.data()?['coinToRupeeRate'] ?? 1.0).toDouble();
       }
@@ -1567,8 +1517,10 @@ class FirestoreService {
         .where('digitalCoins', isGreaterThan: 0)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => UserModel.fromFirestore(doc)).toList();
-    });
+          return snapshot.docs
+              .map((doc) => UserModel.fromFirestore(doc))
+              .toList();
+        });
   }
 
   // Deduct coins from a user (Admin manual redemption)

@@ -29,7 +29,6 @@ import '../screens/admin/command_center_screen.dart';
 import '../screens/admin/service_requests_screen.dart';
 import '../screens/admin/service_request_detail_screen.dart';
 import '../screens/admin/warranty_validation_screen.dart';
-import '../screens/admin/payout_manager_screen.dart';
 import '../screens/admin/reports_screen.dart';
 import '../screens/admin/send_notification_screen.dart';
 import '../screens/admin/admin_settings_screen.dart';
@@ -124,10 +123,7 @@ class AppRouter {
         path: '/contact-support',
         builder: (context, state) => const ContactSupportScreen(),
       ),
-      GoRoute(
-        path: '/about',
-        builder: (context, state) => const AboutScreen(),
-      ),
+      GoRoute(path: '/about', builder: (context, state) => const AboutScreen()),
       GoRoute(path: '/terms', builder: (context, state) => const TermsScreen()),
       GoRoute(
         path: '/privacy',
@@ -285,7 +281,7 @@ class AppRouter {
             name: 'admin-payouts',
             pageBuilder:
                 (context, state) =>
-                    const NoTransitionPage(child: PayoutManagerScreen()),
+                    const NoTransitionPage(child: CoinsManagementScreen()),
           ),
           GoRoute(
             path: '/admin/reports',
@@ -560,9 +556,9 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
                   label: Text('Warranty'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.payments_outlined),
-                  selectedIcon: Icon(Icons.payments),
-                  label: Text('Payouts'),
+                  icon: Icon(Icons.monetization_on_outlined),
+                  selectedIcon: Icon(Icons.monetization_on),
+                  label: Text('Coins'),
                 ),
                 NavigationRailDestination(
                   icon: Icon(Icons.analytics_outlined),
@@ -601,9 +597,9 @@ class _AdminShellScreenState extends State<AdminShellScreen> {
             label: 'Warranty',
           ),
           NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: 'Payouts',
+            icon: Icon(Icons.monetization_on_outlined),
+            selectedIcon: Icon(Icons.monetization_on),
+            label: 'Coins',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

@@ -63,13 +63,13 @@ class ReferralScreen extends StatelessWidget {
                             child: Row(
                               children: [
                                 const Icon(
-                                  Icons.currency_rupee,
+                                  Icons.monetization_on,
                                   color: Colors.white,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'TOTAL EARNINGS',
+                                  'YOUR COINS',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.labelSmall?.copyWith(
@@ -83,14 +83,34 @@ class ReferralScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        '₹ ${NumberFormat('#,##0').format(user?.totalEarnings ?? 0)}',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.displayMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Icon(
+                            Icons.monetization_on,
+                            color: Colors.amber,
+                            size: 36,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${NumberFormat('#,##0').format(user?.digitalCoins ?? 0)}',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.displayMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'coins',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleMedium?.copyWith(
+                              color: Colors.white.withOpacity(0.7),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -102,41 +122,21 @@ class ReferralScreen extends StatelessWidget {
                           ),
                         ),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Pending Payout',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.copyWith(
-                                    color: Colors.white.withOpacity(0.8),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '₹ ${NumberFormat('#,##0').format(user?.pendingPayout ?? 0)}',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleLarge?.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
+                            const Icon(
+                              Icons.info_outline,
+                              color: Colors.white70,
+                              size: 18,
                             ),
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.account_balance_wallet,
-                                color: Colors.white,
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Earn coins via referrals & product purchases. Coins can be redeemed as discounts!',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmall?.copyWith(
+                                  color: Colors.white.withOpacity(0.8),
+                                ),
                               ),
                             ),
                           ],
@@ -431,21 +431,32 @@ class _ReferralCard extends StatelessWidget {
             ),
           ),
 
-          // Amount & Status
+          // Coins & Status
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              if (referral.status != ReferralStatus.pending)
-                Text(
-                  '+ ₹ ${NumberFormat('#,##0').format(referral.commission)}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.success,
-                  ),
+              if (referral.rewardCoins > 0)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.monetization_on,
+                      color: Colors.amber,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '+ ${referral.rewardCoins}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber.shade700,
+                      ),
+                    ),
+                  ],
                 )
               else
                 Text(
-                  '₹ --',
+                  'Pending',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textSecondary(context),
