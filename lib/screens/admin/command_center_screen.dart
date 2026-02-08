@@ -167,8 +167,7 @@ class _CommandCenterScreenState extends State<CommandCenterScreen>
                                   onTap: () {
                                     context.push('/admin/users');
                                   },
-
-\\                                ),
+                                ),
                               );
                             },
                           ),
