@@ -157,6 +157,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                             onTap: () => context.push('/contact-support'),
                           ),
                           _PremiumMenuItem(
+                            icon: Icons.info_outline,
+                            title: 'About Us',
+                            subtitle: 'Our story and commitment',
+                            iconColor: AppTheme.info,
+                            onTap: () => context.push('/about'),
+                          ),
+                          _PremiumMenuItem(
                             icon: Icons.description_outlined,
                             title: 'Terms & Conditions',
                             iconColor: AppTheme.textSecondary(context),

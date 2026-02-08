@@ -11,6 +11,7 @@ import '../screens/user/all_referrals_screen.dart';
 import '../screens/common/help_center_screen.dart';
 import '../screens/common/contact_support_screen.dart';
 import '../screens/common/legal_screens.dart';
+import '../screens/common/about_screen.dart';
 import '../screens/user/home_screen.dart';
 import '../screens/user/add_product_screen.dart';
 import '../screens/user/service_request_screen.dart';
@@ -122,6 +123,10 @@ class AppRouter {
       GoRoute(
         path: '/contact-support',
         builder: (context, state) => const ContactSupportScreen(),
+      ),
+      GoRoute(
+        path: '/about',
+        builder: (context, state) => const AboutScreen(),
       ),
       GoRoute(path: '/terms', builder: (context, state) => const TermsScreen()),
       GoRoute(

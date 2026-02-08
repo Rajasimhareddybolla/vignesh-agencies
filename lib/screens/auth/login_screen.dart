@@ -224,7 +224,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ],
                                 ).createShader(bounds),
                             child: Text(
-                              'District Service Hub',
+                              'Vignesh Agencies',
                               style: Theme.of(
                                 context,
                               ).textTheme.displaySmall?.copyWith(
@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 12),
 
                           Text(
-                            'Service management made simple',
+                            'Your Trusted Partner for Quality Electronics & Services',
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(color: AppTheme.textSecondary(context)),
                             textAlign: TextAlign.center,
@@ -424,12 +424,10 @@ class _LoginScreenState extends State<LoginScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(32),
-              child: CachedNetworkImage(
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAFPuIQA5eAMCC5c8brWDu54LAH0blEDHaFQhIYQwYPmSPBGtx7HFKDb8SkfxF8VbFflF-S782oppfLJSw0okrYiIEJqZkJb8oE3UQemIIfuJVWbEWqFMVj1k6MPSLnQ8b40tnRU31Av046R4aFxmhMZ2xBKg4oJbDIptfsU8YzfT7YqNbaitvsDplIdnp0ULqB6O2ZTPR1hwbbUrt_d3nl4VyaIFgxG2LiVaySeNIlXY0O3q9hfN0N2FxAelS0MPrYkw9p0FlqQNI',
+              child: Image.asset(
+                'assets/images/va.jpeg',
                 fit: BoxFit.cover,
-                memCacheWidth: 256,
-                errorWidget: (context, error, stackTrace) {
+                errorBuilder: (context, error, stackTrace) {
                   return Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -439,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                     ),
                     child: const Icon(
-                      Icons.home_repair_service,
+                      Icons.store_mall_directory,
                       size: 64,
                       color: Colors.white,
                     ),
@@ -642,6 +640,29 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
               ),
             ),
+                const SizedBox(height: 24),
+                // Developer Credits
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Designed & Developed by ',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.textSecondary(context).withOpacity(0.7),
+                            ),
+                      ),
+                      Text(
+                        'Raja & Vatsal',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.primary.withOpacity(0.8),
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
           ],
         ),
       ),

@@ -8,6 +8,7 @@ import '../models/order_model.dart';
 import '../models/marketing_banner_model.dart';
 import '../models/support_message_model.dart';
 import '../models/agent_model.dart';
+import 'push_notification_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -927,14 +928,15 @@ class FirestoreService {
     return _firestore
         .collection('orders')
         .where('userId', isEqualTo: userId)
-        .orderBy('orderedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => OrderModel.fromFirestore(doc))
-                  .toList(),
-        );
+        .map((snapshot) {
+      final orders = snapshot.docs
+          .map((doc) => OrderModel.fromFirestore(doc))
+          .toList();
+      // Sort client-side to avoid composite index requirements
+      orders.sort((a, b) => b.orderedAt.compareTo(a.orderedAt));
+      return orders;
+    });
   }
 
   // Get Single Order by ID
@@ -1431,7 +1433,7 @@ class FirestoreService {
     required OrderModel order,
     required List<Map<String, dynamic>> cartItems,
   }) async {
-    return await _firestore.runTransaction<String>((transaction) async {
+    final orderId = await _firestore.runTransaction<String>((transaction) async {
       // First, validate and collect all product docs
       final productDocs = <String, DocumentSnapshot>{};
 
@@ -1514,6 +1516,19 @@ class FirestoreService {
 
       return orderRef.id;
     });
+
+    // Send Admin Notification (Fire-and-forget)
+    try {
+      final user = await getUser(order.userId);
+      await PushNotificationService().sendAdminOrderNotification(
+        orderId, 
+        user?.displayName ?? 'Unknown User'
+      );
+    } catch (e) {
+      print('Error sending admin notification: $e');
+    }
+
+    return orderId;
   }
 
   // ============== COINS MANAGEMENT ==============

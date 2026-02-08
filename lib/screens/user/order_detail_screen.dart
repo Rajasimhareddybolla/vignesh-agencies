@@ -260,10 +260,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Widget _buildOrderTimeline(BuildContext context, OrderModel order) {
-    // Calculate estimated delivery (3-5 business days from order date)
-    final estimatedDelivery = order.orderedAt.add(const Duration(days: 5));
-    final estimatedText =
-        'Expected by ${DateFormat('MMM d').format(estimatedDelivery)}';
+    // For Pending & Confirmed, don't show specific date yet unless provided by admin (future feature)
+    // Currently, we hide it for Pending status.
+    final isActiveOrder = order.status == OrderStatus.pending || order.status == OrderStatus.confirmed;
+    final estimatedText = isActiveOrder && order.expectedDeliveryDate == null
+        ? 'Date Pending'
+        : order.expectedDeliveryDate != null 
+             ? 'Expected by ${DateFormat('MMM d').format(order.expectedDeliveryDate!)}'
+             : 'Expected by ${DateFormat('MMM d').format(order.orderedAt.add(const Duration(days: 5)))}';
 
     // Check if order was cancelled or returned - show different timeline
     if (order.status == OrderStatus.cancelled) {
@@ -309,7 +313,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         subtitle:
             order.deliveredAt != null
                 ? DateFormat('MMM d, yyyy • h:mm a').format(order.deliveredAt!)
-                : estimatedText,
+                : order.status == OrderStatus.pending
+                    ? 'Awaiting Confirmation'
+                    : estimatedText,
         isCompleted: order.status == OrderStatus.delivered,
         isCurrent: order.status == OrderStatus.delivered,
         isLast: true,
@@ -339,20 +345,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               ),
               const Spacer(),
               if (order.status != OrderStatus.delivered)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withAlpha(25),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    estimatedText,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      estimatedText,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

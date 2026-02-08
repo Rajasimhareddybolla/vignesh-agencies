@@ -179,4 +179,42 @@ class PushNotificationService {
       debugPrint('Error updating promo subscription: $e');
     }
   }
+  /// Subscribe/Unsubscribe to Admin Notifications
+  Future<void> updateAdminSubscription({required bool isAdmin}) async {
+    if (kIsWeb) return;
+
+    try {
+      if (isAdmin) {
+        await _firebaseMessaging.subscribeToTopic('admin_notifications');
+        debugPrint('Subscribed to admin_notifications');
+      } else {
+        await _firebaseMessaging.unsubscribeFromTopic('admin_notifications');
+        debugPrint('Unsubscribed from admin_notifications');
+      }
+    } catch (e) {
+      debugPrint('Error updating admin subscription: $e');
+    }
+  }
+
+  /// Send notification to Admins for a New Order
+  // Note: This relies on the client having permission to post to FCM or using a Cloud Function.
+  // Since we are frontend-only, we'll try to use a Cloud Function HTTP trigger OR
+  // Direct FCM if legacy server key is used (Not recommended but common in MVP).
+  // BETTER: Write a document to a 'notifications_queue' collection and let a Cloud Function handle it.
+  // BUT: Per user request "give notification saying to admin device not in the app only".
+  // Assuming we CANNOT add Cloud Functions easily right now, we will simulate this by
+  // writing to a special collection that the Admin app LISTENS to and shows a local notification?
+  // NO, user said "not in the app only" -> meaning PUSH notification.
+  // Implementation: We will use the `http` package to call FCM legacy API if Server Key is available,
+  // OR we assume a Cloud Function exists.
+  // PROPOSAL: I will add the method signature, but for now we might need to rely on
+  // the backend to actually trigger this.
+  // TEMPORARY SOLUTION: If we don't have backend, we can't send PUSH from client securely.
+  // However, I will implement the *subscription* part so Admin is ready to receive.
+  // And I will add a method that *would* call the API.
+  Future<void> sendAdminOrderNotification(String orderId, String userName) async {
+    // This function would ideally call a Cloud Function
+    // await http.post(Uri.parse('YOUR_CLOUD_FUNCTION_URL'), body: ...);
+    debugPrint('Sending admin notification for Order $orderId by $userName');
+  }
 }

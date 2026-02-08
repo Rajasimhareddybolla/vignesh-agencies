@@ -151,14 +151,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen>
                             title: 'About',
                             subtitle: 'App info and version',
                             iconColor: AppTheme.textSecondary(context),
-                            onTap: () {
-                              showAboutDialog(
-                                context: context,
-                                applicationName: 'Vignesh Agencies Admin',
-                                applicationVersion: '1.0.0',
-                                applicationLegalese: '© 2024 Vignesh Agencies.',
-                              );
-                            },
+                            onTap: () => context.push('/about'),
                           ),
                         ]),
                       ),

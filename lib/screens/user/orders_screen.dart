@@ -11,28 +11,8 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/common/premium_widgets.dart';
 
-class OrdersScreen extends StatefulWidget {
+class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
-
-  @override
-  State<OrdersScreen> createState() => _OrdersScreenState();
-}
-
-class _OrdersScreenState extends State<OrdersScreen>
-    with TickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,19 +23,6 @@ class _OrdersScreenState extends State<OrdersScreen>
       appBar: AppBar(
         title: const Text('My Orders'),
         centerTitle: true,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primary,
-          unselectedLabelColor: AppTheme.textSecondary(context),
-          indicatorColor: AppTheme.primary,
-          indicatorWeight: 3,
-          indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          tabs: const [Tab(text: 'Active'), Tab(text: 'History')],
-        ),
       ),
       body: StreamBuilder<UserModel?>(
         stream: authService.userModelStream(),
@@ -82,27 +49,7 @@ class _OrdersScreenState extends State<OrdersScreen>
 
               final allOrders = snapshot.data ?? [];
 
-              final activeOrders =
-                  allOrders.where((order) {
-                    return order.status == OrderStatus.pending ||
-                        order.status == OrderStatus.confirmed ||
-                        order.status == OrderStatus.shipped;
-                  }).toList();
-
-              final historyOrders =
-                  allOrders.where((order) {
-                    return order.status == OrderStatus.delivered ||
-                        order.status == OrderStatus.cancelled ||
-                        order.status == OrderStatus.returned;
-                  }).toList();
-
-              return TabBarView(
-                controller: _tabController,
-                children: [
-                  _OrdersList(orders: activeOrders, isActive: true),
-                  _OrdersList(orders: historyOrders, isActive: false),
-                ],
-              );
+              return _OrdersList(orders: allOrders);
             },
           );
         },
@@ -113,9 +60,8 @@ class _OrdersScreenState extends State<OrdersScreen>
 
 class _OrdersList extends StatefulWidget {
   final List<OrderModel> orders;
-  final bool isActive;
 
-  const _OrdersList({required this.orders, required this.isActive});
+  const _OrdersList({required this.orders});
 
   @override
   State<_OrdersList> createState() => _OrdersListState();
@@ -199,34 +145,30 @@ class _OrdersListState extends State<_OrdersList> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                widget.isActive ? Icons.local_shipping_outlined : Icons.history,
+                Icons.shopping_bag_outlined,
                 size: 64,
                 color: AppTheme.primary,
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              widget.isActive ? 'No active orders' : 'No order history',
+              'No orders yet',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
-              widget.isActive
-                  ? 'Your ongoing orders will appear here'
-                  : 'Your past orders will appear here',
+              'Your orders will appear here',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: AppTheme.textSecondary(context),
               ),
             ),
-            if (widget.isActive) ...[
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => context.pushNamed('product-catalog'),
-                child: const Text('Start Shopping'),
-              ),
-            ],
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.pushNamed('product-catalog'),
+              child: const Text('Start Shopping'),
+            ),
           ],
         ),
       );
@@ -299,7 +241,7 @@ class _OrdersListState extends State<_OrdersList> {
                     ),
                     const SizedBox(width: 8),
                     // Status Filter Chips
-                    ..._getStatusFilters().map(
+                    ...OrderStatus.values.map(
                       (status) => Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: _FilterChip(
@@ -387,18 +329,6 @@ class _OrdersListState extends State<_OrdersList> {
         ),
       ],
     );
-  }
-
-  List<OrderStatus> _getStatusFilters() {
-    if (widget.isActive) {
-      return [OrderStatus.pending, OrderStatus.confirmed, OrderStatus.shipped];
-    } else {
-      return [
-        OrderStatus.delivered,
-        OrderStatus.cancelled,
-        OrderStatus.returned,
-      ];
-    }
   }
 
   IconData _getStatusIcon(OrderStatus status) {

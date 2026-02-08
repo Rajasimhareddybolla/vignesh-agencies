@@ -640,7 +640,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.pop(dialogContext); // Close dialog
-                            parentContext.go('/shop'); // Go to home/shop
+                            parentContext.go('/product-catalog'); // Go to catalog
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -656,15 +656,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: FilledButton(
                           onPressed: () {
                             Navigator.pop(dialogContext); // Close dialog
-                            parentContext.pushNamed(
-                              'order-detail',
-                              pathParameters: {'orderId': orderId},
-                            ); // Navigate to specific order
+                            parentContext.go('/orders'); // Navigate to orders list
                           },
                           style: FilledButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: const Text('View Order'),
+                          child: const Text('View My Orders'),
                         ),
                       ),
                     ],

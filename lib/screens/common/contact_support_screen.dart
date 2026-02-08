@@ -81,10 +81,15 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
 
   Future<void> _launchUrl(String urlScheme) async {
     final Uri url = Uri.parse(urlScheme);
-    if (!await launchUrl(url)) {
+    try {
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+        throw Exception('Could not launch user helper'); // Generic message
+      }
+    } catch (e) {
       if (mounted) {
+        // Only show snackbar on real failure
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch contact method')),
+          SnackBar(content: Text('Could not open link: $urlScheme')),
         );
       }
     }

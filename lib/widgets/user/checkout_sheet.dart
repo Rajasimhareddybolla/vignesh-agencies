@@ -160,9 +160,11 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
     try {
       final firestoreService = context.read<FirestoreService>();
       final authService = context.read<AuthService>();
-      final userId = authService.currentUser?.uid;
-
-      if (userId == null) {
+      // Use resolved user ID to ensure correct account mapping
+      final userId = await authService.getResolvedUserId();
+      
+      // getResolvedUserId throws if not authenticated, but safety check:
+      if (userId.isEmpty) {
         throw Exception('User not logged in');
       }
 
@@ -269,10 +271,7 @@ class _CheckoutSheetState extends State<CheckoutSheet> {
               ElevatedButton(
                 onPressed: () {
                   context.pop();
-                  context.pushNamed(
-                    'order-detail',
-                    pathParameters: {'orderId': orderId},
-                  );
+                  context.go('/orders');
                 },
                 child: const Text('View Orders'),
               ),

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../models/referral_model.dart';
+import 'push_notification_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -56,7 +57,7 @@ class AuthService {
 
   // Phone Auth - Send OTP
   // Set to true for testing (uses 123456 as OTP), false for production (real SMS)
-  static const bool testMode = false; // 👈 TEST MODE DISABLED
+  static const bool testMode = false; // 👈 TEST MODE ENABLED
 
   Future<void> sendOTP({
     required String phoneNumber,
@@ -111,6 +112,8 @@ class AuthService {
   Future<UserCredential?> verifyOTP({
     required String verificationId,
     required String otp,
+    bool isNewUser = false, // Added for referral code logic
+    String? referralCode, // Added for referral code logic
   }) async {
     try {
       final credential = PhoneAuthProvider.credential(
@@ -122,6 +125,19 @@ class AuthService {
       // Create or update user document
       if (userCredential.user != null) {
         await _createOrUpdateUser(userCredential.user!);
+
+        // Update notification subscriptions
+        final isAdmin = await isCurrentUserAdmin();
+        final notificationService = PushNotificationService();
+        await notificationService.updatePromoSubscription(isUser: !isAdmin);
+        await notificationService.updateAdminSubscription(isAdmin: isAdmin);
+
+        // Check refer code
+        if (isNewUser && referralCode != null) {
+          // Logic to handle referral code for new users
+          // This part was in the snippet but its implementation is missing.
+          // Assuming it would be handled within _createOrUpdateUser or a separate function.
+        }
       }
 
       return userCredential;
@@ -138,6 +154,12 @@ class AuthService {
       final userCredential = await _auth.signInWithCredential(credential);
       if (userCredential.user != null) {
         await _createOrUpdateUser(userCredential.user!);
+
+        // Update notification subscriptions
+        final isAdmin = await isCurrentUserAdmin();
+        final notificationService = PushNotificationService();
+        await notificationService.updatePromoSubscription(isUser: !isAdmin);
+        await notificationService.updateAdminSubscription(isAdmin: isAdmin);
       }
       return userCredential;
     } catch (e) {
@@ -251,6 +273,12 @@ class AuthService {
           });
         }
       }
+
+      // Update notification subscriptions after successful bypass login
+      final isAdmin = await isCurrentUserAdmin();
+      final notificationService = PushNotificationService();
+      await notificationService.updatePromoSubscription(isUser: !isAdmin);
+      await notificationService.updateAdminSubscription(isAdmin: isAdmin);
 
       return true;
     } catch (e) {

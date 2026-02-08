@@ -218,12 +218,14 @@ class NotificationService {
   Stream<int> getUnreadCount(String userId) {
     return getUserNotifications(userId)
         .map((list) {
-          return list.where((n) => n['read'] != true).length;
+          final count = list.where((n) {
+            final read = n['read'];
+            return read != true;
+          }).length;
+          return count;
         })
         .handleError((error) {
-          print(
-            'NotificationService: getUnreadCount error for $userId: $error',
-          );
+          print('NotificationService: getUnreadCount error for $userId: $error');
           return 0;
         });
   }
@@ -291,10 +293,12 @@ class NotificationService {
     void update() {
       if (hasA && hasB && hasC) {
         try {
-          controller.add(combiner(lastA as A, lastB as B, lastC as C));
+          if (lastA != null && lastB != null && lastC != null) {
+             controller.add(combiner(lastA as A, lastB as B, lastC as C));
+          }
         } catch (e) {
-          // Log error but don't crash the stream
           print('NotificationService: Error combining streams: $e');
+          controller.addError(e);
         }
       }
     }
@@ -305,36 +309,25 @@ class NotificationService {
         hasA = true;
         update();
       },
-      onError: (e) {
-        print('NotificationService: Stream A error: $e');
-        // Mark as received with null to allow other streams to proceed
-        hasA = true;
-        update();
-      },
+      onError: (e) => controller.addError(e),
     );
+    
     final subB = streamB.listen(
       (b) {
         lastB = b;
         hasB = true;
         update();
       },
-      onError: (e) {
-        print('NotificationService: Stream B error: $e');
-        hasB = true;
-        update();
-      },
+      onError: (e) => controller.addError(e),
     );
+    
     final subC = streamC.listen(
       (c) {
         lastC = c;
         hasC = true;
         update();
       },
-      onError: (e) {
-        print('NotificationService: Stream C error: $e');
-        hasC = true;
-        update();
-      },
+      onError: (e) => controller.addError(e),
     );
 
     controller.onCancel = () {
