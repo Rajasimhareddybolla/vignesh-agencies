@@ -24,16 +24,12 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Firebase App Check (non-blocking — falls back to placeholder token)
-  // Register your app in Firebase Console > App Check to eliminate the warning
-  FirebaseAppCheck.instance
-      .activate(
-        androidProvider:
-            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-        appleProvider:
-            kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
-      )
-      .catchError((e) => debugPrint('App Check activation failed: $e'));
+  // Initialize Firebase App Check to prevent upload delays
+  await FirebaseAppCheck.instance.activate(
+    androidProvider:
+        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+  );
 
   // Initialize Push Notifications
   final pushService = PushNotificationService();
